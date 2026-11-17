@@ -1,19 +1,16 @@
 import type { ReactNode } from "react"
 import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { act, createTestHarness } from "@/testing/component-harness"
+import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
 
 const { useLanguage } = await import("./use-language")
 const { useTheme } = await import("./use-theme")
-const { createRoot } = await import("react-dom/client")
-const { act, Component } = await import("react")
+const { Component } = await import("react")
 
 let host: HTMLDivElement
 let root: Root
+let harness: ReturnType<typeof createTestHarness>
 
 function MissingThemeProvider() {
 	useTheme()
@@ -43,15 +40,12 @@ async function renderWithoutProvider(Probe: () => null) {
 
 beforeEach(() => {
 	spyOn(console, "error").mockImplementation(() => {})
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness()
+	;({ host, root } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	mock.restore()
+	await harness.dispose()
 })
 
 test("useTheme explains the missing provider", async () => {

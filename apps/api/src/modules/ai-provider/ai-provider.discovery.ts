@@ -57,6 +57,50 @@ function modelsUrl(baseURL: string): string {
 	return `${baseURL.replace(/\/$/, "")}/models`
 }
 
+function assertDiscoveryStatus(response: Response): void {
+	if (response.status === HTTP_STATUS.UNAUTHORIZED || response.status === HTTP_STATUS.FORBIDDEN) {
+		throw new ModelDiscoveryError("unauthorized", "Provider rejected the configured credentials")
+	}
+	if (response.status === HTTP_STATUS.TOO_MANY_REQUESTS) {
+		throw new ModelDiscoveryError("rate-limited", "Provider rate limit reached")
+	}
+	if (!response.ok) throw new ModelDiscoveryError("provider-error", "Provider model discovery failed")
+}
+
+async function readBoundedBody(body: ReadableStream<Uint8Array>): Promise<Uint8Array[]> {
+	let bytes = 0
+	const chunks: Uint8Array[] = []
+	const reader = body.getReader()
+	while (true) {
+		const { done, value } = await reader.read()
+		if (done) break
+		bytes += value.byteLength
+		if (bytes > MAX_RESPONSE_BYTES) {
+			reader.cancel().catch(() => undefined)
+			throw new ModelDiscoveryError("provider-error", "Provider response is too large")
+		}
+		chunks.push(value)
+	}
+	return chunks
+}
+
+function parseResponseBody(chunks: Uint8Array[]): unknown {
+	try {
+		return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown
+	} catch {
+		throw new ModelDiscoveryError("provider-error", "Provider returned an invalid model list")
+	}
+}
+
+async function readResponseBody(response: Response): Promise<unknown> {
+	const contentLength = Number(response.headers.get("content-length") ?? 0)
+	if (contentLength > MAX_RESPONSE_BYTES)
+		throw new ModelDiscoveryError("provider-error", "Provider response is too large")
+
+	const chunks = response.body ? await readBoundedBody(response.body) : []
+	return parseResponseBody(chunks)
+}
+
 async function fetchJson(url: string, headers: Record<string, string>, fetcher: ModelDiscoveryFetch): Promise<unknown> {
 	let response: Response
 	try {
@@ -68,59 +112,26 @@ async function fetchJson(url: string, headers: Record<string, string>, fetcher: 
 	} catch {
 		throw new ModelDiscoveryError("unreachable", "Provider could not be reached")
 	}
-
-	if (response.status === HTTP_STATUS.UNAUTHORIZED || response.status === HTTP_STATUS.FORBIDDEN) {
-		throw new ModelDiscoveryError("unauthorized", "Provider rejected the configured credentials")
-	}
-	if (response.status === HTTP_STATUS.TOO_MANY_REQUESTS) {
-		throw new ModelDiscoveryError("rate-limited", "Provider rate limit reached")
-	}
-	if (!response.ok) throw new ModelDiscoveryError("provider-error", "Provider model discovery failed")
-
-	const contentLength = Number(response.headers.get("content-length") ?? 0)
-	if (contentLength > MAX_RESPONSE_BYTES)
-		throw new ModelDiscoveryError("provider-error", "Provider response is too large")
-
-	let bytes = 0
-	const chunks: Uint8Array[] = []
-	if (response.body) {
-		const reader = response.body.getReader() as ReadableStreamDefaultReader<Uint8Array>
-		while (true) {
-			const { done, value } = await reader.read()
-			if (done) break
-			bytes += value.byteLength
-			if (bytes > MAX_RESPONSE_BYTES) {
-				reader.cancel().catch(() => undefined)
-				throw new ModelDiscoveryError("provider-error", "Provider response is too large")
-			}
-			chunks.push(value)
-		}
-	}
-	const body = Buffer.concat(chunks).toString("utf8")
-	try {
-		return JSON.parse(body) as unknown
-	} catch {
-		throw new ModelDiscoveryError("provider-error", "Provider returned an invalid model list")
-	}
+	assertDiscoveryStatus(response)
+	return readResponseBody(response)
 }
 
-type DiscoverableProviderId = Exclude<AiProviderId, "google" | "azure" | "amazon-bedrock">
-
-function providerBaseUrl(providerId: DiscoverableProviderId, settings: Record<string, string>): string | undefined {
-	switch (providerId) {
-		case "openai":
-			return "https://api.openai.com/v1"
-		case "anthropic":
-			return "https://api.anthropic.com/v1"
-		case "mistral":
-			return settings.baseURL ?? "https://api.mistral.ai/v1"
-		case "openai-compatible":
-		default:
-			return settings.baseURL
-	}
+const PROVIDER_BASE_URLS: Record<AiProviderId, { defaultUrl?: string; overridable: boolean }> = {
+	openai: { defaultUrl: "https://api.openai.com/v1", overridable: false },
+	anthropic: { defaultUrl: "https://api.anthropic.com/v1", overridable: false },
+	mistral: { defaultUrl: "https://api.mistral.ai/v1", overridable: true },
+	google: { overridable: true },
+	azure: { overridable: true },
+	"amazon-bedrock": { overridable: true },
+	"openai-compatible": { overridable: true },
 }
 
-export async function discoverModels(input: DiscoveryRequest, fetcher: ModelDiscoveryFetch = fetch): Promise<string[]> {
+function providerBaseUrl(providerId: AiProviderId, settings: Record<string, string>): string | undefined {
+	const provider = PROVIDER_BASE_URLS[providerId]
+	return provider.overridable ? (settings.baseURL ?? provider.defaultUrl) : provider.defaultUrl
+}
+
+function assertDiscoverySupported(input: DiscoveryRequest): void {
 	if (
 		input.authMode === "deployment-identity" ||
 		input.providerId === "azure" ||
@@ -128,19 +139,15 @@ export async function discoverModels(input: DiscoveryRequest, fetcher: ModelDisc
 	) {
 		throw new ModelDiscoveryError("unsupported", "Model discovery is not supported for this provider configuration")
 	}
+}
 
+function requireApiKey(input: DiscoveryRequest): string {
 	const apiKey = input.credentials?.apiKey
 	if (!apiKey) throw new ModelDiscoveryError("unauthorized", "Provider credentials are required")
+	return apiKey
+}
 
-	if (input.providerId === "google") {
-		const response = await fetchJson(
-			"https://generativelanguage.googleapis.com/v1beta/models",
-			{ "x-goog-api-key": apiKey },
-			fetcher,
-		)
-		return googleResponseSchema.parse(response).models.map(({ name }) => name.replace(/^models\//, ""))
-	}
-
+function requireDiscoveryBaseUrl(input: DiscoveryRequest): string {
 	const baseURL = providerBaseUrl(input.providerId, input.settings)
 	if (!baseURL) throw new ModelDiscoveryError("provider-error", "Provider base URL is required")
 	try {
@@ -148,11 +155,30 @@ export async function discoverModels(input: DiscoveryRequest, fetcher: ModelDisc
 	} catch {
 		throw new ModelDiscoveryError("provider-error", "Provider base URL must use HTTP or HTTPS")
 	}
+	return baseURL
+}
 
-	const headers: Record<string, string> =
-		input.providerId === "anthropic"
-			? { "x-api-key": apiKey, "anthropic-version": "2023-06-01" }
-			: { Authorization: `Bearer ${apiKey}` }
-	const response = await fetchJson(modelsUrl(baseURL), headers, fetcher)
+function discoveryHeaders(providerId: AiProviderId, apiKey: string): Record<string, string> {
+	return providerId === "anthropic"
+		? { "x-api-key": apiKey, "anthropic-version": "2023-06-01" }
+		: { Authorization: `Bearer ${apiKey}` }
+}
+
+async function discoverGoogleModels(apiKey: string, fetcher: ModelDiscoveryFetch): Promise<string[]> {
+	const response = await fetchJson(
+		"https://generativelanguage.googleapis.com/v1beta/models",
+		{ "x-goog-api-key": apiKey },
+		fetcher,
+	)
+	return googleResponseSchema.parse(response).models.map(({ name }) => name.replace(/^models\//, ""))
+}
+
+export async function discoverModels(input: DiscoveryRequest, fetcher: ModelDiscoveryFetch = fetch): Promise<string[]> {
+	assertDiscoverySupported(input)
+	const apiKey = requireApiKey(input)
+	if (input.providerId === "google") return discoverGoogleModels(apiKey, fetcher)
+
+	const baseURL = requireDiscoveryBaseUrl(input)
+	const response = await fetchJson(modelsUrl(baseURL), discoveryHeaders(input.providerId, apiKey), fetcher)
 	return openAiResponseSchema.parse(response).data.map(({ id }) => id)
 }

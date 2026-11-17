@@ -4,7 +4,14 @@ import * as agent from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, giveRole, login, testAdminId, uniqueUsername } from "@/test-helpers.ts"
+import {
+	DEFAULT_PASSWORD,
+	expectConcealedResource,
+	giveRole,
+	login,
+	testAdminId,
+	uniqueUsername,
+} from "@/test-helpers.ts"
 import { DEFAULT_WIDGET_APPEARANCE, WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 
@@ -42,12 +49,7 @@ describe("embed lifecycle", () => {
 		const hidden = await createEmbed(await createAgent("Hidden"))
 		const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
 		await giveRole(operator.id, ["agents:manage"], [visible])
-		const { token } = await identity.createSession(operator.id)
-		const headers = { Cookie: `${identity.SESSION_COOKIE}=${token}` }
-		const hiddenResponse = await app.request(`/api/embeds/${hidden.id}`, { headers })
-		const missingResponse = await app.request(`/api/embeds/${crypto.randomUUID()}`, { headers })
-		expect(hiddenResponse.status).toBe(404)
-		expect(await hiddenResponse.json()).toEqual(await missingResponse.json())
+		await expectConcealedResource(operator.id, `/api/embeds/${hidden.id}`, `/api/embeds/${crypto.randomUUID()}`)
 		await expect(service.disableEmbed(hidden.id, operator.id)).rejects.toMatchObject({
 			status: 404,
 			problemCode: "embed-not-found",

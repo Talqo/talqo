@@ -26,6 +26,131 @@ import {
 } from "./role-form"
 import { useRefreshAccess } from "./use-refresh-access"
 
+type CatalogEntry = PermissionCatalog[number]
+
+function useSyncedRoleForm(role: Role, onDirtyChange: (dirty: boolean) => void) {
+	const form = useForm<RoleFormValues>({
+		resolver: zodResolver(roleFormSchema),
+		defaultValues: toRoleFormValues(role),
+	})
+	const { control, formState, reset } = form
+	const { isDirty } = formState
+	useEffect(() => onDirtyChange(isDirty), [isDirty, onDirtyChange])
+	useEffect(() => () => onDirtyChange(false), [onDirtyChange])
+	// Background refreshes must not replace an unfinished edit.
+	useEffect(() => {
+		if (!isDirty) reset(toRoleFormValues(role))
+	}, [role, reset, isDirty])
+	const selected = useWatch({ control, name: "permissions" })
+	return { ...form, selected }
+}
+
+function useSavingSync(isSaving: boolean, onSavingChange: (saving: boolean) => void) {
+	useEffect(() => onSavingChange(isSaving), [isSaving, onSavingChange])
+	useEffect(() => () => onSavingChange(false), [onSavingChange])
+}
+
+function useRoleUpdate(role: Role, reset: (values: RoleFormValues) => void) {
+	const refreshAccess = useRefreshAccess()
+	const updateRole = useUpdateRole({ mutation: { onSuccess: refreshAccess } })
+	const [saved, setSaved] = useState(false)
+	useAccessError(updateRole.error)
+
+	function onValid(values: RoleFormValues) {
+		setSaved(false)
+		updateRole.mutate(
+			{ roleId: role.id, data: values },
+			{
+				onSuccess: ({ data }) => {
+					reset(toRoleFormValues(data.role))
+					setSaved(true)
+				},
+			},
+		)
+	}
+
+	return { isSaving: updateRole.isPending, onValid, saved, setSaved, updateRole }
+}
+
+function PermissionRow({
+	entry,
+	idPrefix,
+	includedBy,
+	locked,
+	notHeld,
+	onToggle,
+	selected,
+}: {
+	entry: CatalogEntry
+	idPrefix: string
+	includedBy: GrantablePermission | undefined
+	locked: boolean
+	notHeld: boolean
+	onToggle: (permission: GrantablePermission) => void
+	selected: readonly GrantablePermission[]
+}) {
+	const { t } = useTranslation()
+	const { permission } = entry
+	const copy = PERMISSION_COPY[permission]
+	const id = `${idPrefix}-${permission.replace(/[:_]/g, "-")}`
+	const hint = includedBy
+		? t("roles.includedWith", { permission: PERMISSION_COPY[includedBy].label(t) })
+		: notHeld
+			? t("roles.notYours")
+			: null
+	return (
+		<div className="flex items-start justify-between gap-6 py-4">
+			<div className="space-y-1">
+				<Label htmlFor={id}>{copy.label(t)}</Label>
+				<p id={`${id}-description`} className="text-muted-foreground text-sm">
+					{copy.description(t)}
+					{hint ? <span className="block">{hint}</span> : null}
+				</p>
+			</div>
+			<Switch
+				render={<button type="button" aria-label={copy.label(t)} />}
+				nativeButton
+				id={id}
+				className="mt-0.5"
+				checked={selected.includes(permission) || includedBy !== undefined}
+				disabled={locked || notHeld || includedBy !== undefined}
+				aria-describedby={`${id}-description`}
+				onCheckedChange={() => onToggle(permission)}
+			/>
+		</div>
+	)
+}
+
+function RoleFormFooter({
+	isDirty,
+	isSaving,
+	onDiscard,
+	saved,
+}: {
+	isDirty: boolean
+	isSaving: boolean
+	onDiscard: () => void
+	saved: boolean
+}) {
+	const { t } = useTranslation()
+	return (
+		<FormActions
+			discard={
+				isDirty ? (
+					<Button type="button" variant="outline" disabled={isSaving} onClick={onDiscard}>
+						{t("roles.discard")}
+					</Button>
+				) : undefined
+			}
+			status={isDirty ? t("roles.unsaved") : saved ? t("roles.saved") : undefined}
+		>
+			<Button type="submit" disabled={isSaving || !isDirty}>
+				{isSaving ? t("roles.saving") : t("roles.save")}
+			</Button>
+		</FormActions>
+	)
+}
+
 export function UpdateRoleForm({
 	catalog,
 	disabled,
@@ -44,32 +169,17 @@ export function UpdateRoleForm({
 	role: Role
 }) {
 	const { t } = useTranslation()
-	const refreshAccess = useRefreshAccess()
-	const updateRole = useUpdateRole({ mutation: { onSuccess: refreshAccess } })
-	const [saved, setSaved] = useState(false)
-	const isSaving = updateRole.isPending
-	useAccessError(updateRole.error)
 	const {
-		control,
 		register,
 		handleSubmit,
 		reset,
 		setFocus,
 		setValue,
 		formState: { errors, isDirty },
-	} = useForm<RoleFormValues>({
-		resolver: zodResolver(roleFormSchema),
-		defaultValues: toRoleFormValues(role),
-	})
-	useEffect(() => onDirtyChange(isDirty), [isDirty, onDirtyChange])
-	useEffect(() => () => onDirtyChange(false), [onDirtyChange])
-	useEffect(() => onSavingChange(isSaving), [isSaving, onSavingChange])
-	useEffect(() => () => onSavingChange(false), [onSavingChange])
-	// Background refreshes must not replace an unfinished edit.
-	useEffect(() => {
-		if (!isDirty) reset(toRoleFormValues(role))
-	}, [role, reset, isDirty])
-	const selected = useWatch({ control, name: "permissions" })
+		selected,
+	} = useSyncedRoleForm(role, onDirtyChange)
+	const { isSaving, onValid, saved, setSaved, updateRole } = useRoleUpdate(role, reset)
+	useSavingSync(isSaving, onSavingChange)
 	const included = includedPermissions(selected, catalog)
 	const idPrefix = `role-${role.id}`
 	const locksOut = losesRoleManagement({
@@ -87,17 +197,10 @@ export function UpdateRoleForm({
 		setSaved(false)
 	}
 
-	function onValid(values: RoleFormValues) {
+	function discard() {
+		reset(toRoleFormValues(role))
+		updateRole.reset()
 		setSaved(false)
-		updateRole.mutate(
-			{ roleId: role.id, data: values },
-			{
-				onSuccess: ({ data }) => {
-					reset(toRoleFormValues(data.role))
-					setSaved(true)
-				},
-			},
-		)
 	}
 
 	return (
@@ -125,38 +228,18 @@ export function UpdateRoleForm({
 							</div>
 							<fieldset className="divide-y" disabled={disabled || isSaving}>
 								<legend className="pb-2 text-sm font-medium">{t("roles.permissionsLegend")}</legend>
-								{catalog.map(({ permission }) => {
-									const includedBy = included.get(permission)
-									const notHeld = !heldPermissions.includes(permission)
-									const id = `${idPrefix}-${permission.replace(/[:_]/g, "-")}`
-									const copy = PERMISSION_COPY[permission]
-									const hint = includedBy
-										? t("roles.includedWith", { permission: PERMISSION_COPY[includedBy].label(t) })
-										: notHeld
-											? t("roles.notYours")
-											: null
-									return (
-										<div key={permission} className="flex items-start justify-between gap-6 py-4">
-											<div className="space-y-1">
-												<Label htmlFor={id}>{copy.label(t)}</Label>
-												<p id={`${id}-description`} className="text-muted-foreground text-sm">
-													{copy.description(t)}
-													{hint ? <span className="block">{hint}</span> : null}
-												</p>
-											</div>
-											<Switch
-												render={<button type="button" aria-label={copy.label(t)} />}
-												nativeButton
-												id={id}
-												className="mt-0.5"
-												checked={selected.includes(permission) || includedBy !== undefined}
-												disabled={disabled || isSaving || notHeld || includedBy !== undefined}
-												aria-describedby={`${id}-description`}
-												onCheckedChange={() => toggle(permission)}
-											/>
-										</div>
-									)
-								})}
+								{catalog.map((entry) => (
+									<PermissionRow
+										key={entry.permission}
+										entry={entry}
+										idPrefix={idPrefix}
+										includedBy={included.get(entry.permission)}
+										locked={disabled || isSaving}
+										notHeld={!heldPermissions.includes(entry.permission)}
+										onToggle={toggle}
+										selected={selected}
+									/>
+								))}
 							</fieldset>
 							{locksOut ? (
 								<p
@@ -168,29 +251,7 @@ export function UpdateRoleForm({
 							) : null}
 							<ProblemAlert error={updateRole.error} />
 							{!disabled ? (
-								<FormActions
-									discard={
-										isDirty ? (
-											<Button
-												type="button"
-												variant="outline"
-												disabled={isSaving}
-												onClick={() => {
-													reset(toRoleFormValues(role))
-													updateRole.reset()
-													setSaved(false)
-												}}
-											>
-												{t("roles.discard")}
-											</Button>
-										) : undefined
-									}
-									status={isDirty ? t("roles.unsaved") : saved ? t("roles.saved") : undefined}
-								>
-									<Button type="submit" disabled={isSaving || !isDirty}>
-										{isSaving ? t("roles.saving") : t("roles.save")}
-									</Button>
-								</FormActions>
+								<RoleFormFooter isDirty={isDirty} isSaving={isSaving} onDiscard={discard} saved={saved} />
 							) : null}
 						</div>
 					</CardContent>

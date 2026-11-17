@@ -1,48 +1,19 @@
-import type { ConversationSummary } from "@/api/generated/models/conversationSummary.zod.ts"
-
-import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { useListConversations } from "@/api/generated/conversation/conversation.ts"
 import { PageHeader } from "@/components/page-header"
-import { ProblemAlert } from "@/components/problem-alert"
 import { AgentFilter } from "@/features/statistics/components/agent-filter"
-import { agentLineColor } from "@/features/statistics/components/stats-charts"
-import { formatDay, formatTime } from "@/lib/format-date"
 import { useLanguage } from "@/lib/use-language"
-import { Button } from "@talqo/ui/components/button"
-import { EmptyState } from "@talqo/ui/components/empty-state"
-import { Skeleton } from "@talqo/ui/components/skeleton"
 import { keepPreviousData } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
-import { ChevronLeft, ChevronRight, MessagesSquare } from "lucide-react"
-import { useEffect, useMemo, useRef } from "react"
+import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { ConversationsSearch } from "./conversations-search"
 
+import { ConversationResults } from "./conversations-results"
+import { useConversationFilters } from "./use-conversation-filters"
+
 type Props = {
 	search: ConversationsSearch
 	onSearchChange: (search: ConversationsSearch) => void
-}
-
-type DayGroup = { day: string; conversations: ConversationSummary[] }
-
-/** Drops unreadable IDs. Undefined means all agents; an unchanged selection keeps its reference. */
-function reconcileAgentIds(requested: string[] | undefined, readableIds: string[]): string[] | undefined {
-	if (requested === undefined || requested.length === 0) return requested
-	const valid = requested.filter((id) => readableIds.includes(id))
-	if (valid.length === requested.length) return requested
-	return valid.length === 0 ? undefined : valid
-}
-
-function groupByDay(conversations: ConversationSummary[], language: string): DayGroup[] {
-	const groups: DayGroup[] = []
-	for (const conversation of conversations) {
-		const day = formatDay(conversation.startedAt, language)
-		const last = groups.at(-1)
-		if (last?.day === day) last.conversations.push(conversation)
-		else groups.push({ day, conversations: [conversation] })
-	}
-	return groups
 }
 
 export function ConversationsPage({ search, onSearchChange }: Props) {
@@ -50,41 +21,14 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 	const { language } = useLanguage()
 	const resultsHeading = useRef<HTMLHeadingElement>(null)
 	const page = search.page ?? 1
-	const agentsQuery = useListAgents()
-	const agentLines = useMemo(
-		() =>
-			(agentsQuery.data?.data.agents ?? [])
-				.filter((agent) => agent.permissions.includes("conversations:read"))
-				.map((agent, index) => ({
-					id: agent.id,
-					name: agent.name,
-					color: agentLineColor(index),
-				})),
-		[agentsQuery.data],
-	)
-	const agentNames = new Map(agentLines.map((line) => [line.id, line.name]))
-	const readableIds = useMemo(() => agentLines.map((line) => line.id), [agentLines])
-	const agentsLoaded = agentsQuery.data !== undefined
-	const effectiveAgents = useMemo(
-		() => (agentsLoaded ? reconcileAgentIds(search.agents, readableIds) : search.agents),
-		[agentsLoaded, search.agents, readableIds],
-	)
-	const filterChanged = effectiveAgents !== search.agents
-	const noAgentSelected = effectiveAgents?.length === 0
-	// A filtered URL waits for the agent list instead of querying unreadable IDs first.
-	const awaitingAgents = agentsQuery.isPending && (search.agents?.length ?? 0) > 0
-
-	useEffect(() => {
-		if (!agentsLoaded || effectiveAgents === search.agents) return
-		onSearchChange({ ...search, agents: effectiveAgents, page: undefined })
-	}, [agentsLoaded, effectiveAgents, onSearchChange, search])
+	const { agentLines, agentNames, awaitingAgents, effectiveAgents, filterChanged, noAgentSelected, selectedIds } =
+		useConversationFilters(search, onSearchChange)
 
 	const conversationsQuery = useListConversations(
 		{ agentId: effectiveAgents, page: filterChanged ? 1 : page },
 		{ query: { enabled: !noAgentSelected && !awaitingAgents, placeholderData: keepPreviousData } },
 	)
 	const result = conversationsQuery.data?.data
-	const pageCount = result ? Math.max(1, Math.ceil(result.total / result.pageSize)) : 1
 
 	function goToPage(next: number) {
 		onSearchChange({ ...search, page: next > 1 ? next : undefined })
@@ -99,7 +43,7 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 				{agentLines.length > 0 && (
 					<AgentFilter
 						agentLines={agentLines}
-						selectedIds={effectiveAgents ?? readableIds}
+						selectedIds={selectedIds}
 						onChange={(ids) =>
 							onSearchChange({
 								...search,
@@ -124,91 +68,20 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 					{result ? t("conversations.total", { count: result.total }) : t("conversations.listHeading")}
 				</h2>
 
-				{noAgentSelected ? (
-					<output className="text-muted-foreground block">{t("conversations.noAgentSelected")}</output>
-				) : conversationsQuery.isPending ? (
-					<div className="space-y-3">
-						<div className="divide-border divide-y rounded-md border">
-							{Array.from({ length: 4 }, (_, index) => (
-								<div key={index} className="space-y-2 px-4 py-3">
-									<Skeleton className="h-4 w-2/3 max-w-full" />
-									<Skeleton className="h-3 w-1/2 max-w-full" />
-								</div>
-							))}
-						</div>
-					</div>
-				) : !result ? (
-					<ProblemAlert error={conversationsQuery.error} onRetry={() => void conversationsQuery.refetch()} />
-				) : result.conversations.length === 0 && page > 1 ? (
-					<EmptyState
-						icon={MessagesSquare}
-						title={t("conversations.pageEmptyTitle")}
-						description={t("conversations.pageEmptyDescription")}
-						actions={
-							<Button variant="outline" onClick={() => goToPage(1)}>
-								{t("conversations.firstPage")}
-							</Button>
-						}
-					/>
-				) : result.conversations.length === 0 ? (
-					<EmptyState
-						icon={MessagesSquare}
-						title={effectiveAgents ? t("conversations.emptyFilteredTitle") : t("conversations.emptyTitle")}
-						description={
-							effectiveAgents ? t("conversations.emptyFilteredDescription") : t("conversations.emptyDescription")
-						}
-					/>
-				) : (
-					<>
-						<ProblemAlert error={conversationsQuery.error} onRetry={() => void conversationsQuery.refetch()} />
-						{groupByDay(result.conversations, language).map((group) => (
-							<div key={group.day} className="space-y-2">
-								<h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">{group.day}</h3>
-								<ul className="divide-border divide-y rounded-md border">
-									{group.conversations.map((conversation) => (
-										<li key={conversation.id}>
-											<Link
-												to="/dashboard/conversations/$conversationId"
-												params={{ conversationId: conversation.id }}
-												search={search}
-												className="hover:bg-muted/50 flex items-center gap-3 px-4 py-3"
-											>
-												<div className="min-w-0 flex-1 space-y-1">
-													<p className="truncate text-sm font-medium">
-														{conversation.preview ?? t("conversations.noPreview")}
-													</p>
-													<p className="text-muted-foreground text-xs">
-														{formatTime(conversation.startedAt, language)}
-														{" · "}
-														{agentNames.get(conversation.agentId) ?? t("conversations.unknownAgent")}
-														{" · "}
-														{t("conversations.messageCount", { count: conversation.messageCount })}
-													</p>
-												</div>
-												<ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
-											</Link>
-										</li>
-									))}
-								</ul>
-							</div>
-						))}
-						{pageCount > 1 && (
-							<nav aria-label={t("conversations.pagination")} className="flex items-center justify-between gap-2">
-								<Button variant="outline" onClick={() => goToPage(page - 1)} disabled={page <= 1}>
-									<ChevronLeft className="size-4" aria-hidden="true" />
-									{t("conversations.previousPage")}
-								</Button>
-								<span className="text-muted-foreground text-sm">
-									{t("conversations.pageOf", { page, pages: pageCount })}
-								</span>
-								<Button variant="outline" onClick={() => goToPage(page + 1)} disabled={page >= pageCount}>
-									{t("conversations.nextPage")}
-									<ChevronRight className="size-4" aria-hidden="true" />
-								</Button>
-							</nav>
-						)}
-					</>
-				)}
+				<ConversationResults
+					agentNames={agentNames}
+					error={conversationsQuery.error}
+					filtered={effectiveAgents !== undefined}
+					isPending={conversationsQuery.isPending}
+					language={language}
+					noAgentSelected={noAgentSelected}
+					onFirstPage={() => goToPage(1)}
+					onPageChange={goToPage}
+					onRetry={() => void conversationsQuery.refetch()}
+					page={page}
+					result={result}
+					search={search}
+				/>
 			</section>
 		</div>
 	)

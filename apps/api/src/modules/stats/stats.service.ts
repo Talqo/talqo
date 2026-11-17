@@ -33,6 +33,12 @@ type StatsAgentDailyPoint = StatsDailyPoint & {
 	agentId: string
 }
 
+type StatsDailySeries = {
+	daily: StatsDailyPoint[]
+	dayCount: number
+	totals: StatsOverview["totals"]
+}
+
 export type StatsOverview = {
 	active: StatsActiveConversations[]
 	activeWindowMinutes: number
@@ -103,6 +109,24 @@ export async function getStatsOverview(query: StatsOverviewQuery, actorId: strin
 	}
 	agentDaily.sort((left, right) => left.agentId.localeCompare(right.agentId) || left.date.localeCompare(right.date))
 
+	const agentTotals = summarizeAgents(byAgentDay, agents)
+	const axisSince = query.days === "all" ? firstActivityDate(agentDaily) : since
+	const { daily, dayCount, totals } = dailySeries(agentDaily, axisSince)
+	return {
+		active,
+		activeWindowMinutes: ACTIVE_CONVERSATION_WINDOW_MINUTES,
+		agentDaily,
+		agents: agentTotals,
+		daily,
+		days: dayCount,
+		totals,
+	}
+}
+
+function summarizeAgents(
+	byAgentDay: Map<string, Map<string, StatsAgentDailyPoint>>,
+	agents: { id: string; name: string }[],
+): StatsAgentTotals[] {
 	const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]))
 	const agentTotals: StatsAgentTotals[] = []
 	for (const [agentId, byDay] of byAgentDay) {
@@ -123,7 +147,19 @@ export async function getStatsOverview(query: StatsOverviewQuery, actorId: strin
 		agentTotals.push(totalsRow)
 	}
 	agentTotals.sort((left, right) => left.agentName.localeCompare(right.agentName))
+	return agentTotals
+}
 
+// "all" spans recorded history, or today when no activity exists.
+function firstActivityDate(agentDaily: StatsAgentDailyPoint[]): Date {
+	let earliest = utcDateKey(new Date())
+	for (const point of agentDaily) {
+		if (point.date < earliest) earliest = point.date
+	}
+	return new Date(`${earliest}T00:00:00Z`)
+}
+
+function dailySeries(agentDaily: StatsAgentDailyPoint[], axisSince: Date): StatsDailySeries {
 	const axisTotals = new Map<string, StatsDailyPoint>()
 	for (const point of agentDaily) {
 		const day = axisTotals.get(point.date) ?? {
@@ -138,16 +174,6 @@ export async function getStatsOverview(query: StatsOverviewQuery, actorId: strin
 		day.inputTokens += point.inputTokens
 		day.outputTokens += point.outputTokens
 		axisTotals.set(point.date, day)
-	}
-	// "all" anchors the dense axis at the first day with recorded activity (today when there is
-	// none), so the axis spans exactly the recorded history instead of open-ended zeros.
-	let axisSince = since
-	if (query.days === "all") {
-		let earliest = utcDateKey(new Date())
-		for (const point of agentDaily) {
-			if (point.date < earliest) earliest = point.date
-		}
-		axisSince = new Date(`${earliest}T00:00:00Z`)
 	}
 	const today = new Date()
 	today.setUTCHours(0, 0, 0, 0)
@@ -170,13 +196,5 @@ export async function getStatsOverview(query: StatsOverviewQuery, actorId: strin
 		totals.inputTokens += day.inputTokens
 		totals.outputTokens += day.outputTokens
 	}
-	return {
-		active,
-		activeWindowMinutes: ACTIVE_CONVERSATION_WINDOW_MINUTES,
-		agentDaily,
-		agents: agentTotals,
-		daily,
-		days: dayCount,
-		totals,
-	}
+	return { daily, dayCount, totals }
 }

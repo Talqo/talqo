@@ -1,12 +1,6 @@
 import type { Embed } from "@/api/generated/models/embed.zod"
+import type { QueryClient } from "@/testing/component-harness"
 import type { Root } from "react-dom/client"
-
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 import {
 	json,
@@ -14,15 +8,13 @@ import {
 	recordRequest,
 	requestCount as countRequests,
 } from "@/testing/api-responses"
-import { settle } from "@/testing/component-harness"
+import { act, createTestHarness, QueryClientProvider, settle } from "@/testing/component-harness"
 import { click } from "@/testing/dom"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { EMBED_FORM_DEFAULTS } = await import("@/features/embeds/embed-appearance-form")
 const { useGetEmbed, useListEmbeds } = await import("@/api/generated/embed/embed.ts")
 const { RotateEmbedTokenDialog } = await import("./-rotate-embed-token-dialog")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 const EMBED_ID = "embed-1"
@@ -44,6 +36,7 @@ let requests: RequestRecord[]
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
+let harness: ReturnType<typeof createTestHarness>
 
 function TokenRotationHarness() {
 	const detail = useGetEmbed(EMBED_ID)
@@ -110,18 +103,12 @@ beforeEach(() => {
 	currentEmbed = INITIAL_EMBED
 	rotationFailures = 0
 	requests = []
-	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({ fetch: respond as typeof fetch })
+	;({ host, root, queryClient } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
-	mock.restore()
+	await harness.dispose()
 	window.localStorage.removeItem("talqo-language")
 	document.documentElement.lang = "en"
 })

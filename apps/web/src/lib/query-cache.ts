@@ -5,6 +5,7 @@ import { getGetMyPermissionsQueryKey } from "@/api/generated/roles/roles"
 
 const FORBIDDEN_STATUS = 403
 const NOT_FOUND_STATUS = 404
+const DENIED_STATUSES = new Set<unknown>([FORBIDDEN_STATUS, NOT_FOUND_STATUS])
 
 type DeniedQuery = {
 	queryKey: readonly unknown[]
@@ -13,10 +14,9 @@ type DeniedQuery = {
 
 // A revoked or removed resource must not keep rendering cached private data.
 export function handleDeniedQueryError(client: QueryClient, error: Error, query: DeniedQuery): void {
-	if (!("status" in error) || (error.status !== FORBIDDEN_STATUS && error.status !== NOT_FOUND_STATUS)) return
+	if (!("status" in error) || !DENIED_STATUSES.has(error.status)) return
 	query.setState({ data: undefined })
-	if (query.queryKey[0] !== getListAgentsQueryKey()[0])
-		void client.invalidateQueries({ queryKey: getListAgentsQueryKey() })
-	if (query.queryKey[0] !== getGetMyPermissionsQueryKey()[0])
-		void client.invalidateQueries({ queryKey: getGetMyPermissionsQueryKey() })
+	for (const queryKey of [getListAgentsQueryKey(), getGetMyPermissionsQueryKey()]) {
+		if (query.queryKey[0] !== queryKey[0]) void client.invalidateQueries({ queryKey })
+	}
 }

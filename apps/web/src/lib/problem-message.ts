@@ -54,8 +54,8 @@ const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) =>
 }
 
 function isExactProblem(value: unknown): value is ProblemDetails {
-	if (typeof value !== "object" || value === null || Array.isArray(value)) return false
-	if (Object.keys(value).length !== PROBLEM_PROPERTY_COUNT || !("code" in value) || !("type" in value)) return false
+	if (typeof value !== "object" || value === null) return false
+	if (Object.keys(value).length !== PROBLEM_PROPERTY_COUNT) return false
 	return problemDetailsSchema.safeParse(value).success
 }
 

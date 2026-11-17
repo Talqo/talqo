@@ -240,6 +240,32 @@ describe("AI provider service", () => {
 		).rejects.toBeInstanceOf(InvalidConfigurationError)
 	})
 
+	it("rejects static credentials sent alongside deployment-identity authentication", async () => {
+		const { service, getStored } = createMemoryService()
+		const textWithCredentials = {
+			providerId: "azure",
+			modelId: "gpt-5",
+			authMode: "deployment-identity",
+			settings: { baseURL: "https://example.openai.azure.com" },
+			credentials: { apiKey: "sk-not-used" },
+		} as const
+
+		await expect(
+			service.saveConfiguration({
+				expectedRevision: 0,
+				text: textWithCredentials,
+				embedding: {
+					providerId: "azure",
+					modelId: "text-embedding-3-small",
+					authMode: "deployment-identity",
+					settings: { baseURL: "https://example.openai.azure.com" },
+					credentialSource: "text",
+				},
+			}),
+		).rejects.toThrow(/does not accept static credentials/)
+		expect(getStored()).toBeUndefined()
+	})
+
 	it("discovers models without saving transient credentials", async () => {
 		const { service, getStored } = createMemoryService()
 

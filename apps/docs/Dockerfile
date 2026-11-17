@@ -31,9 +31,10 @@ WORKDIR /app
 ENV NODE_ENV=production \
 	TALQO_DOCS_PORT=3002
 
-# The SSR bundle is built with noExternal, so `dist` is the only thing it needs at runtime.
+# SSR dependencies are bundled; the Bun entry and its helper need no node_modules.
 COPY --from=build /app/apps/docs/dist ./apps/docs/dist
 COPY --from=build /app/apps/docs/src/serve.ts ./apps/docs/src/serve.ts
+COPY --from=build /app/apps/docs/src/lib/server.ts ./apps/docs/src/lib/server.ts
 
 USER bun
 

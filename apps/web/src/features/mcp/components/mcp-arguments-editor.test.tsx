@@ -1,22 +1,18 @@
 import type { ArgumentRow } from "@/features/mcp/mcp-arguments"
 import type { Root } from "react-dom/client"
 
+import { act, createTestHarness } from "@/testing/component-harness"
 import { click, findButton as button, typeInto as type } from "@/testing/dom"
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
 
 const { McpArgumentsEditor } = await import("./mcp-arguments-editor")
 const { MCP_ARGUMENT_LIMIT } = await import("@/features/mcp/mcp-arguments")
-const { createRoot } = await import("react-dom/client")
-const { act, useState } = await import("react")
+const { useState } = await import("react")
 const { t } = await import("i18next")
 
 let host: HTMLDivElement
 let root: Root
+let harness: ReturnType<typeof createTestHarness>
 let emitted: ArgumentRow[][]
 
 function ControlledEditor({ initialArgs }: { initialArgs: ArgumentRow[] }) {
@@ -48,15 +44,12 @@ function argumentValues(): string[] {
 }
 
 beforeEach(() => {
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness()
+	;({ host, root } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("McpArgumentsEditor", () => {

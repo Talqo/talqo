@@ -30,23 +30,36 @@ export function useRequiredPermission(): Permission | undefined {
 	return required
 }
 
-// An unresolved request is never a denial.
-export function accessGate(
-	required: Permission | undefined,
-	query: PermissionQuery,
-	agents?: { isPending: boolean; isError: boolean; data?: { data: ListAgents200 } },
-): AccessGate {
-	if (!required) return "open"
+type AgentsQuery = { isPending: boolean; isError: boolean; data?: { data: ListAgents200 } }
+
+function isAgentScoped(required: Permission): boolean {
+	return required.startsWith("agents:") || required === "stats:read" || required === "conversations:read"
+}
+
+function agentAccessGate(required: Permission, agents: AgentsQuery | undefined): AccessGate {
+	if (!agents || agents.isPending) return "pending"
+	if (agents.isError) return "error"
+	return agents.data?.data.agents.some((agent) => (agent.permissions as readonly string[]).includes(required))
+		? "open"
+		: "denied"
+}
+
+function permissionState(query: PermissionQuery): "pending" | "error" | undefined {
 	if (query.isPending) return "pending"
 	if (query.isError) return "error"
+	return undefined
+}
+
+function hasPermission(query: PermissionQuery, required: Permission): boolean {
 	const permissions: readonly string[] = query.data?.data.permissions ?? []
-	if (permissions.includes("admin") || permissions.includes(required)) return "open"
-	if (required.startsWith("agents:") || required === "stats:read" || required === "conversations:read") {
-		if (!agents || agents.isPending) return "pending"
-		if (agents.isError) return "error"
-		return agents.data?.data.agents.some((agent) => (agent.permissions as readonly string[]).includes(required))
-			? "open"
-			: "denied"
-	}
-	return "denied"
+	return permissions.includes("admin") || permissions.includes(required)
+}
+
+// An unresolved request is never a denial.
+export function accessGate(required: Permission | undefined, query: PermissionQuery, agents?: AgentsQuery): AccessGate {
+	if (!required) return "open"
+	const state = permissionState(query)
+	if (state) return state
+	if (hasPermission(query, required)) return "open"
+	return isAgentScoped(required) ? agentAccessGate(required, agents) : "denied"
 }

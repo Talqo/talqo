@@ -47,7 +47,6 @@ export type ToolBinding = {
 	names: Map<string, ToolIdentity>
 	tools: Record<string, unknown>
 }
-type RuntimeTextMessage = { content: string; role: "assistant" | "user" }
 export type PrepareTextOperationInput = {
 	maxOutputTokens: number
 	messages: TextMessage[]
@@ -70,7 +69,7 @@ type Generate = (input: {
 	instructions?: string
 	maxOutputTokens: number
 	maxRetries: 0
-	messages: RuntimeTextMessage[]
+	messages: TextMessage[]
 	model: LanguageModelV4
 	onToolEvent?: (event: ToolEvent) => void
 	signal: AbortSignal
@@ -129,7 +128,7 @@ async function* invokePreparedOperation(
 	generate: Generate,
 	input: PrepareTextOperationInput & {
 		instructions?: string
-		messages: RuntimeTextMessage[]
+		messages: TextMessage[]
 		model: LanguageModelV4
 		modelId: string
 		onToolEvent?: (event: ToolEvent) => void
@@ -256,6 +255,43 @@ function requiredCredentialsPresent(providerId: string, credentials: Record<stri
 	return getProviderDefinition(providerId).requiredCredentialFields.every((field) => credentials[field]?.trim())
 }
 
+function rejectStaticCredentials(
+	input:
+		| ({ providerId: string } & { authMode: "static"; credentials?: Record<string, string> })
+		| { authMode: "deployment-identity" },
+): void {
+	if ("credentials" in input && input.credentials) {
+		throw new InvalidConfigurationError(
+			`${input.providerId} does not accept static credentials with deployment-identity authentication`,
+		)
+	}
+}
+
+function encryptCredentials(
+	input: {
+		providerId: string
+		role: "text" | "embedding"
+	} & { authMode: "static"; credentials?: Record<string, string> },
+	vault: Vault,
+): CredentialEnvelope {
+	if (!input.credentials || !requiredCredentialsPresent(input.providerId, input.credentials)) {
+		throw new InvalidConfigurationError(`${input.providerId} credentials are incomplete`)
+	}
+	return vault.encrypt(input.credentials, { configId: CONFIG_ID, providerId: input.providerId, role: input.role })
+}
+
+function reuseStoredCredentials(
+	input: {
+		existing?: StoredTextConfiguration
+		providerId: string
+		settings: Record<string, string>
+	} & { authMode: "static"; credentials?: Record<string, string> },
+): CredentialEnvelope | undefined {
+	if (!input.existing || !sameContext(input.existing, input)) return undefined
+	if (!input.existing.credentials) throw new InvalidConfigurationError(`${input.providerId} credentials are required`)
+	return input.existing.credentials
+}
+
 function resolveEnvelope(
 	input: {
 		existing?: StoredTextConfiguration
@@ -266,23 +302,12 @@ function resolveEnvelope(
 	vault: Vault,
 ): CredentialEnvelope | null {
 	if (input.authMode === "deployment-identity") {
-		if ("credentials" in input && input.credentials) {
-			throw new InvalidConfigurationError(
-				`${input.providerId} does not accept static credentials with deployment-identity authentication`,
-			)
-		}
+		rejectStaticCredentials(input)
 		return null
 	}
-	if (input.credentials) {
-		if (!requiredCredentialsPresent(input.providerId, input.credentials)) {
-			throw new InvalidConfigurationError(`${input.providerId} credentials are incomplete`)
-		}
-		return vault.encrypt(input.credentials, { configId: CONFIG_ID, providerId: input.providerId, role: input.role })
-	}
-	if (input.existing && sameContext(input.existing, input)) {
-		if (!input.existing.credentials) throw new InvalidConfigurationError(`${input.providerId} credentials are required`)
-		return input.existing.credentials
-	}
+	if (input.credentials) return encryptCredentials(input, vault)
+	const reused = reuseStoredCredentials(input)
+	if (reused) return reused
 	throw new InvalidConfigurationError(`${input.providerId} credentials are required for the selected credential source`)
 }
 
@@ -315,6 +340,94 @@ function redact(configuration: StoredConfiguration | undefined, vault: Vault): R
 		text: { ...text, hasCredentials: textCredentials !== null },
 		embedding: { ...embedding, hasCredentials: embeddingCredentials !== null },
 	}
+}
+
+function existingCredentialState(stored: StoredTextConfiguration | undefined): { credentials: boolean } | undefined {
+	return stored ? { credentials: stored.credentials !== null } : undefined
+}
+
+function validateSaveInput(input: SaveConfigurationInput, existing: StoredConfiguration | undefined): void {
+	try {
+		validateConfigurationInput(input, {
+			text: existingCredentialState(existing?.text),
+			embedding: existingCredentialState(existing?.embedding),
+		})
+	} catch (error) {
+		throw new InvalidConfigurationError(error instanceof Error ? error.message : "Invalid configuration")
+	}
+}
+
+function resolveConfigurationEnvelopes(
+	input: SaveConfigurationInput,
+	existing: StoredConfiguration | undefined,
+	vault: Vault,
+): { embedding: CredentialEnvelope | null; text: CredentialEnvelope | null } {
+	const text = resolveEnvelope({ ...input.text, existing: existing?.text, role: "text" }, vault)
+	const embedding =
+		input.embedding.credentialSource === "separate"
+			? resolveEnvelope({ ...input.embedding, existing: existing?.embedding, role: "embedding" }, vault)
+			: null
+	return { text, embedding }
+}
+
+function toStoredEmbedding(
+	input: SaveConfigurationInput["embedding"],
+	credentials: CredentialEnvelope | null,
+): StoredEmbeddingConfiguration {
+	return {
+		providerId: input.providerId,
+		modelId: input.modelId,
+		authMode: input.authMode,
+		settings: input.settings,
+		credentialSource: input.credentialSource,
+		credentials,
+	}
+}
+
+function decryptTextCredentials(stored: StoredTextConfiguration, vault: Vault): Record<string, string> | undefined {
+	if (!stored.credentials) return undefined
+	return vault.decrypt(stored.credentials, {
+		configId: CONFIG_ID,
+		providerId: stored.providerId,
+		role: "text",
+	})
+}
+
+function splitInstructions(messages: TextMessage[]): {
+	instructions?: string
+	messages: TextMessage[]
+} {
+	const [firstMessage, ...remainingMessages] = messages
+	if (firstMessage?.role === "system") return { instructions: firstMessage.content, messages: remainingMessages }
+	return { messages }
+}
+
+function createGenerate(dependencies: ServiceDependencies, streamText: typeof aiStreamText): Generate {
+	return dependencies.generate ?? ((generation) => defaultGenerate(generation, streamText))
+}
+
+async function resolveStoredDiscoveryCredentials(
+	input: DiscoverModelsInput & { authMode: "static"; storedCredentialRole: "text" | "embedding" },
+	repository: Repository,
+	vault: Vault,
+): Promise<Record<string, string> | undefined> {
+	const stored = await repository.find()
+	if (!stored) throw new InvalidConfigurationError("No stored credentials are available")
+	let role = input.storedCredentialRole
+	let storedRole: StoredTextConfiguration = stored[role]
+	if (role === "embedding" && stored.embedding.credentialSource === "text") {
+		role = "text"
+		storedRole = stored.text
+	}
+	if (!sameContext(storedRole, input)) {
+		throw new InvalidConfigurationError("Stored credentials do not match this provider context")
+	}
+	if (!storedRole.credentials) return undefined
+	return vault.decrypt(storedRole.credentials, {
+		configId: CONFIG_ID,
+		providerId: storedRole.providerId,
+		role,
+	})
 }
 
 export function createAiProviderService(dependencies: ServiceDependencies) {
@@ -355,31 +468,9 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 			annotate: Annotate = () => {},
 		): Promise<RedactedConfiguration> {
 			const existing = await dependencies.repository.find()
-			try {
-				validateConfigurationInput(input, {
-					text: existing?.text ? { credentials: existing.text.credentials !== null } : undefined,
-					embedding: existing?.embedding ? { credentials: existing.embedding.credentials !== null } : undefined,
-				})
-			} catch (error) {
-				throw new InvalidConfigurationError(error instanceof Error ? error.message : "Invalid configuration")
-			}
-			const existingInput = {
-				text: { ...input.text, existing: existing?.text },
-				embedding: { ...input.embedding, existing: existing?.embedding },
-			}
-			const textCredentials = resolveEnvelope({ ...existingInput.text, role: "text" }, dependencies.vault)
-			let embeddingCredentials: CredentialEnvelope | null = null
-			if (input.embedding.credentialSource === "separate") {
-				embeddingCredentials = resolveEnvelope({ ...existingInput.embedding, role: "embedding" }, dependencies.vault)
-			}
-			const embedding: StoredEmbeddingConfiguration = {
-				providerId: input.embedding.providerId,
-				modelId: input.embedding.modelId,
-				authMode: input.embedding.authMode,
-				settings: input.embedding.settings,
-				credentialSource: input.embedding.credentialSource,
-				credentials: embeddingCredentials,
-			}
+			validateSaveInput(input, existing)
+			const envelopes = resolveConfigurationEnvelopes(input, existing, dependencies.vault)
+			const embedding = toStoredEmbedding(input.embedding, envelopes.embedding)
 			const saved = await dependencies.repository.save(
 				{
 					id: CONFIG_ID,
@@ -388,7 +479,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 						modelId: input.text.modelId,
 						authMode: input.text.authMode,
 						settings: input.text.settings,
-						credentials: textCredentials,
+						credentials: envelopes.text,
 					},
 					embedding,
 				},
@@ -403,24 +494,11 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 		async discoverModels(input: DiscoverModelsInput): Promise<string[]> {
 			let credentials = input.authMode === "static" ? input.credentials : undefined
 			if (!credentials && input.authMode === "static" && input.storedCredentialRole) {
-				const stored = await dependencies.repository.find()
-				if (!stored) throw new InvalidConfigurationError("No stored credentials are available")
-				let role = input.storedCredentialRole
-				let storedRole: StoredTextConfiguration = stored[role]
-				if (role === "embedding" && stored.embedding.credentialSource === "text") {
-					role = "text"
-					storedRole = stored.text
-				}
-				if (!sameContext(storedRole, input)) {
-					throw new InvalidConfigurationError("Stored credentials do not match this provider context")
-				}
-				if (storedRole.credentials) {
-					credentials = dependencies.vault.decrypt(storedRole.credentials, {
-						configId: CONFIG_ID,
-						providerId: storedRole.providerId,
-						role,
-					})
-				}
+				credentials = await resolveStoredDiscoveryCredentials(
+					{ ...input, storedCredentialRole: input.storedCredentialRole },
+					dependencies.repository,
+					dependencies.vault,
+				)
 			}
 			return dependencies.discover({
 				authMode: input.authMode,
@@ -469,19 +547,11 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 			const stored = await dependencies.repository.find()
 			if (!stored) throw new UnusableConfigurationError("AI provider configuration is missing")
 			try {
-				const credentials = stored.text.credentials
-					? dependencies.vault.decrypt(stored.text.credentials, {
-							configId: CONFIG_ID,
-							providerId: stored.text.providerId,
-							role: "text",
-						})
-					: undefined
+				const credentials = decryptTextCredentials(stored.text, dependencies.vault)
 				const model = createProviderModel({ ...stored.text, role: "text", credentials }) as LanguageModelV4
-				const [firstMessage, ...remainingMessages] = input.messages
-				const instructions = firstMessage?.role === "system" ? firstMessage.content : undefined
-				const messages = (instructions === undefined ? input.messages : remainingMessages) as RuntimeTextMessage[]
+				const { instructions, messages } = splitInstructions(input.messages)
 				const streamText = dependencies.streamText ?? aiStreamText
-				const generate = dependencies.generate ?? ((generation) => defaultGenerate(generation, streamText))
+				const generate = createGenerate(dependencies, streamText)
 				return {
 					provider: stored.text.providerId,
 					model: stored.text.modelId,

@@ -1,18 +1,10 @@
 import { app } from "@/app.ts"
 import { hashOpaqueToken } from "@/lib/opaque-token.ts"
-import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, sessionCookieFrom as extractSessionCookie, uniqueUsername } from "@/test-helpers.ts"
 import { describe, expect, it } from "bun:test"
 
 import * as repo from "./identity.repository.ts"
 import * as service from "./identity.service.ts"
-
-function extractSessionCookie(response: Response): string {
-	const setCookie = response.headers.get("set-cookie")
-	if (!setCookie) throw new Error("Expected a Set-Cookie header")
-	const [cookiePair] = setCookie.split(";")
-	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
-	return cookiePair
-}
 
 async function login(username: string, password: string) {
 	const response = await app.request("/api/auth/login", {

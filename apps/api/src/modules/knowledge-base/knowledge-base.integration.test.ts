@@ -1,17 +1,19 @@
 import { app } from "@/app.ts"
+import { env } from "@/config/env.ts"
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { createAdminSession, DEFAULT_PASSWORD, giveRole, login, uniqueUsername } from "@/test-helpers.ts"
 import { afterAll, beforeEach, describe, expect, it, spyOn } from "bun:test"
-import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises"
+import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
 import * as repository from "./knowledge-base.repository.ts"
 import {
 	MAX_FILE_SIZE_BYTES,
 	reconcileDanglingRows,
+	runIngestion,
 	searchKnowledge,
 	upload as uploadFile,
 } from "./knowledge-base.service.ts"
@@ -227,6 +229,78 @@ describe("knowledge embeddings", () => {
 	})
 })
 
+describe("ingestion worker", () => {
+	it("recovers uploads and embeds a pending file before the next poll", async () => {
+		const doclingUrl = new URL(env.TALQO_DOCLING_URL)
+		const stub = Bun.serve({
+			hostname: "127.0.0.1",
+			port: 0,
+			fetch(request) {
+				const { pathname } = new URL(request.url)
+				if (pathname === "/v1/chunk/hybrid/file/async") return Response.json({ task_id: "task-1" })
+				if (pathname === "/v1/status/poll/task-1") return Response.json({ task_status: "success" })
+				if (pathname === "/v1/result/task-1") return Response.json({ chunks: [{ text: "Worker ingested content" }] })
+				if (pathname === "/v1/embeddings") {
+					return Response.json({ data: [{ embedding: [1, 0, 0] }] })
+				}
+				return new Response("not found", { status: 404 })
+			},
+		})
+		// The conversion client reads the configured URL; redirect only that origin to the ephemeral stub.
+		const originalFetch = globalThis.fetch
+		const fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
+			Object.assign(
+				(input: string | URL | Request, init?: RequestInit) => {
+					const url = input instanceof Request ? new URL(input.url) : new URL(input)
+					return originalFetch(
+						url.origin === doclingUrl.origin ? new URL(`${url.pathname}${url.search}`, stub.url) : input,
+						init,
+					)
+				},
+				{ preconnect: originalFetch.preconnect },
+			),
+		)
+		const owner = await createOwner("Worker")
+		const orphanAgentId = crypto.randomUUID()
+		await mkdir(join(UPLOAD_ROOT, orphanAgentId), { recursive: true })
+		await writeFile(join(UPLOAD_ROOT, orphanAgentId, "orphan.md"), "orphan")
+		await aiProvider.saveConfiguration({
+			expectedRevision: 0,
+			text: {
+				providerId: "openai",
+				modelId: "gpt-5-mini",
+				authMode: "static",
+				settings: {},
+				credentials: { apiKey: "sk-text" },
+			},
+			embedding: {
+				providerId: "openai-compatible",
+				modelId: "test-embedding",
+				authMode: "static",
+				settings: { baseURL: `${stub.url.origin}/v1` },
+				credentialSource: "separate",
+				credentials: { apiKey: "sk-embedding" },
+			},
+		})
+		await uploadFile(owner.id, "guide.md", new TextEncoder().encode("content").buffer)
+
+		const stop = new Error("stop the worker after the first batch")
+		const sleep = spyOn(Bun, "sleep").mockRejectedValue(stop)
+		try {
+			await expect(runIngestion()).rejects.toBe(stop)
+			expect((await repository.statuses(owner.id)).get("guide.md")?.status).toBe("ready")
+			expect(await searchKnowledge(owner.id, "content")).toEqual(["Worker ingested content"])
+		} finally {
+			sleep.mockRestore()
+			fetchSpy.mockRestore()
+			await stub.stop(true)
+			await sql`DELETE FROM ai_provider_config`
+			await agent.deleteAgent(owner.id)
+			await rm(join(UPLOAD_ROOT, orphanAgentId), { recursive: true, force: true })
+		}
+	})
+})
+
 describe("agent knowledge files", () => {
 	it("exposes pending ingestion and lets an operator retry only failed files", async () => {
 		const { cookie } = await createAdminSession()
@@ -380,6 +454,15 @@ describe("agent knowledge files", () => {
 		const agentId = await createAgent(cookie, "Dupes")
 		expect((await upload(cookie, agentId)).status).toBe(201)
 		await expectProblem(await upload(cookie, agentId), 409, "agent-file-name-taken")
+	})
+
+	it("removes the stored file when its ingestion row cannot be queued", async () => {
+		const missingAgentId = crypto.randomUUID()
+
+		await expect(
+			uploadFile(missingAgentId, "guide.md", new TextEncoder().encode("content").buffer),
+		).rejects.toMatchObject({ code: "23503" })
+		await expect(stat(join(UPLOAD_ROOT, missingAgentId, "guide.md"))).rejects.toMatchObject({ code: "ENOENT" })
 	})
 
 	it("renames a file to its current name without touching its contents", async () => {

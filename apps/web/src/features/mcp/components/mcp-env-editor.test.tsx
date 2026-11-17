@@ -1,22 +1,18 @@
 import type { EnvVariable } from "@/features/mcp/mcp-env-variables"
 import type { Root } from "react-dom/client"
 
+import { act, createTestHarness } from "@/testing/component-harness"
 import { click, findButton as button, typeInto as type } from "@/testing/dom"
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
 
 const { McpEnvEditor } = await import("./mcp-env-editor")
 const { MCP_ENV_VARIABLE_LIMIT } = await import("@/features/mcp/mcp-env-variables")
-const { createRoot } = await import("react-dom/client")
-const { act, useState } = await import("react")
+const { useState } = await import("react")
 const { t } = await import("i18next")
 
 let host: HTMLDivElement
 let root: Root
+let harness: ReturnType<typeof createTestHarness>
 let emitted: EnvVariable[][]
 
 function ControlledEditor({
@@ -84,15 +80,12 @@ function inputValues(label: string): string[] {
 }
 
 beforeEach(() => {
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness()
+	;({ host, root } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("McpEnvEditor", () => {

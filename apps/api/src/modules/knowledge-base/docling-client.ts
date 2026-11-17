@@ -11,12 +11,7 @@ const submitSchema = z.object({ task_id: z.string() })
 const pollSchema = z.object({ task_status: z.string() })
 type FetchDocling = (url: URL, init: RequestInit) => Promise<Response>
 
-export async function chunkFile(
-	name: string,
-	data: Uint8Array,
-	baseUrl: string,
-	fetcher: FetchDocling = async (url, init) => fetch(url, init),
-): Promise<string[]> {
+async function submitFile(name: string, data: Uint8Array, baseUrl: string, fetcher: FetchDocling): Promise<string> {
 	const form = new FormData()
 	form.append("files", new File([new Uint8Array(data)], name, { type: "application/octet-stream" }))
 	form.append("chunking_max_tokens", String(CHUNK_TOKENS))
@@ -26,9 +21,12 @@ export async function chunkFile(
 		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 	})
 	if (!submit.ok) throw new Error(`Docling Serve rejected the file (${submit.status})`)
-	const { task_id: taskId } = submitSchema.parse(await submit.json())
+	return submitSchema.parse(await submit.json()).task_id
+}
 
+async function pollTask(taskId: string, baseUrl: string, fetcher: FetchDocling): Promise<void> {
 	const deadline = Date.now() + OVERALL_TIMEOUT_MS
+	// Poll in order; each status decides the next step.
 	while (true) {
 		if (Date.now() > deadline) throw new Error("Docling Serve conversion timed out")
 		const poll = await fetcher(new URL(`/v1/status/poll/${taskId}`, baseUrl), {
@@ -36,11 +34,13 @@ export async function chunkFile(
 		})
 		if (!poll.ok) throw new Error(`Docling Serve lost the task (${poll.status})`)
 		const status = pollSchema.parse(await poll.json()).task_status
-		if (status === "success") break
+		if (status === "success") return
 		if (status === "failure") throw new Error("Docling Serve failed to convert the file")
 		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
 	}
+}
 
+async function readChunks(taskId: string, baseUrl: string, fetcher: FetchDocling): Promise<string[]> {
 	const result = await fetcher(new URL(`/v1/result/${taskId}`, baseUrl), {
 		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 	})
@@ -65,4 +65,15 @@ export async function chunkFile(
 		.parse(body)
 		.chunks.map(({ text }) => text.trim())
 		.filter(Boolean)
+}
+
+export async function chunkFile(
+	name: string,
+	data: Uint8Array,
+	baseUrl: string,
+	fetcher: FetchDocling = async (url, init) => fetch(url, init),
+): Promise<string[]> {
+	const taskId = await submitFile(name, data, baseUrl, fetcher)
+	await pollTask(taskId, baseUrl, fetcher)
+	return readChunks(taskId, baseUrl, fetcher)
 }

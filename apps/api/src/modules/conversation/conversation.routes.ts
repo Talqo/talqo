@@ -30,8 +30,33 @@ type PeerSource = (context: { env?: ChatBindings; req: { header(name: string): s
 	peerAddress: string | undefined
 }
 
+type ToolCounts = { calls: number; failures: number }
+
 function sse(event: ChatEvent): Uint8Array {
 	return new TextEncoder().encode(`event: chat\ndata: ${JSON.stringify(event)}\n\n`)
+}
+
+function annotateOutcome(c: Context<ChatEnv>, event: Extract<ChatEvent, { type: "terminal" | "error" }>): void {
+	if (event.type === "terminal") annotate(c, { "chat.outcome": event.outcome })
+	else annotate(c, { "chat.outcome": event.outcome, "error.code": event.error.code })
+}
+
+function annotateToolEvent(
+	c: Context<ChatEnv>,
+	event: Extract<ChatEvent, { type: "tool-start" | "tool-end" }>,
+	counts: ToolCounts,
+): void {
+	if (event.type === "tool-start") {
+		annotate(c, { "chat.tool_calls": (counts.calls += 1) })
+		return
+	}
+	if (event.outcome === "failed") annotate(c, { "chat.tool_failures": (counts.failures += 1) })
+}
+
+function annotateChatEvent(c: Context<ChatEnv>, event: ChatEvent, counts: ToolCounts): void {
+	if (event.type === "accepted") annotate(c, { "generation.id": event.generationId })
+	else if (event.type === "terminal" || event.type === "error") annotateOutcome(c, event)
+	else if (event.type === "tool-start" || event.type === "tool-end") annotateToolEvent(c, event, counts)
 }
 
 export function createConversationRoutes(
@@ -65,17 +90,10 @@ export function createConversationRoutes(
 		}
 		const pending: Uint8Array[] = []
 		let controller: ReadableStreamDefaultController<Uint8Array> | undefined
-		let toolCalls = 0
-		let toolFailures = 0
+		const toolCounts: ToolCounts = { calls: 0, failures: 0 }
 		const emit = (event: ChatEvent) => {
-			if (event.type === "accepted") annotate(c, { "generation.id": event.generationId })
-			else if (event.type === "terminal") annotate(c, { "chat.outcome": event.outcome })
-			// The stream already answered 200, so the failure code lives only here.
-			else if (event.type === "error") annotate(c, { "chat.outcome": event.outcome, "error.code": event.error.code })
-			else if (event.type === "tool-start") annotate(c, { "chat.tool_calls": (toolCalls += 1) })
-			else if (event.type === "tool-end" && event.outcome === "failed") {
-				annotate(c, { "chat.tool_failures": (toolFailures += 1) })
-			}
+			// The stream already answered 200, so a failure code lives only in the wide event.
+			annotateChatEvent(c, event, toolCounts)
 			const bytes = sse(event)
 			if (controller) {
 				try {

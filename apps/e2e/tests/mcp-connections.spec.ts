@@ -9,6 +9,16 @@ async function openToolsTab(page: Page, agentId: string) {
 	await expect(page.getByText(web("mcp.panelDescription"))).toBeVisible()
 }
 
+async function openConnectionDialog(page: Page, agentId: string) {
+	await logInThroughApi(page, ADMIN)
+	await openToolsTab(page, agentId)
+	await page
+		.locator('[data-slot="empty-state"]')
+		.getByRole("button", { name: web("mcp.add") })
+		.click()
+	return page.getByRole("dialog")
+}
+
 async function removeConnection(page: Page, name: string) {
 	const card = page.getByTestId("mcp-server-card").filter({ hasText: name })
 	await card.getByRole("button", { name: web("mcp.remove"), exact: true }).click()
@@ -19,15 +29,8 @@ async function removeConnection(page: Page, name: string) {
 
 test("operator adds an unavailable http connection, edits it, and removes it", async ({ page, application, agent }) => {
 	const agentId = agent.id
-	await logInThroughApi(page, ADMIN)
-	await openToolsTab(page, agentId)
-
 	const name = `e2e_http_${Date.now()}`
-	await page
-		.locator('[data-slot="empty-state"]')
-		.getByRole("button", { name: web("mcp.add") })
-		.click()
-	const dialog = page.getByRole("dialog")
+	const dialog = await openConnectionDialog(page, agentId)
 	await dialog.getByRole("button", { name: web("mcp.add") }).click()
 	await expect(dialog.getByText(web("mcp.errorName"))).toBeVisible()
 
@@ -52,15 +55,8 @@ test("operator adds an unavailable http connection, edits it, and removes it", a
 
 test("operator adds a stdio connection with tools and the toggle survives reload", async ({ page, agent }) => {
 	const agentId = agent.id
-	await logInThroughApi(page, ADMIN)
-	await openToolsTab(page, agentId)
-
 	const name = `e2e_stdio_${Date.now()}`
-	await page
-		.locator('[data-slot="empty-state"]')
-		.getByRole("button", { name: web("mcp.add") })
-		.click()
-	const dialog = page.getByRole("dialog")
+	const dialog = await openConnectionDialog(page, agentId)
 	await dialog.getByLabel(web("mcp.name")).fill(name)
 	await dialog.getByRole("combobox", { name: web("mcp.kind") }).click()
 	await page.getByRole("option", { name: web("mcp.transportStdio") }).click()
@@ -106,15 +102,8 @@ test("operator adds a stdio connection with tools and the toggle survives reload
 
 test("a stored header survives an edit that leaves its value blank", async ({ page, application, agent }) => {
 	const agentId = agent.id
-	await logInThroughApi(page, ADMIN)
-	await openToolsTab(page, agentId)
-
 	const name = `e2e_secret_${Date.now()}`
-	await page
-		.locator('[data-slot="empty-state"]')
-		.getByRole("button", { name: web("mcp.add") })
-		.click()
-	const dialog = page.getByRole("dialog")
+	const dialog = await openConnectionDialog(page, agentId)
 	await dialog.getByLabel(web("mcp.name")).fill(name)
 	await dialog.getByLabel(web("mcp.address")).fill(`${application.providerOrigin}/mcp-unavailable`)
 	await dialog.getByRole("combobox", { name: web("mcp.authMethod") }).click()

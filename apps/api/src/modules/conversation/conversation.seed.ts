@@ -62,10 +62,10 @@ export type SeededAttempt = {
 	createdAt: Date
 }
 
-type PlannedRows = {
-	conversations: (typeof conversation.$inferInsert)[]
-	attempts: (typeof generationAttempt.$inferInsert)[]
-	messages: (typeof message.$inferInsert)[]
+export type PlannedRows = {
+	conversations: (typeof conversation.$inferInsert & { createdAt: Date })[]
+	attempts: (typeof generationAttempt.$inferInsert & { usageRecordedAt: Date })[]
+	messages: (typeof message.$inferInsert & { createdAt: Date })[]
 	usages: SeededAttempt[]
 }
 
@@ -131,14 +131,14 @@ function planConversation(agentId: string, startedAt: Date): PlannedRows {
 	}
 }
 
-function dayStartUtc(daysAgo: number): Date {
-	const day = new Date()
+function dayStartUtc(daysAgo: number, now: Date): Date {
+	const day = new Date(now)
 	day.setUTCHours(0, 0, 0, 0)
 	day.setUTCDate(day.getUTCDate() - daysAgo)
 	return day
 }
 
-function planRows(now: Date): PlannedRows {
+export function planRows(now: Date): PlannedRows {
 	const rows: PlannedRows = { attempts: [], conversations: [], messages: [], usages: [] }
 	const merge = (planned: PlannedRows) => {
 		rows.conversations.push(...planned.conversations)
@@ -149,7 +149,7 @@ function planRows(now: Date): PlannedRows {
 	const conversationSpanMs = TURNS_PER_CONVERSATION * MESSAGES_PER_TURN * MESSAGE_GAP_MS
 	for (const { agentId, conversationsPerDay } of SEED_AGENTS) {
 		for (let daysAgo = DAYS - 1; daysAgo >= 0; daysAgo -= 1) {
-			const dayStart = dayStartUtc(daysAgo)
+			const dayStart = dayStartUtc(daysAgo, now)
 			// Today's traffic only fills the elapsed part of the day.
 			const daySpanMs = daysAgo === 0 ? Math.max(now.getTime() - dayStart.getTime(), 1) : MILLISECONDS_PER_DAY
 			for (let index = 0; index < conversationsPerDay; index += 1) {
@@ -264,7 +264,7 @@ function seedId(kind: string, index: number): string {
 	return `${kind}-0000-4000-8000-${String(index).padStart(UUID_NODE_DIGITS, "0")}`
 }
 
-function transcriptRows(now: number) {
+export function transcriptRows(now: number) {
 	let attemptCount = 0
 	let messageCount = 0
 	const conversations: (typeof conversation.$inferInsert)[] = []

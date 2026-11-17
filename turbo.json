@@ -1,6 +1,7 @@
 {
 	"$schema": "https://turborepo.com/schema.json",
 	"agentGuidance": false,
+	"noUpdateNotifier": true,
 	"tasks": {
 		"@talqo/api#dev:setup": {
 			"cache": false,

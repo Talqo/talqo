@@ -32,6 +32,24 @@ function fileResponse(file: string, cache: string | undefined, url: URL): Respon
 	return new Response(Bun.file(file), { headers })
 }
 
+async function assetResponse(webDist: string | undefined, url: URL): Promise<Response | null> {
+	const parts = url.pathname.slice("/assets/".length).split("/")
+	if (!webDist || !parts.every((part) => part && part !== "." && part !== ".." && !part.includes("\0"))) {
+		return null
+	}
+	const file = `${webDist}/assets/${parts.join("/")}`
+	return (await Bun.file(file).exists()) ? fileResponse(file, IMMUTABLE_CACHE, url) : null
+}
+
+async function documentResponse(webIndex: string | undefined, url: URL): Promise<Response | null> {
+	if (webIndex && (await Bun.file(webIndex).exists())) {
+		if (url.pathname !== "/health" && !url.pathname.startsWith(`${API_PREFIX}/`)) {
+			return fileResponse(webIndex, DOCUMENT_CACHE, url)
+		}
+	}
+	return null
+}
+
 // Lives in the process entry, not the Hono app, so API routes never mix with UI
 // files. Served from the same origin, session cookies stay same-site with no CORS.
 export function createStaticResponder({
@@ -56,20 +74,8 @@ export function createStaticResponder({
 			return hit && (await Bun.file(hit.file).exists()) ? fileResponse(hit.file, hit.cache, url) : null
 		}
 		if (url.pathname.startsWith("/assets/")) {
-			const parts = url.pathname.slice("/assets/".length).split("/")
-			if (webDist && parts.every((part) => part && part !== "." && part !== ".." && !part.includes("\0"))) {
-				const file = `${webDist}/assets/${parts.join("/")}`
-				if (await Bun.file(file).exists()) {
-					return fileResponse(file, IMMUTABLE_CACHE, url)
-				}
-			}
-			return null
+			return assetResponse(webDist, url)
 		}
-		if (webIndex && (await Bun.file(webIndex).exists())) {
-			if (url.pathname !== "/health" && !url.pathname.startsWith(`${API_PREFIX}/`)) {
-				return fileResponse(webIndex, DOCUMENT_CACHE, url)
-			}
-		}
-		return null
+		return documentResponse(webIndex, url)
 	}
 }

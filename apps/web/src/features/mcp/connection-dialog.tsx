@@ -134,6 +134,361 @@ function draftFor(server?: McpServer): ConnectionDraft {
 	}
 }
 
+function useConnectionSave(agentId: string, server: McpServer | undefined, t: TFunction, onSaved: () => void) {
+	const queryClient = useQueryClient()
+	const [error, setError] = useState<DraftError | null>(null)
+	// Invalidate after save so later edits use new revision.
+	const saved = async () => {
+		onSaved()
+		await queryClient.invalidateQueries({ queryKey: getListMcpServersQueryKey(agentId) })
+	}
+	const create = useCreateMcpServer({ mutation: { onSuccess: saved } })
+	const update = useUpdateMcpServer({ mutation: { onSuccess: saved } })
+	const pending = create.isPending || update.isPending
+	const failed = (caught: unknown) => setError({ message: apiError(caught, t) })
+
+	function refuseDraft(draft: ConnectionDraft, reason: DraftReason, creating: boolean): void {
+		const failure = draftFailure(reason, draft, creating, t)
+		setError(failure)
+		focusField(failure)
+	}
+
+	function submit(draft: ConnectionDraft): void {
+		setError(null)
+		if (server) {
+			const result = toEditBody(draft, server)
+			if (!result.ok) return refuseDraft(draft, result.reason, false)
+			void update.mutateAsync({ agentId, serverId: server.id, data: result.body }).catch(failed)
+		} else {
+			const result = toCreateBody(draft)
+			if (!result.ok) return refuseDraft(draft, result.reason, true)
+			void create.mutateAsync({ agentId, data: result.body }).catch(failed)
+		}
+	}
+
+	return { error, setError, pending, createPending: create.isPending, submit }
+}
+
+function ConnectionTrigger({
+	server,
+	disabled,
+	floating,
+	createPending,
+}: {
+	server?: McpServer
+	disabled: boolean
+	floating: boolean
+	createPending: boolean
+}) {
+	const { t } = useTranslation()
+	return (
+		<DialogTrigger
+			render={
+				server ? (
+					<Button variant="ghost" size="icon-sm" aria-label={t("mcp.edit")} />
+				) : floating ? (
+					<FloatingActionButton disabled={disabled || createPending} />
+				) : (
+					<Button disabled={disabled || createPending} />
+				)
+			}
+		>
+			{server ? (
+				<Pencil className="size-4" />
+			) : (
+				<>
+					<Plus className="size-4" />
+					{createPending ? t("mcp.adding") : t("mcp.add")}
+				</>
+			)}
+		</DialogTrigger>
+	)
+}
+
+function NameField({ value, error, onChange }: { value: string; error?: string; onChange: (name: string) => void }) {
+	const { t } = useTranslation()
+	return (
+		<div className="space-y-2">
+			<Label htmlFor="mcp-name">
+				{t("mcp.name")} <RequiredMark />
+			</Label>
+			<Input
+				id="mcp-name"
+				value={value}
+				onChange={(event) => onChange(event.target.value)}
+				autoComplete="off"
+				required
+				aria-invalid={error !== undefined}
+				aria-describedby={error === undefined ? undefined : fieldErrorId("name")}
+			/>
+			{error !== undefined && <FieldError field="name" message={error} />}
+		</div>
+	)
+}
+
+function TransportField({
+	value,
+	stdioAllowed,
+	editingStdio,
+	onChange,
+	onClearError,
+}: {
+	value: ConnectionDraft["transport"]
+	stdioAllowed: boolean
+	editingStdio: boolean
+	onChange: (transport: ConnectionDraft["transport"]) => void
+	onClearError: () => void
+}) {
+	const { t } = useTranslation()
+	return (
+		<div className="space-y-2">
+			<Label htmlFor="mcp-transport">{t("mcp.kind")}</Label>
+			<Select<ConnectionDraft["transport"]>
+				value={value}
+				items={{
+					http: t("mcp.transportHttp"),
+					stdio: t("mcp.transportStdio"),
+				}}
+				onValueChange={(next) => {
+					if (next === null) return
+					onClearError()
+					onChange(next)
+				}}
+			>
+				<SelectTrigger id="mcp-transport" className="w-full">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="http">{t("mcp.transportHttp")}</SelectItem>
+					{(stdioAllowed || editingStdio) && (
+						<SelectItem value="stdio" disabled={!stdioAllowed}>
+							{t("mcp.transportStdio")}
+						</SelectItem>
+					)}
+				</SelectContent>
+			</Select>
+		</div>
+	)
+}
+
+function HttpAuthFields({
+	draft,
+	error,
+	onChange,
+	onClearError,
+}: {
+	draft: ConnectionDraft
+	error: DraftError | null
+	onChange: (patch: Partial<ConnectionDraft>) => void
+	onClearError: () => void
+}) {
+	const { t } = useTranslation()
+	return (
+		<>
+			<div className="space-y-2">
+				<Label htmlFor="mcp-auth">{t("mcp.authMethod")}</Label>
+				<Select<ConnectionDraft["authMode"]>
+					value={draft.authMode}
+					items={{
+						none: t("mcp.authNone"),
+						headers: t("mcp.authHeaders"),
+					}}
+					onValueChange={(next) => {
+						if (next === null) return
+						onClearError()
+						onChange({ authMode: next })
+					}}
+				>
+					<SelectTrigger id="mcp-auth" className="w-full">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="none">{t("mcp.authNone")}</SelectItem>
+						<SelectItem value="headers">{t("mcp.authHeaders")}</SelectItem>
+					</SelectContent>
+				</Select>
+			</div>
+			{draft.authMode === "headers" && (
+				<>
+					<McpEnvEditor
+						kind="headers"
+						env={draft.headers}
+						invalidRowId={error?.field === "headers" ? error.rowId : undefined}
+						errorId={error?.field === "headers" ? fieldErrorId("headers") : undefined}
+						onChange={(headers) => onChange({ headers })}
+					/>
+					{error?.field === "headers" && <FieldError field="headers" message={error.message} />}
+				</>
+			)}
+		</>
+	)
+}
+
+function HttpConnectionFields({
+	draft,
+	error,
+	onChange,
+	onClearError,
+}: {
+	draft: ConnectionDraft
+	error: DraftError | null
+	onChange: (patch: Partial<ConnectionDraft>) => void
+	onClearError: () => void
+}) {
+	const { t } = useTranslation()
+	return (
+		<>
+			<div className="space-y-2">
+				<Label htmlFor="mcp-url">
+					{t("mcp.address")} <RequiredMark />
+				</Label>
+				<Input
+					id="mcp-url"
+					value={draft.url}
+					onChange={(event) => onChange({ url: event.target.value })}
+					placeholder="https://example.com/mcp"
+					autoComplete="off"
+					required
+					aria-invalid={error?.field === "url"}
+					aria-describedby={error?.field === "url" ? fieldErrorId("url") : undefined}
+				/>
+				{error?.field === "url" && <FieldError field="url" message={error.message} />}
+			</div>
+			<HttpAuthFields draft={draft} error={error} onChange={onChange} onClearError={onClearError} />
+		</>
+	)
+}
+
+function StdioConnectionFields({
+	draft,
+	error,
+	disabled,
+	onChange,
+}: {
+	draft: ConnectionDraft
+	error: DraftError | null
+	disabled: boolean
+	onChange: (patch: Partial<ConnectionDraft>) => void
+}) {
+	const { t } = useTranslation()
+	return (
+		<fieldset disabled={disabled} className="space-y-3">
+			<div className="space-y-2">
+				<Label htmlFor="mcp-command">
+					{t("mcp.command")} <RequiredMark />
+				</Label>
+				<Input
+					id="mcp-command"
+					value={draft.command}
+					onChange={(event) => onChange({ command: event.target.value })}
+					placeholder="bunx"
+					autoComplete="off"
+					required
+					aria-invalid={error?.field === "command"}
+					aria-describedby={error?.field === "command" ? fieldErrorId("command") : undefined}
+				/>
+				{error?.field === "command" && <FieldError field="command" message={error.message} />}
+			</div>
+			<McpArgumentsEditor args={draft.args} onChange={(args) => onChange({ args })} />
+			<McpEnvEditor
+				env={draft.env}
+				invalidRowId={error?.field === "env" ? error.rowId : undefined}
+				errorId={error?.field === "env" ? fieldErrorId("env") : undefined}
+				onChange={(env) => onChange({ env })}
+			/>
+			{error?.field === "env" && <FieldError field="env" message={error.message} />}
+		</fieldset>
+	)
+}
+
+function ConnectionFormFooter({
+	actionLabel,
+	pending,
+	stdioBlocked,
+	onClose,
+}: {
+	actionLabel: string
+	pending: boolean
+	stdioBlocked: boolean
+	onClose: () => void
+}) {
+	const { t } = useTranslation()
+	return (
+		<DialogFooter>
+			<Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+				{t("common.cancel")}
+			</Button>
+			<Button type="submit" disabled={pending || stdioBlocked}>
+				{pending ? t("mcp.saving") : actionLabel}
+			</Button>
+		</DialogFooter>
+	)
+}
+
+function ConnectionForm({
+	server,
+	stdioAllowed,
+	draft,
+	error,
+	actionLabel,
+	pending,
+	onChange,
+	onClearError,
+	onSubmit,
+	onClose,
+}: {
+	server?: McpServer
+	stdioAllowed: boolean
+	draft: ConnectionDraft
+	error: DraftError | null
+	actionLabel: string
+	pending: boolean
+	onChange: (patch: Partial<ConnectionDraft>) => void
+	onClearError: () => void
+	onSubmit: () => void
+	onClose: () => void
+}) {
+	const { t } = useTranslation()
+	const stdioBlocked = draft.transport === "stdio" && !stdioAllowed
+	return (
+		<form
+			className="space-y-3"
+			// Keep the native required semantics while our own messages drive validation.
+			noValidate
+			onSubmit={(event) => {
+				event.preventDefault()
+				onSubmit()
+			}}
+		>
+			<p className="text-muted-foreground text-xs">{t("common.requiredHint")}</p>
+			<NameField
+				value={draft.name}
+				error={error?.field === "name" ? error.message : undefined}
+				onChange={(name) => onChange({ name })}
+			/>
+			<TransportField
+				value={draft.transport}
+				stdioAllowed={stdioAllowed}
+				editingStdio={server?.transport === "stdio"}
+				onChange={(transport) => onChange({ transport })}
+				onClearError={onClearError}
+			/>
+			{draft.transport === "http" ? (
+				<HttpConnectionFields draft={draft} error={error} onChange={onChange} onClearError={onClearError} />
+			) : (
+				<StdioConnectionFields draft={draft} error={error} disabled={stdioBlocked} onChange={onChange} />
+			)}
+			{stdioBlocked && <p className="text-muted-foreground text-sm">{t("mcp.stdioDisabled")}</p>}
+			{error && !error.field && (
+				<p role="alert" className="text-destructive text-xs">
+					{error.message}
+				</p>
+			)}
+			<ConnectionFormFooter actionLabel={actionLabel} pending={pending} stdioBlocked={stdioBlocked} onClose={onClose} />
+		</form>
+	)
+}
+
 export function ConnectionDialog({
 	agentId,
 	server,
@@ -148,22 +503,13 @@ export function ConnectionDialog({
 	floating?: boolean
 }) {
 	const { t } = useTranslation()
-	const queryClient = useQueryClient()
 	const [open, setOpen] = useState(false)
 	const [draft, setDraft] = useState<ConnectionDraft>(() => draftFor(server))
-	const [error, setError] = useState<DraftError | null>(null)
-	// Invalidate after save so later edits use new revision.
-	const saved = async () => {
-		setOpen(false)
-		await queryClient.invalidateQueries({ queryKey: getListMcpServersQueryKey(agentId) })
-	}
-	const create = useCreateMcpServer({ mutation: { onSuccess: saved } })
-	const update = useUpdateMcpServer({ mutation: { onSuccess: saved } })
-	const pending = create.isPending || update.isPending
+	const { error, setError, pending, createPending, submit } = useConnectionSave(agentId, server, t, () =>
+		setOpen(false),
+	)
 	const actionLabel = server ? t("mcp.save") : t("mcp.add")
-	const stdioBlocked = draft.transport === "stdio" && !stdioAllowed
 	const set = (patch: Partial<ConnectionDraft>) => setDraft((current) => ({ ...current, ...patch }))
-	const failed = (caught: unknown) => setError({ message: apiError(caught, t) })
 
 	function openChanged(next: boolean) {
 		if (pending) return
@@ -173,206 +519,26 @@ export function ConnectionDialog({
 		setOpen(next)
 	}
 
-	function onSubmit() {
-		setError(null)
-		if (server) {
-			const result = toEditBody(draft, server)
-			if (!result.ok) {
-				const failure = draftFailure(result.reason, draft, false, t)
-				setError(failure)
-				focusField(failure)
-				return
-			}
-			void update.mutateAsync({ agentId, serverId: server.id, data: result.body }).catch(failed)
-			return
-		}
-		const result = toCreateBody(draft)
-		if (!result.ok) {
-			const failure = draftFailure(result.reason, draft, true, t)
-			setError(failure)
-			focusField(failure)
-			return
-		}
-		void create.mutateAsync({ agentId, data: result.body }).catch(failed)
-	}
-
 	return (
 		<Dialog open={open} onOpenChange={openChanged}>
-			<DialogTrigger
-				render={
-					server ? (
-						<Button variant="ghost" size="icon-sm" aria-label={t("mcp.edit")} />
-					) : floating ? (
-						<FloatingActionButton disabled={disabled || create.isPending} />
-					) : (
-						<Button disabled={disabled || create.isPending} />
-					)
-				}
-			>
-				{server ? (
-					<Pencil className="size-4" />
-				) : (
-					<>
-						<Plus className="size-4" />
-						{create.isPending ? t("mcp.adding") : t("mcp.add")}
-					</>
-				)}
-			</DialogTrigger>
+			<ConnectionTrigger server={server} disabled={disabled} floating={floating} createPending={createPending} />
 			<DialogContent closeLabel={t("common.close")} className="sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>{server ? t("mcp.editTitle") : t("mcp.addTitle")}</DialogTitle>
 					<DialogDescription>{server ? t("mcp.editDescription") : t("mcp.addDescription")}</DialogDescription>
 				</DialogHeader>
-				<form
-					className="space-y-3"
-					// Keep the native required semantics while our own messages drive validation.
-					noValidate
-					onSubmit={(event) => {
-						event.preventDefault()
-						onSubmit()
-					}}
-				>
-					<p className="text-muted-foreground text-xs">{t("common.requiredHint")}</p>
-					<div className="space-y-2">
-						<Label htmlFor="mcp-name">
-							{t("mcp.name")} <RequiredMark />
-						</Label>
-						<Input
-							id="mcp-name"
-							value={draft.name}
-							onChange={(event) => set({ name: event.target.value })}
-							autoComplete="off"
-							required
-							aria-invalid={error?.field === "name"}
-							aria-describedby={error?.field === "name" ? fieldErrorId("name") : undefined}
-						/>
-						{error?.field === "name" && <FieldError field="name" message={error.message} />}
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="mcp-transport">{t("mcp.kind")}</Label>
-						<Select<ConnectionDraft["transport"]>
-							value={draft.transport}
-							items={{
-								http: t("mcp.transportHttp"),
-								stdio: t("mcp.transportStdio"),
-							}}
-							onValueChange={(value) => {
-								if (value === null) return
-								setError(null)
-								set({ transport: value })
-							}}
-						>
-							<SelectTrigger id="mcp-transport" className="w-full">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="http">{t("mcp.transportHttp")}</SelectItem>
-								{(stdioAllowed || server?.transport === "stdio") && (
-									<SelectItem value="stdio" disabled={!stdioAllowed}>
-										{t("mcp.transportStdio")}
-									</SelectItem>
-								)}
-							</SelectContent>
-						</Select>
-					</div>
-
-					{draft.transport === "http" ? (
-						<>
-							<div className="space-y-2">
-								<Label htmlFor="mcp-url">
-									{t("mcp.address")} <RequiredMark />
-								</Label>
-								<Input
-									id="mcp-url"
-									value={draft.url}
-									onChange={(event) => set({ url: event.target.value })}
-									placeholder="https://example.com/mcp"
-									autoComplete="off"
-									required
-									aria-invalid={error?.field === "url"}
-									aria-describedby={error?.field === "url" ? fieldErrorId("url") : undefined}
-								/>
-								{error?.field === "url" && <FieldError field="url" message={error.message} />}
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="mcp-auth">{t("mcp.authMethod")}</Label>
-								<Select<ConnectionDraft["authMode"]>
-									value={draft.authMode}
-									items={{
-										none: t("mcp.authNone"),
-										headers: t("mcp.authHeaders"),
-									}}
-									onValueChange={(value) => {
-										if (value === null) return
-										setError(null)
-										set({ authMode: value })
-									}}
-								>
-									<SelectTrigger id="mcp-auth" className="w-full">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="none">{t("mcp.authNone")}</SelectItem>
-										<SelectItem value="headers">{t("mcp.authHeaders")}</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-							{draft.authMode === "headers" && (
-								<>
-									<McpEnvEditor
-										kind="headers"
-										env={draft.headers}
-										invalidRowId={error?.field === "headers" ? error.rowId : undefined}
-										errorId={error?.field === "headers" ? fieldErrorId("headers") : undefined}
-										onChange={(headers) => set({ headers })}
-									/>
-									{error?.field === "headers" && <FieldError field="headers" message={error.message} />}
-								</>
-							)}
-						</>
-					) : (
-						<fieldset disabled={stdioBlocked} className="space-y-3">
-							<div className="space-y-2">
-								<Label htmlFor="mcp-command">
-									{t("mcp.command")} <RequiredMark />
-								</Label>
-								<Input
-									id="mcp-command"
-									value={draft.command}
-									onChange={(event) => set({ command: event.target.value })}
-									placeholder="bunx"
-									autoComplete="off"
-									required
-									aria-invalid={error?.field === "command"}
-									aria-describedby={error?.field === "command" ? fieldErrorId("command") : undefined}
-								/>
-								{error?.field === "command" && <FieldError field="command" message={error.message} />}
-							</div>
-							<McpArgumentsEditor args={draft.args} onChange={(args) => set({ args })} />
-							<McpEnvEditor
-								env={draft.env}
-								invalidRowId={error?.field === "env" ? error.rowId : undefined}
-								errorId={error?.field === "env" ? fieldErrorId("env") : undefined}
-								onChange={(env) => set({ env })}
-							/>
-							{error?.field === "env" && <FieldError field="env" message={error.message} />}
-						</fieldset>
-					)}
-					{stdioBlocked && <p className="text-muted-foreground text-sm">{t("mcp.stdioDisabled")}</p>}
-					{error && !error.field && (
-						<p role="alert" className="text-destructive text-xs">
-							{error.message}
-						</p>
-					)}
-					<DialogFooter>
-						<Button type="button" variant="outline" onClick={() => openChanged(false)} disabled={pending}>
-							{t("common.cancel")}
-						</Button>
-						<Button type="submit" disabled={pending || stdioBlocked}>
-							{pending ? t("mcp.saving") : actionLabel}
-						</Button>
-					</DialogFooter>
-				</form>
+				<ConnectionForm
+					server={server}
+					stdioAllowed={stdioAllowed}
+					draft={draft}
+					error={error}
+					actionLabel={actionLabel}
+					pending={pending}
+					onChange={set}
+					onClearError={() => setError(null)}
+					onSubmit={() => submit(draft)}
+					onClose={() => openChanged(false)}
+				/>
 			</DialogContent>
 		</Dialog>
 	)

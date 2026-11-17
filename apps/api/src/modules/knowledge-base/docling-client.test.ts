@@ -65,9 +65,16 @@ describe("Docling Serve chunking", () => {
 	})
 
 	it("fails when the conversion reports failure", async () => {
-		await expect(chunk("notes.txt", successful(["failure"], []))).rejects.toThrow(
-			"Docling Serve failed to convert the file",
-		)
+		const requests: string[] = []
+		await expect(
+			chunk("notes.txt", async (input) => {
+				const url = String(input)
+				requests.push(url)
+				if (url.endsWith("/async")) return Response.json({ task_id: "t1" })
+				return Response.json({ task_status: "failure" })
+			}),
+		).rejects.toThrow("Docling Serve failed to convert the file")
+		expect(requests.some((url) => url.includes("/v1/result/"))).toBe(false)
 	})
 
 	it("fails when the result cannot be fetched", async () => {

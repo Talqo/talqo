@@ -30,6 +30,39 @@ type ConfirmDialogBodyProps = Omit<ConfirmDialogProps, "open" | "onOpenChange"> 
 	onCancel: () => void
 }
 
+function useTypeToConfirm(typeToConfirm: TypeToConfirm | undefined) {
+	const [confirmation, setConfirmation] = useState("")
+	const inputId = useId()
+	const satisfied = typeToConfirm === undefined || confirmation === typeToConfirm.value
+
+	return { confirmation, inputId, satisfied, setConfirmation }
+}
+
+function TypeToConfirmField({
+	typeToConfirm,
+	inputId,
+	confirmation,
+	onChange,
+}: {
+	typeToConfirm: TypeToConfirm
+	inputId: string
+	confirmation: string
+	onChange: (value: string) => void
+}) {
+	return (
+		<div className="space-y-2">
+			<Label htmlFor={inputId}>{typeToConfirm.label}</Label>
+			<Input
+				id={inputId}
+				value={confirmation}
+				onChange={(event) => onChange(event.target.value)}
+				placeholder={typeToConfirm.placeholder}
+				autoComplete="off"
+			/>
+		</div>
+	)
+}
+
 function ConfirmDialogBody({
 	title,
 	description,
@@ -43,9 +76,8 @@ function ConfirmDialogBody({
 	typeToConfirm,
 	onCancel,
 }: ConfirmDialogBodyProps) {
-	const [confirmation, setConfirmation] = useState("")
-	const inputId = useId()
-	const confirmDisabled = pending || (typeToConfirm !== undefined && confirmation !== typeToConfirm.value)
+	const { confirmation, inputId, satisfied, setConfirmation } = useTypeToConfirm(typeToConfirm)
+	const confirmDisabled = pending || !satisfied
 
 	return (
 		<>
@@ -60,16 +92,12 @@ function ConfirmDialogBody({
 				</div>
 			) : null}
 			{typeToConfirm ? (
-				<div className="space-y-2">
-					<Label htmlFor={inputId}>{typeToConfirm.label}</Label>
-					<Input
-						id={inputId}
-						value={confirmation}
-						onChange={(event) => setConfirmation(event.target.value)}
-						placeholder={typeToConfirm.placeholder}
-						autoComplete="off"
-					/>
-				</div>
+				<TypeToConfirmField
+					typeToConfirm={typeToConfirm}
+					inputId={inputId}
+					confirmation={confirmation}
+					onChange={setConfirmation}
+				/>
 			) : null}
 			<DialogFooter>
 				<Button variant="outline" disabled={pending} onClick={onCancel}>

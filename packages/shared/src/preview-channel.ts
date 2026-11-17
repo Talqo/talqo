@@ -41,12 +41,18 @@ export function configMessage(
 	}
 }
 
+function previewEnvelope(data: unknown, type: "ready" | "config"): Record<string, unknown> | undefined {
+	if (typeof data !== "object" || data === null) return undefined
+	const message = data as Record<string, unknown>
+	return message.source === PREVIEW_CHANNEL_SOURCE &&
+		message.version === PREVIEW_CHANNEL_VERSION &&
+		message.type === type
+		? message
+		: undefined
+}
+
 export function isReadyMessage(data: unknown): data is PreviewReadyMessage {
-	if (typeof data !== "object" || data === null) return false
-	const message = data as Partial<PreviewReadyMessage>
-	return (
-		message.source === PREVIEW_CHANNEL_SOURCE && message.version === PREVIEW_CHANNEL_VERSION && message.type === "ready"
-	)
+	return previewEnvelope(data, "ready") !== undefined
 }
 
 export function readyMessage(): PreviewReadyMessage {
@@ -62,21 +68,19 @@ export function trustedParentOrigin(value: string | null): string | undefined {
 	}
 }
 
-export function configFromMessage(data: unknown): PreviewConfig | undefined {
-	if (typeof data !== "object" || data === null) return undefined
-	const message = data as {
-		appearance?: unknown
-		forcedScheme?: unknown
-		isAvailable?: unknown
-		source?: unknown
-		title?: unknown
-		type?: unknown
-		version?: unknown
+function previewOptions(message: Record<string, unknown>): Omit<PreviewConfig, "appearance"> {
+	return {
+		title: typeof message.title === "string" ? message.title : undefined,
+		forcedScheme:
+			message.forcedScheme === "light" || message.forcedScheme === "dark" ? message.forcedScheme : undefined,
+		isAvailable: typeof message.isAvailable === "boolean" ? message.isAvailable : undefined,
 	}
+}
+
+export function configFromMessage(data: unknown): PreviewConfig | undefined {
+	const message = previewEnvelope(data, "config")
 	if (
-		message.source !== PREVIEW_CHANNEL_SOURCE ||
-		message.version !== PREVIEW_CHANNEL_VERSION ||
-		message.type !== "config" ||
+		message === undefined ||
 		typeof message.appearance !== "object" ||
 		message.appearance === null ||
 		Array.isArray(message.appearance)
@@ -85,9 +89,6 @@ export function configFromMessage(data: unknown): PreviewConfig | undefined {
 	}
 	return {
 		appearance: message.appearance,
-		title: typeof message.title === "string" ? message.title : undefined,
-		forcedScheme:
-			message.forcedScheme === "light" || message.forcedScheme === "dark" ? message.forcedScheme : undefined,
-		isAvailable: typeof message.isAvailable === "boolean" ? message.isAvailable : undefined,
+		...previewOptions(message),
 	}
 }

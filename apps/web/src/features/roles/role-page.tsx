@@ -1,3 +1,4 @@
+import type { Role } from "@/api/generated/models/role.zod"
 import type { ReactNode } from "react"
 
 import { useGetSession } from "@/api/generated/identity/identity"
@@ -21,8 +22,95 @@ import { useTranslation } from "react-i18next"
 
 import { RoleAccessCard } from "./role-access-card"
 import { RoleDangerZone } from "./role-danger-zone"
-import { holdsAll } from "./role-form"
+import { holdsAll, type PermissionCatalog } from "./role-form"
 import { UpdateRoleForm } from "./update-role-form"
+
+type RoleQueryState = {
+	error: unknown
+	isError: boolean
+	isPending: boolean
+	refetch: () => unknown
+}
+
+function RoleLoading() {
+	const { t } = useTranslation()
+	return (
+		<>
+			<output className="sr-only">{t("roles.loading")}</output>
+			<PageSkeleton />
+		</>
+	)
+}
+
+function FailedRoleQuery({ failed, queries }: { failed: RoleQueryState; queries: readonly RoleQueryState[] }) {
+	return (
+		<ProblemAlert
+			error={failed.error}
+			onRetry={() => {
+				for (const query of queries) if (query.isError) void query.refetch()
+			}}
+		/>
+	)
+}
+
+type RolePageData = {
+	catalog: PermissionCatalog | undefined
+	changeable: boolean | undefined
+	forbidden: boolean
+	held: readonly string[] | undefined
+	ownRoles: readonly Role[]
+	role: Role | undefined
+	roles: readonly Role[] | undefined
+}
+
+type RolePageCallbacks = {
+	onAccessDirtyChange: (dirty: boolean) => void
+	onRoleDirtyChange: (dirty: boolean) => void
+	onRoleSavingChange: (saving: boolean) => void
+}
+
+function RoleContent({
+	callbacks,
+	data,
+	queries,
+	saving,
+}: {
+	callbacks: RolePageCallbacks
+	data: RolePageData
+	queries: readonly RoleQueryState[]
+	saving: boolean
+}): ReactNode {
+	const { t } = useTranslation()
+	const { catalog, changeable, forbidden, held, ownRoles, role, roles } = data
+	if (forbidden) return <AccessDenied />
+	if (queries.some(({ isPending }) => isPending)) return <RoleLoading />
+	const failed = queries.find(({ isError }) => isError)
+	if (failed) return <FailedRoleQuery failed={failed} queries={queries} />
+	if (!roles || !catalog || !held) throw new Error("Role queries settled without required data")
+	if (!role)
+		return (
+			<p role="alert" className="text-muted-foreground">
+				{t("problems.role-not-found")}
+			</p>
+		)
+	return (
+		<>
+			<PageHeader title={role.name} description={t("roles.settingsDescription")} />
+			{!changeable ? <p className="text-muted-foreground text-sm">{t("roles.cannotChange")}</p> : null}
+			<UpdateRoleForm
+				role={role}
+				catalog={catalog}
+				heldPermissions={held}
+				ownRoles={ownRoles}
+				disabled={!changeable}
+				onDirtyChange={callbacks.onRoleDirtyChange}
+				onSavingChange={callbacks.onRoleSavingChange}
+			/>
+			<RoleAccessCard roleId={role.id} onDirtyChange={callbacks.onAccessDirtyChange} />
+			{changeable ? <RoleDangerZone role={role} heldPermissions={held} ownRoles={ownRoles} disabled={saving} /> : null}
+		</>
+	)
+}
 
 export function RolePage({ roleId }: { roleId: string }) {
 	const { t } = useTranslation()
@@ -50,62 +138,22 @@ export function RolePage({ roleId }: { roleId: string }) {
 	const changeable =
 		role && held && holdsAll(held, role.permissions) && rolesQuery.data?.data.manageableRoleIds.includes(role.id)
 
-	let content: ReactNode
-	if (forbidden) {
-		content = <AccessDenied />
-	} else if (queries.some(({ isPending }) => isPending)) {
-		content = (
-			<>
-				<output className="sr-only">{t("roles.loading")}</output>
-				<PageSkeleton />
-			</>
-		)
-	} else {
-		const failedQuery = queries.find(({ isError }) => isError)
-		if (failedQuery) {
-			content = (
-				<ProblemAlert
-					error={failedQuery.error}
-					onRetry={() => {
-						for (const query of queries) if (query.isError) void query.refetch()
-					}}
-				/>
-			)
-		} else {
-			if (!roles || !catalog || !held) throw new Error("Role queries settled without required data")
-			content = !role ? (
-				<p role="alert" className="text-muted-foreground">
-					{t("problems.role-not-found")}
-				</p>
-			) : (
-				<>
-					<PageHeader title={role.name} description={t("roles.settingsDescription")} />
-					{!changeable ? <p className="text-muted-foreground text-sm">{t("roles.cannotChange")}</p> : null}
-					<UpdateRoleForm
-						role={role}
-						catalog={catalog}
-						heldPermissions={held}
-						ownRoles={ownRoles}
-						disabled={!changeable}
-						onDirtyChange={setRoleDirty}
-						onSavingChange={setRoleSaving}
-					/>
-					<RoleAccessCard roleId={role.id} onDirtyChange={setAccessDirty} />
-					{changeable ? (
-						<RoleDangerZone role={role} heldPermissions={held} ownRoles={ownRoles} disabled={roleSaving} />
-					) : null}
-				</>
-			)
-		}
-	}
-
 	return (
 		<div className="space-y-6">
 			<Link to="/dashboard/team/roles" className={buttonVariants({ variant: "ghost", className: "-ml-2" })}>
 				<ArrowLeft className="size-4" />
 				{t("roles.back")}
 			</Link>
-			{content}
+			<RoleContent
+				callbacks={{
+					onAccessDirtyChange: setAccessDirty,
+					onRoleDirtyChange: setRoleDirty,
+					onRoleSavingChange: setRoleSaving,
+				}}
+				data={{ catalog, changeable, forbidden, held, ownRoles, role, roles }}
+				queries={queries}
+				saving={roleSaving}
+			/>
 			{dirtyGuard}
 		</div>
 	)

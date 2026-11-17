@@ -1,4 +1,4 @@
-import { json, parseJsonBody } from "@/testing/api-responses"
+import { json, parseJsonBody, requestCount } from "@/testing/api-responses"
 import { act, createTestHarness, type QueryClient, type Root, settle } from "@/testing/component-harness"
 import { click, findButton as button, typeInto } from "@/testing/dom"
 import { renderRouter } from "@/testing/router"
@@ -334,6 +334,19 @@ describe("agent detail access and editing", () => {
 		for (const key of protectedKeys) expect(queryClient.getQueryData(key)).toBeUndefined()
 	})
 
+	test("preserves unsaved edits across a background refetch", async () => {
+		await renderPage()
+		await typeInto(nameInput(), "Unsaved agent name")
+		agent = { ...INITIAL_AGENT, name: "Renamed elsewhere" }
+
+		await act(async () => {
+			await queryClient.refetchQueries({ queryKey: [`/api/agents/${AGENT_ID}`] })
+		})
+		await settle()
+
+		expect(nameInput().value).toBe("Unsaved agent name")
+	})
+
 	test("preserves edits across failed saves and resets to the canonical agent after retry", async () => {
 		agent = { ...INITIAL_AGENT, wordBlacklist: ["retained-term", "seed-term"] }
 		canonicalAgent = {
@@ -525,11 +538,11 @@ describe("agent loading failures", () => {
 		agentListFailures = [json({}, 403)]
 		await renderPage()
 		expect(host.querySelector("[role='alert']")).not.toBeNull()
-		const beforeRetry = requests.filter(({ url }) => url === "/api/agents").length
+		const beforeRetry = requestCount(requests, "/api/agents")
 
 		await click(button(t("common.retry")))
 
-		expect(requests.filter(({ url }) => url === "/api/agents")).toHaveLength(beforeRetry + 1)
+		expect(requestCount(requests, "/api/agents")).toBe(beforeRetry + 1)
 		expect(requests.filter(({ url, method }) => url === `/api/agents/${AGENT_ID}` && method === "GET")).toHaveLength(1)
 		expect(nameInput().value).toBe(INITIAL_AGENT.name)
 	})

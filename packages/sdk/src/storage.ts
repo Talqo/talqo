@@ -80,12 +80,21 @@ function isPendingMessage(value: unknown): value is PendingMessage {
 	)
 }
 
+function hasStorageCredential(value: unknown): value is Pick<ChatStorageRecord, "version" | "credential"> {
+	if (typeof value !== "object" || value === null) return false
+	return (
+		"version" in value &&
+		value.version === CHAT_STORAGE_VERSION &&
+		"credential" in value &&
+		typeof value.credential === "string"
+	)
+}
+
 function isChatStorageRecord(value: unknown): value is ChatStorageRecord {
-	if (typeof value !== "object" || value === null || !("version" in value) || value.version !== CHAT_STORAGE_VERSION) {
-		return false
-	}
-	if (!("credential" in value) || typeof value.credential !== "string") return false
-	return !("pending" in value) || value.pending === undefined || isPendingMessage(value.pending)
+	return (
+		hasStorageCredential(value) &&
+		(!("pending" in value) || value.pending === undefined || isPendingMessage(value.pending))
+	)
 }
 
 export function readChatStorageRecord(serialized: string | null): ChatStorageRecord | null {

@@ -1,3 +1,7 @@
+import type { Role } from "@/api/generated/models/role.zod"
+import type { CreateInvitation201 } from "@/api/generated/models/roles/createInvitation201.zod"
+import type { ListUsers200Output } from "@/api/generated/models/roles/listUsers200.zod"
+
 import { useGetSession } from "@/api/generated/identity/identity.ts"
 import {
 	type DeleteUserMutationError,
@@ -54,6 +58,7 @@ import { TeamRolesSwitcher } from "./team-roles-switcher"
 const NOT_FOUND_STATUS = 404
 
 type ListedUser = { id: string; username: string }
+type TeamMember = ListUsers200Output["users"][number]
 
 function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string) => void; targetUser: ListedUser }) {
 	const { t } = useTranslation()
@@ -239,9 +244,10 @@ function DeleteMemberDialog({ onDeleted, targetUser }: { onDeleted: () => void; 
 	)
 }
 
-function TeamSkeleton({ label }: { label: string }) {
+function TeamSkeleton() {
+	const { t } = useTranslation()
 	return (
-		<SkeletonList label={label}>
+		<SkeletonList label={t("team.loading")}>
 			<CardHeader>
 				<Skeleton className="h-5 w-32 max-w-full" />
 				<div className="flex flex-wrap items-center gap-2">
@@ -259,12 +265,166 @@ function TeamSkeleton({ label }: { label: string }) {
 	)
 }
 
-function TeamList({ held }: { held: readonly string[] }) {
+function hasMemberBadges(user: TeamMember): boolean {
+	return user.permissions.includes("admin") || user.roles.length > 0 || Boolean(user.mustChangePassword)
+}
+
+function MemberBadges({ user }: { user: TeamMember }) {
 	const { t } = useTranslation()
+	return (
+		<CardDescription className="min-w-0">
+			<div className="flex flex-wrap items-center gap-2">
+				{user.permissions.includes("admin") && <Badge>{t("team.adminBadge")}</Badge>}
+				{user.roles.map((role) => (
+					<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
+						<span className="max-w-48 truncate">{role.name}</span>
+					</Badge>
+				))}
+				{user.mustChangePassword && <Badge variant="secondary">{t("team.pendingChange")}</Badge>}
+			</div>
+		</CardDescription>
+	)
+}
+
+function MemberRoleEditor({
+	currentUserId,
+	held,
+	manageableRoleIds,
+	ownRoles,
+	roles,
+	rolesFailed,
+	rolesLoading,
+	user,
+}: {
+	currentUserId: string | undefined
+	held: readonly string[]
+	manageableRoleIds: readonly string[]
+	ownRoles: readonly Role[]
+	roles: readonly Role[] | undefined
+	rolesFailed: boolean
+	rolesLoading: boolean
+	user: TeamMember
+}) {
+	const { t } = useTranslation()
+	if (!held.includes("roles:manage")) return null
+	if (!roles || rolesFailed) {
+		return (
+			<Button variant="outline" disabled aria-busy={rolesLoading}>
+				<Pencil className="size-4" />
+				{t("team.editRoles")}
+			</Button>
+		)
+	}
+	return (
+		<EditMemberRolesDialog
+			heldPermissions={held}
+			isSelf={user.id === currentUserId}
+			ownRoles={ownRoles}
+			roles={roles}
+			manageableRoleIds={manageableRoleIds}
+			targetUser={user}
+		/>
+	)
+}
+
+function MemberCard({
+	confirmed,
+	currentUserId,
+	held,
+	manageableRoleIds,
+	onDeleted,
+	onReset,
+	ownRoles,
+	roles,
+	rolesFailed,
+	rolesLoading,
+	user,
+}: {
+	confirmed: boolean
+	currentUserId: string | undefined
+	held: readonly string[]
+	manageableRoleIds: readonly string[]
+	onDeleted: () => void
+	onReset: (userId: string) => void
+	ownRoles: readonly Role[]
+	roles: readonly Role[] | undefined
+	rolesFailed: boolean
+	rolesLoading: boolean
+	user: TeamMember
+}) {
+	const { t } = useTranslation()
+	const canManageUsers = held.includes("users:manage")
+	const exceedsOperator = !user.canManage
+
+	return (
+		<Card data-user-id={user.id}>
+			<CardHeader>
+				<CardName>{user.username}</CardName>
+				{hasMemberBadges(user) ? <MemberBadges user={user} /> : null}
+			</CardHeader>
+			<CardContent>
+				<div className="space-y-4">
+					<div className="flex flex-wrap items-center gap-3">
+						{confirmed && <output className="text-primary text-xs">{t("team.resetSuccess")}</output>}
+						<MemberRoleEditor
+							currentUserId={currentUserId}
+							held={held}
+							ownRoles={ownRoles}
+							roles={roles}
+							manageableRoleIds={manageableRoleIds}
+							rolesFailed={rolesFailed}
+							rolesLoading={rolesLoading}
+							user={user}
+						/>
+						{canManageUsers && exceedsOperator ? (
+							<p className="text-muted-foreground max-w-xs text-xs">{t("team.cannotChange")}</p>
+						) : null}
+						{canManageUsers && !exceedsOperator && user.id !== currentUserId ? (
+							<>
+								<ResetPasswordDialog targetUser={user} onReset={onReset} />
+								<DeleteMemberDialog targetUser={user} onDeleted={onDeleted} />
+							</>
+						) : null}
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+	)
+}
+
+function ownRolesOf(
+	users: readonly TeamMember[],
+	currentUserId: string | undefined,
+	roles: readonly Role[] | undefined,
+): Role[] {
+	const ownRoleIds = new Set(users.find(({ id }) => id === currentUserId)?.roles.map(({ id }) => id))
+	return roles?.filter(({ id }) => ownRoleIds.has(id)) ?? []
+}
+
+function TeamRolesStatus({ error, onRetry, pending }: { error: Error | null; onRetry: () => void; pending: boolean }) {
+	const { t } = useTranslation()
+	return (
+		<>
+			{pending ? (
+				<div className="space-y-2">
+					<output className="sr-only">{t("roles.loading")}</output>
+					<Skeleton className="h-4 w-40 max-w-full" />
+				</div>
+			) : null}
+			<ProblemAlert error={error} onRetry={onRetry} />
+		</>
+	)
+}
+
+function TeamLoadError({ error, forbidden, onRetry }: { error: unknown; forbidden: boolean; onRetry: () => void }) {
+	if (forbidden) return <AccessDenied />
+	return <ProblemAlert error={error} onRetry={onRetry} />
+}
+
+function TeamList({ held }: { held: readonly string[] }) {
 	const queryClient = useQueryClient()
 	const session = useGetSession()
 	const usersQuery = useListUsers()
-	const canManageUsers = held.includes("users:manage")
 	const canManageRoles = held.includes("roles:manage")
 	const rolesQuery = useListRoles({ query: { enabled: canManageRoles } })
 	const [confirmedUserId, setConfirmedUserId] = useState<string | null>(null)
@@ -281,15 +441,15 @@ function TeamList({ held }: { held: readonly string[] }) {
 	}
 
 	if (usersQuery.isPending || session.isPending) {
-		return <TeamSkeleton label={t("team.loading")} />
+		return <TeamSkeleton />
 	}
 
 	if (usersQuery.isError || session.isError) {
 		// A role removed while the page is open still lands here.
-		if (forbidden) return <AccessDenied />
 		return (
-			<ProblemAlert
+			<TeamLoadError
 				error={usersQuery.error ?? session.error}
+				forbidden={forbidden}
 				onRetry={() => {
 					void usersQuery.refetch()
 					void session.refetch()
@@ -300,110 +460,178 @@ function TeamList({ held }: { held: readonly string[] }) {
 	const currentUserId = session.data?.data.user?.id
 	const users = usersQuery.data.data.users
 	const roles = rolesQuery.data?.data.roles
-	const ownRoleIds = new Set(users.find(({ id }) => id === currentUserId)?.roles.map(({ id }) => id) ?? [])
-	const ownRoles = roles?.filter(({ id }) => ownRoleIds.has(id)) ?? []
+	const manageableRoleIds = rolesQuery.data?.data.manageableRoleIds ?? []
+	const ownRoles = ownRolesOf(users, currentUserId, roles)
 
 	return (
 		<div className="space-y-3">
-			{canManageRoles && rolesQuery.isPending ? (
-				<div className="space-y-2">
-					<output className="sr-only">{t("roles.loading")}</output>
-					<Skeleton className="h-4 w-40 max-w-full" />
-				</div>
+			{canManageRoles ? (
+				<TeamRolesStatus
+					error={rolesQuery.error}
+					onRetry={() => void rolesQuery.refetch()}
+					pending={rolesQuery.isPending}
+				/>
 			) : null}
-			{canManageRoles ? <ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} /> : null}
-			{users.map((user) => {
-				const exceedsOperator = !user.canManage
-				return (
-					<Card key={user.id} data-user-id={user.id}>
-						<CardHeader>
-							<CardName>{user.username}</CardName>
-							{(user.permissions.includes("admin") || user.roles.length > 0 || user.mustChangePassword) && (
-								<CardDescription className="min-w-0">
-									<div className="flex flex-wrap items-center gap-2">
-										{user.permissions.includes("admin") && <Badge>{t("team.adminBadge")}</Badge>}
-										{user.roles.map((role) => (
-											<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
-												<span className="max-w-48 truncate">{role.name}</span>
-											</Badge>
-										))}
-										{user.mustChangePassword && <Badge variant="secondary">{t("team.pendingChange")}</Badge>}
-									</div>
-								</CardDescription>
-							)}
-						</CardHeader>
-						<CardContent>
-							<div className="space-y-4">
-								<div className="flex flex-wrap items-center gap-3">
-									{confirmedUserId === user.id && (
-										<output className="text-primary text-xs">{t("team.resetSuccess")}</output>
-									)}
-									{canManageRoles && roles && !rolesQuery.isError ? (
-										<EditMemberRolesDialog
-											heldPermissions={held}
-											isSelf={user.id === currentUserId}
-											ownRoles={ownRoles}
-											roles={roles}
-											manageableRoleIds={rolesQuery.data?.data.manageableRoleIds ?? []}
-											targetUser={user}
-										/>
-									) : canManageRoles ? (
-										<Button variant="outline" disabled aria-busy={rolesQuery.isPending}>
-											<Pencil className="size-4" />
-											{t("team.editRoles")}
-										</Button>
-									) : null}
-									{canManageUsers && exceedsOperator ? (
-										<p className="text-muted-foreground max-w-xs text-xs">{t("team.cannotChange")}</p>
-									) : null}
-									{canManageUsers && !exceedsOperator && user.id !== currentUserId ? (
-										<>
-											<ResetPasswordDialog targetUser={user} onReset={handleReset} />
-											<DeleteMemberDialog targetUser={user} onDeleted={handleDeleted} />
-										</>
-									) : null}
-								</div>
-							</div>
-						</CardContent>
-					</Card>
-				)
-			})}
+			{users.map((user) => (
+				<MemberCard
+					key={user.id}
+					user={user}
+					held={held}
+					currentUserId={currentUserId}
+					ownRoles={ownRoles}
+					roles={roles}
+					manageableRoleIds={manageableRoleIds}
+					rolesFailed={rolesQuery.isError}
+					rolesLoading={rolesQuery.isPending}
+					confirmed={confirmedUserId === user.id}
+					onReset={handleReset}
+					onDeleted={handleDeleted}
+				/>
+			))}
 		</div>
+	)
+}
+
+function defaultInviteRoleIds(
+	roles: readonly Role[] | undefined,
+	manageableRoleIds: readonly string[],
+	held: readonly string[],
+): string[] {
+	return (roles ?? [])
+		.filter(
+			(role) => role.id === DEFAULT_ROLE_ID && manageableRoleIds.includes(role.id) && holdsAll(held, role.permissions),
+		)
+		.map(({ id }) => id)
+}
+
+function InviteRolesField({
+	disabled,
+	error,
+	held,
+	manageableRoleIds,
+	onChange,
+	onRetry,
+	roles,
+	selected,
+}: {
+	disabled: boolean
+	error: Error | null
+	held: readonly string[]
+	manageableRoleIds: readonly string[]
+	onChange: (selected: string[]) => void
+	onRetry: () => void
+	roles: readonly Role[] | undefined
+	selected: readonly string[]
+}) {
+	const { t } = useTranslation()
+	return (
+		<>
+			{error ? <ProblemAlert error={error} onRetry={onRetry} /> : null}
+			{roles ? (
+				<fieldset className="min-w-0 space-y-2">
+					<legend className="mb-2 text-sm font-medium">{t("auth.invitations.roles")}</legend>
+					<RolePicker
+						manageableRoleIds={manageableRoleIds}
+						disabled={disabled}
+						heldPermissions={held}
+						roles={roles}
+						selected={selected}
+						onChange={onChange}
+					/>
+				</fieldset>
+			) : null}
+		</>
+	)
+}
+
+function InvitationLinkPanel({
+	copied,
+	expiresAt,
+	onCopy,
+	url,
+}: {
+	copied: boolean
+	expiresAt: string
+	onCopy: () => void
+	url: string
+}) {
+	const { t } = useTranslation()
+	const { language } = useLanguage()
+	return (
+		<div className="bg-muted/50 rounded-surface space-y-3 border p-4">
+			<Label htmlFor="invitation-link">{t("auth.invitations.linkLabel")}</Label>
+			<div className="flex gap-2">
+				<Input id="invitation-link" font="mono" value={url} readOnly />
+				<Button variant="outline" size="icon" type="button" onClick={onCopy} aria-label={t("auth.invitations.copy")}>
+					{copied ? <Check className="text-primary" /> : <Copy />}
+				</Button>
+			</div>
+			<p className="text-muted-foreground text-xs">
+				{t("auth.invitations.expiresLabel", {
+					date: formatDateTime(expiresAt, language),
+				})}
+			</p>
+			{copied ? <output className="text-primary block text-xs">{t("auth.invitations.copied")}</output> : null}
+		</div>
+	)
+}
+
+function InviteResult({
+	copied,
+	error,
+	invite,
+	onCopy,
+}: {
+	copied: boolean
+	error: string | null
+	invite: CreateInvitation201 | undefined
+	onCopy: (url: string) => void
+}) {
+	const inviteUrl = invite ? buildInvitationUrl(window.location.origin, invite.token) : null
+	return (
+		<>
+			{error ? (
+				<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
+					{error}
+				</p>
+			) : null}
+			{invite && inviteUrl ? (
+				<InvitationLinkPanel
+					copied={copied}
+					expiresAt={invite.expiresAt}
+					onCopy={() => onCopy(inviteUrl)}
+					url={inviteUrl}
+				/>
+			) : null}
+		</>
 	)
 }
 
 function InviteMemberDialog({ held }: { held: readonly string[] }) {
 	const { t } = useTranslation()
-	const { language } = useLanguage()
 	const createInvitation = useCreateInvitation()
 	const canAssignRoles = held.includes("roles:manage")
 	const rolesQuery = useListRoles({ query: { enabled: canAssignRoles } })
-	const roles = rolesQuery.data?.data.roles ?? []
 	const [selected, setSelected] = useState<string[]>([])
 	const [open, setOpen] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [copied, setCopied] = useState(false)
 
+	function resetInvitation() {
+		// A generated link is a one-shot artifact; drop it so the next open starts clean.
+		createInvitation.reset()
+		setError(null)
+		setCopied(false)
+	}
+
 	function handleOpenChange(next: boolean) {
 		if (createInvitation.isPending) return
+		setOpen(next)
 		if (next)
 			setSelected(
-				roles
-					.filter(
-						(role) =>
-							role.id === DEFAULT_ROLE_ID &&
-							holdsAll(held, role.permissions) &&
-							rolesQuery.data?.data.manageableRoleIds.includes(role.id),
-					)
-					.map(({ id }) => id),
+				defaultInviteRoleIds(rolesQuery.data?.data.roles, rolesQuery.data?.data.manageableRoleIds ?? [], held),
 			)
-		setOpen(next)
-		if (!next) {
-			// A generated link is a one-shot artifact; drop it so the next open starts clean.
-			createInvitation.reset()
-			setError(null)
-			setCopied(false)
-		}
+		else resetInvitation()
 	}
 
 	async function handleCreate() {
@@ -428,7 +656,7 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 	}
 
 	const invite = createInvitation.data?.data
-	const inviteUrl = invite ? buildInvitationUrl(window.location.origin, invite.token) : null
+	const created = Boolean(invite)
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
@@ -440,58 +668,27 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 				<DialogHeader>
 					<DialogTitle>{t("auth.invitations.heading")}</DialogTitle>
 				</DialogHeader>
-				{canAssignRoles && rolesQuery.isError ? (
-					<ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} />
-				) : null}
-				{canAssignRoles && rolesQuery.data ? (
-					<fieldset className="min-w-0 space-y-2">
-						<legend className="mb-2 text-sm font-medium">{t("auth.invitations.roles")}</legend>
-						<RolePicker
-							manageableRoleIds={rolesQuery.data.data.manageableRoleIds}
-							disabled={createInvitation.isPending || Boolean(inviteUrl)}
-							heldPermissions={held}
-							roles={roles}
-							selected={selected}
-							onChange={setSelected}
-						/>
-					</fieldset>
+				{canAssignRoles ? (
+					<InviteRolesField
+						disabled={createInvitation.isPending || created}
+						error={rolesQuery.error}
+						held={held}
+						manageableRoleIds={rolesQuery.data?.data.manageableRoleIds ?? []}
+						onChange={setSelected}
+						onRetry={() => void rolesQuery.refetch()}
+						roles={rolesQuery.data?.data.roles}
+						selected={selected}
+					/>
 				) : null}
 				{selected.length === 0 ? (
 					<p className="text-muted-foreground text-xs">{t("auth.invitations.noRoles")}</p>
 				) : null}
-				{error ? (
-					<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
-						{error}
-					</p>
-				) : null}
-				{invite && inviteUrl ? (
-					<div className="bg-muted/50 rounded-surface space-y-3 border p-4">
-						<Label htmlFor="invitation-link">{t("auth.invitations.linkLabel")}</Label>
-						<div className="flex gap-2">
-							<Input id="invitation-link" font="mono" value={inviteUrl} readOnly />
-							<Button
-								variant="outline"
-								size="icon"
-								type="button"
-								onClick={() => copyInvitation(inviteUrl)}
-								aria-label={t("auth.invitations.copy")}
-							>
-								{copied ? <Check className="text-primary" /> : <Copy />}
-							</Button>
-						</div>
-						<p className="text-muted-foreground text-xs">
-							{t("auth.invitations.expiresLabel", {
-								date: formatDateTime(invite.expiresAt, language),
-							})}
-						</p>
-						{copied ? <output className="text-primary block text-xs">{t("auth.invitations.copied")}</output> : null}
-					</div>
-				) : null}
+				<InviteResult copied={copied} error={error} invite={invite} onCopy={(url) => void copyInvitation(url)} />
 				<DialogFooter>
 					<Button variant="outline" onClick={() => handleOpenChange(false)}>
 						{t("team.cancel")}
 					</Button>
-					<Button type="button" onClick={handleCreate} disabled={createInvitation.isPending || Boolean(inviteUrl)}>
+					<Button type="button" onClick={handleCreate} disabled={createInvitation.isPending || created}>
 						{t("auth.invitations.create")}
 					</Button>
 				</DialogFooter>

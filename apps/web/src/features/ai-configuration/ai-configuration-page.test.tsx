@@ -244,6 +244,18 @@ function submit() {
 	)
 }
 
+async function submitWithReembedConfirmation() {
+	await submit()
+	await settle()
+	await act(async () => button(t("aiConfiguration.reembedConfirm"), confirmationDialog()).click())
+	await settle()
+}
+
+function expectSavedEmbedding(embedding: SaveAiProviderConfigurationInput["embedding"]) {
+	expect(saveRequests).toHaveLength(1)
+	expect(saveRequests[0]?.embedding).toEqual(embedding)
+}
+
 function canonicalSettings(settings: Record<string, string>): Record<string, string> {
 	return Object.fromEntries(Object.entries(settings).map(([key, value]) => [key, value.replace(/\/$/, "")]))
 }
@@ -1196,13 +1208,9 @@ describe("AiConfigurationPage", () => {
 		expect(inputById("embedding-model").value).toBe("embedding-model")
 		await type(embeddingBaseUrlInput(), "https://separate.example/v1")
 		await type(inputById("embedding-apiKey"), "sk-embedding")
-		await submit()
-		await settle()
-		await act(async () => button(t("aiConfiguration.reembedConfirm"), confirmationDialog()).click())
-		await settle()
+		await submitWithReembedConfirmation()
 
-		expect(saveRequests).toHaveLength(1)
-		expect(saveRequests[0]?.embedding).toEqual({
+		expectSavedEmbedding({
 			providerId: "openai-compatible",
 			authMode: "static",
 			modelId: "embedding-model",
@@ -1229,13 +1237,9 @@ describe("AiConfigurationPage", () => {
 		await type(inputById("embedding-model"), "text-embedding-3-small")
 		await type(embeddingBaseUrlInput(), "https://openai.example/v1")
 		await type(inputById("embedding-apiKey"), "sk-openai")
-		await submit()
-		await settle()
-		await act(async () => button(t("aiConfiguration.reembedConfirm"), confirmationDialog()).click())
-		await settle()
+		await submitWithReembedConfirmation()
 
-		expect(saveRequests).toHaveLength(1)
-		expect(saveRequests[0]?.embedding).toEqual({
+		expectSavedEmbedding({
 			providerId: "openai",
 			authMode: "static",
 			modelId: "text-embedding-3-small",
@@ -1263,13 +1267,9 @@ describe("AiConfigurationPage", () => {
 		await type(inputById("embedding-model"), "embedding-model-next")
 		await type(embeddingBaseUrlInput(), "https://separate.example/v1")
 		await type(inputById("embedding-apiKey"), "sk-separate")
-		await submit()
-		await settle()
-		await act(async () => button(t("aiConfiguration.reembedConfirm"), confirmationDialog()).click())
-		await settle()
+		await submitWithReembedConfirmation()
 
-		expect(saveRequests).toHaveLength(1)
-		expect(saveRequests[0]?.embedding).toEqual({
+		expectSavedEmbedding({
 			providerId: "openai-compatible",
 			authMode: "static",
 			modelId: "embedding-model-next",

@@ -314,6 +314,34 @@ describe("createFetchChatTransport", () => {
 		)
 	})
 
+	test("parses tool lifecycle events and rejects malformed tool facts", async () => {
+		const valid: ChatEvent[] = [
+			{ type: "tool-start", serverName: "Shopify", toolName: "get_product" },
+			{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "completed" },
+			{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "failed" },
+			{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "cancelled" },
+		]
+		const malformed = [
+			{ type: "tool-start", serverName: "Shopify" },
+			{ type: "tool-end", serverName: "Shopify", toolName: "get_product" },
+			{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "running" },
+		]
+		const input = { ...context(), requestId: REQUEST_ID, credential: CREDENTIAL, text: "hello" }
+		const body = valid.map((event) => `event: chat\ndata: ${JSON.stringify({ version: 1, ...event })}\n\n`).join("")
+		const transport = createFetchChatTransport({ fetch: async () => streamResponse([body]) })
+
+		const observed = await Array.fromAsync(await transport.sendMessage(input))
+
+		expect(observed).toEqual(valid)
+		await Promise.all(
+			malformed.map(async (event) => {
+				const payload = `event: chat\ndata: ${JSON.stringify({ version: 1, ...event })}\n\n`
+				const stream = createFetchChatTransport({ fetch: async () => streamResponse([payload]) })
+				await expect(Array.fromAsync(await stream.sendMessage(input))).rejects.toThrow("validation")
+			}),
+		)
+	})
+
 	test("forwards streamed error facts, ignores additive fields, and rejects malformed protocol data", async () => {
 		const streamedError = {
 			version: 1,
