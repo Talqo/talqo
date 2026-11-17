@@ -13,6 +13,7 @@ export function createPageConnection(input: {
 }) {
 	let sender: ((message: string) => void) | undefined = input.send
 	let close = input.close
+	let closeOwner = input.close
 	let detached: ReturnType<typeof setTimeout> | undefined
 	const frames: string[] = []
 	let bytes = 0
@@ -34,6 +35,9 @@ export function createPageConnection(input: {
 		},
 		get channel() {
 			return channel
+		},
+		owns(send: (message: string) => void) {
+			return sender === send
 		},
 		send(message: unknown) {
 			if (finished) return
@@ -59,11 +63,14 @@ export function createPageConnection(input: {
 			clearTimeout(detached)
 			detached = setTimeout(() => channel?.interrupt(), RECONNECT_MS)
 		},
-		attach(send: (message: string) => void, onFinish: () => void): boolean {
-			if (finished || sender) return false
+		attach(send: (message: string) => void, onFinish: () => void, closeSocket: () => void): boolean {
+			if (finished) return false
+			// A navigation may not report the old socket's close before the next document resumes.
+			if (sender) closeOwner()
 			clearTimeout(detached)
 			sender = send
 			close = onFinish
+			closeOwner = closeSocket
 			for (const frame of frames) send(frame)
 			channel?.resumePage()
 			return true
