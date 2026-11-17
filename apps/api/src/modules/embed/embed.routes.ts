@@ -3,7 +3,6 @@ import type { Context } from "hono"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate, annotator } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
-import { createHash } from "node:crypto"
 
 import {
 	createEmbedRoute,
@@ -28,7 +27,7 @@ const CONFIG_MAX_AGE_SECONDS = 60
 function serveEmbedConfig(c: Context) {
 	return service.getConfigByToken(c.req.param("embedToken")!, annotator(c)).then((config) => {
 		const response = embedConfigResponseSchema.parse(config)
-		const etag = `W/"${createHash("sha256").update(JSON.stringify(response)).digest("hex")}"`
+		const etag = `W/"${new Bun.CryptoHasher("sha256").update(JSON.stringify(response)).digest("hex")}"`
 		if (c.req.header("if-none-match") === etag) return c.body(null, HTTP_STATUS.NOT_MODIFIED)
 		c.header("Cache-Control", `public, max-age=${CONFIG_MAX_AGE_SECONDS}`)
 		c.header("ETag", etag)

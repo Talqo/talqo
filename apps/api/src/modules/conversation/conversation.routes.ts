@@ -7,7 +7,6 @@ import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate, annotator, deferWideEvent } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { upgradeWebSocket } from "hono/bun"
-import { createHash } from "node:crypto"
 
 import type { MessagePart } from "./conversation.messages.ts"
 import type { ChatEvent } from "./conversation.service.ts"
@@ -201,7 +200,7 @@ export function createConversationRoutes(
 						clientTools: channel,
 						cancellationSignal: cancellation.signal,
 						clientManifestFingerprint: frame.tools.length
-							? createHash("sha256").update(JSON.stringify(frame.tools)).digest("hex")
+							? new Bun.CryptoHasher("sha256").update(JSON.stringify(frame.tools)).digest("hex")
 							: undefined,
 					},
 					(message) => {

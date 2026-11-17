@@ -1,7 +1,6 @@
 import type { ToolBinding } from "@/modules/ai-provider/ai-provider.service.ts"
 
 import { jsonSchema, type ModelMessage, tool, type ToolExecutionOptions } from "ai"
-import { createHash } from "node:crypto"
 
 export const CLIENT_TOOL_LIMIT = 8
 const CLIENT_TOOL_CALL_LIMIT = 16
@@ -63,7 +62,7 @@ export function createClientToolChannel(
 	}
 	const binding: ToolBinding = { names: new Map(), tools: {} }
 	for (const definition of definitions) {
-		const name = `client_${createHash("sha256").update(definition.name).digest("hex").slice(0, TOOL_NAME_HASH_CHARACTERS)}`
+		const name = `client_${new Bun.CryptoHasher("sha256").update(definition.name).digest("hex").slice(0, TOOL_NAME_HASH_CHARACTERS)}`
 		binding.names.set(name, { source: "client", serverName: "", toolName: definition.name })
 		binding.tools[name] = tool({
 			// Page text is untrusted: quote it so the model reads it as data, not instructions.
