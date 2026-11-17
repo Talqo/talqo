@@ -125,6 +125,13 @@ function serve(app: ReturnType<typeof routes>["app"]) {
 	return Bun.serve({ port: 0, fetch: (request, host) => app.fetch(request, { server: host }), websocket })
 }
 
+async function startPageTurn(origin: string, pageSession: string): Promise<void> {
+	const first = connect(origin, { ...START, pageSession, tools: [{ name: "talqo_page", inputSchema: {} }] })
+	await first.accepted
+	first.socket.close()
+	await first.closed
+}
+
 function connect(origin: string, frame: unknown, onAccepted?: (socket: WebSocket) => void) {
 	const events: Array<unknown> = []
 	const accepted = Promise.withResolvers<void>()
@@ -156,14 +163,7 @@ describe("public conversation routes", () => {
 		const server = serve(app)
 		const pageSession = crypto.randomUUID()
 		try {
-			const first = connect(server.url.origin, {
-				...START,
-				pageSession,
-				tools: [{ name: "talqo_page", inputSchema: {} }],
-			})
-			await first.accepted
-			first.socket.close()
-			await first.closed
+			await startPageTurn(server.url.origin, pageSession)
 			const resumed = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
 			await authorizing.promise
 			resumed.socket.close()
@@ -176,19 +176,12 @@ describe("public conversation routes", () => {
 			await server.stop(true)
 		}
 	})
-	it("reattaches a page turn without accepting or charging a second request", async () => {
+	it("hands a page turn to the newest document without accepting or charging a second request", async () => {
 		const { app, calls, release } = routes("late-error")
 		const server = serve(app)
 		const pageSession = crypto.randomUUID()
 		try {
-			const first = connect(server.url.origin, {
-				...START,
-				pageSession,
-				tools: [{ name: "talqo_page", inputSchema: {} }],
-			})
-			await first.accepted
-			first.socket.close()
-			await first.closed
+			await startPageTurn(server.url.origin, pageSession)
 			const wrong = connect(server.url.origin, {
 				version: 1,
 				type: "resume",
@@ -199,11 +192,12 @@ describe("public conversation routes", () => {
 			const resumed = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
 			await resumed.accepted
 			const contender = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
-			expect(await contender.closed).toBe(1008)
+			await contender.accepted
+			expect(await resumed.closed).toBe(1000)
 			expect(calls[0]).toHaveProperty("clientTools.interrupted", false)
 			release()
-			expect(await resumed.closed).toBe(1000)
-			expect(resumed.events).toMatchObject([
+			expect(await contender.closed).toBe(1000)
+			expect(contender.events).toMatchObject([
 				{ type: "accepted", requestId: REQUEST_ID },
 				{ type: "part" },
 				{ type: "error" },

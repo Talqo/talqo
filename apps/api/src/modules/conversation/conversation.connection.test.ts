@@ -3,11 +3,14 @@ import { expect, test } from "bun:test"
 import { createClientToolChannel } from "./conversation.client-tools.ts"
 import { createPageConnection } from "./conversation.connection.ts"
 
-test("buffers only replayable frames and rejects competing owners without interrupting the winner", () => {
+const noop = () => {}
+
+test("buffers only replayable frames and hands the turn to the newest document", () => {
 	const original: string[] = []
 	const resumed: string[] = []
 	const sendOriginal = (frame: string) => original.push(frame)
 	const sendResumed = (frame: string) => resumed.push(frame)
+	const closed: string[] = []
 	let cancellations = 0
 	const connection = createPageConnection({
 		credential: "credential",
@@ -26,21 +29,54 @@ test("buffers only replayable frames and rejects competing owners without interr
 	expect(original).toHaveLength(46)
 	expect(cancellations).toBe(0)
 	connection.detach(sendOriginal)
-	expect(connection.attach(sendResumed, () => {})).toBe(true)
+	expect(
+		connection.attach(
+			sendResumed,
+			() => {},
+			() => closed.push("resumed"),
+		),
+	).toBe(true)
 	expect(resumed).toEqual([JSON.stringify({ type: "accepted" })])
 	expect(
 		connection.attach(
+			noop,
 			() => {},
-			() => {},
+			() => closed.push("contender"),
 		),
-	).toBe(false)
-	connection.detach(sendOriginal)
+	).toBe(true)
+	expect(closed).toEqual(["resumed"])
+	expect(connection.owns(sendResumed)).toBe(false)
+	expect(connection.owns(noop)).toBe(true)
+	connection.detach(sendResumed)
+	expect(channel.interrupted).toBe(false)
+	connection.finish()
+})
+
+test("a resumed document takes over a socket whose close has not been reported yet", () => {
+	const resumed: string[] = []
+	const closed: string[] = []
+	const connection = createPageConnection({
+		credential: "credential",
+		embedToken: "embed",
+		origin: undefined,
+		send: noop,
+		close: () => closed.push("start"),
+		cancel() {},
+	})
+	const channel = createClientToolChannel([{ name: "talqo_page", inputSchema: {} }], () => {}, 400_000)
+	connection.setChannel(channel)
+	connection.send({ type: "accepted" })
+	const sendResumed = (frame: string) => resumed.push(frame)
 	expect(
 		connection.attach(
+			sendResumed,
 			() => {},
-			() => {},
+			() => closed.push("resumed"),
 		),
-	).toBe(false)
+	).toBe(true)
+	expect(connection.owns(sendResumed)).toBe(true)
+	expect(closed).toEqual(["start"])
+	expect(resumed).toEqual([JSON.stringify({ type: "accepted" })])
 	expect(channel.interrupted).toBe(false)
 	connection.finish()
 })

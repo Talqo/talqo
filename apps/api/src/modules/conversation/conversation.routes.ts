@@ -286,11 +286,15 @@ export function createConversationRoutes(
 					await activeService().authorizePageResume(frame.credential, embedToken)
 					if (resumeCancellationRequested) connection.cancel()
 					if (closed || terminal) return
-					const attached = connection.attach(send, () => {
-						terminal = true
-						completion.resolve()
-						ws.close(SOCKET_NORMAL_CLOSE)
-					})
+					const attached = connection.attach(
+						send,
+						() => {
+							terminal = true
+							completion.resolve()
+							ws.close(SOCKET_NORMAL_CLOSE)
+						},
+						() => ws.close(SOCKET_NORMAL_CLOSE),
+					)
 					if (!attached) {
 						failFrame(ws)
 						return
@@ -327,6 +331,7 @@ export function createConversationRoutes(
 			if (frame.type === "start") startTurn(frame, ws)
 			else if (frame.type === "resume") resumeTurn(frame, ws)
 			else if (!started) failFrame(ws)
+			else if (pageConnection && socketSender && !pageConnection.owns(socketSender)) return
 			else if (frame.type === "cancel") {
 				if (resuming) resumeCancellationRequested = true
 				else if (pageConnection) pageConnection.cancel()

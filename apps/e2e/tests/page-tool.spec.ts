@@ -64,25 +64,27 @@ test("page observations reflect live controls and reject disabled or detached ta
 			})
 		try {
 			const before = (await run({ action: "observe" })) as { snapshot: string; content: string }
-			// eslint-disable-next-line unicorn/consistent-function-scoping -- outer functions are not serialized into page.evaluate.
-			const index = (content: string, id: string) => {
-				const line = content.split("\n").find((entry) => entry.includes(`id=${id}`))
-				const value = line?.match(/\[(\d+)\]/)?.[1]
-				if (!value) throw new Error(`Missing ${id}: ${content}`)
-				return Number(value)
+			type ControlAction = {
+				action: "click" | "fill" | "select"
+				description: string
+				approval: null
+				text?: string
+				option?: string
 			}
-			const filled = (await run({
+			const runOn = (observed: { snapshot: string; content: string }, id: string, input: ControlAction) => {
+				const line = observed.content.split("\n").find((entry) => entry.includes(`id=${id}`))
+				const value = line?.match(/\[(\d+)\]/)?.[1]
+				if (!value) throw new Error(`Missing ${id}: ${observed.content}`)
+				return run({ ...input, snapshot: observed.snapshot, index: Number(value) })
+			}
+			const filled = (await runOn(before, "email", {
 				action: "fill",
-				snapshot: before.snapshot,
-				index: index(before.content, "email"),
 				description: "Fill email",
 				approval: null,
 				text: "new@example.com",
 			})) as { page: { snapshot: string; content: string } }
-			const selected = (await run({
+			const selected = (await runOn(filled.page, "delivery", {
 				action: "select",
-				snapshot: filled.page.snapshot,
-				index: index(filled.page.content, "delivery"),
 				description: "Choose delivery",
 				approval: null,
 				option: "Express",
@@ -90,20 +92,16 @@ test("page observations reflect live controls and reject disabled or detached ta
 			const target = document.querySelector<HTMLButtonElement>("#target")
 			if (!target) throw new Error("Missing target")
 			target.disabled = true
-			const disabled = await run({
+			const disabled = await runOn(selected.page, "target", {
 				action: "click",
-				snapshot: selected.page.snapshot,
-				index: index(selected.page.content, "target"),
 				description: "Place order",
 				approval: null,
 			})
 			target.disabled = false
 			const refreshed = (await run({ action: "observe" })) as { snapshot: string; content: string }
 			target.remove()
-			const detached = await run({
+			const detached = await runOn(refreshed, "target", {
 				action: "click",
-				snapshot: refreshed.snapshot,
-				index: index(refreshed.content, "target"),
 				description: "Place order",
 				approval: null,
 			})
@@ -114,13 +112,9 @@ test("page observations reflect live controls and reject disabled or detached ta
 					base.target = "_blank"
 					document.head.append(base)
 				}
-				// oxlint-disable-next-line no-await-in-loop -- Each action needs a fresh snapshot.
 				const current = (await run({ action: "observe" })) as { snapshot: string; content: string }
-				// oxlint-disable-next-line no-await-in-loop -- Actions must use their own observation in order.
-				const denied = await run({
+				const denied = await runOn(current, id, {
 					action: "click",
-					snapshot: current.snapshot,
-					index: index(current.content, id),
 					description: "Use control",
 					approval: null,
 				})
