@@ -10,7 +10,7 @@ if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://l
 
 const { useDashboardUsage } = await import("./use-dashboard-usage")
 const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
+const { act, useEffect } = await import("react")
 
 const OVERVIEW: StatsOverview = {
 	days: 7,
@@ -28,7 +28,15 @@ let host: HTMLDivElement
 let root: Root
 
 function Harness() {
-	usage = useDashboardUsage({ overview: OVERVIEW, agentLines: LINES, selection: ["a", "a"], allIds: ["a", "b"] })
+	const current = useDashboardUsage({
+		overview: OVERVIEW,
+		agentLines: LINES,
+		selection: ["a", "a"],
+		allIds: ["a", "b"],
+	})
+	useEffect(() => {
+		usage = current
+	})
 	return null
 }
 
