@@ -176,6 +176,26 @@ describe("public conversation routes", () => {
 			await server.stop(true)
 		}
 	})
+	it("cancels a running turn and closes once the turn settles", async () => {
+		const { app, release } = routes("late-error")
+		const server = serve(app)
+		try {
+			const turn = connect(server.url.origin, START)
+			await turn.accepted
+			turn.socket.send(JSON.stringify({ version: 1, type: "cancel" }))
+			await Bun.sleep(20)
+			release()
+			expect(await turn.closed).toBe(1000)
+			expect(turn.events).toContainEqual({
+				version: 1,
+				type: "error",
+				outcome: "failed",
+				error: { code: "provider-error", retriable: true, newChatAvailable: false },
+			})
+		} finally {
+			await server.stop(true)
+		}
+	})
 	it("hands a page turn to the newest document without accepting or charging a second request", async () => {
 		const { app, calls, release } = routes("late-error")
 		const server = serve(app)

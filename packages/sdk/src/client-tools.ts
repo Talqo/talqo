@@ -61,7 +61,9 @@ function validateFields(name: string, definition: ToolSet[string]): void {
 	for (const key of Object.keys(definition))
 		if (!ALLOWED_FIELDS.has(key)) throw new Error(`Unsupported client tool field: ${key}`)
 	if (isInvalidDescription(definition.description))
-		throw new Error(`Client tool requires a static description of at most ${TOOL_DESCRIPTION_CHARACTERS} characters: ${name}`)
+		throw new Error(
+			`Client tool requires a static description of at most ${TOOL_DESCRIPTION_CHARACTERS} characters: ${name}`,
+		)
 	if (definition.inputExamples !== undefined && !Array.isArray(definition.inputExamples))
 		throw new Error(`Client tool requires static input examples: ${name}`)
 }

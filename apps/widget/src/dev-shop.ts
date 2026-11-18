@@ -52,15 +52,18 @@ const summary = (
 <p>Delivery: ${checkout.delivery}, ${money(deliveryPrice(checkout.delivery))}. No additional fees.</p>
 <output>Total: ${money(checkout.quantity * PRICE + deliveryPrice(checkout.delivery))}</output>`
 
+function applySearch(container: Element, value: string) {
+	const search = value.toLowerCase()
+	for (const article of container.querySelectorAll<HTMLElement>("article"))
+		article.hidden = !article.dataset.product?.includes(search)
+}
+
 if (currentPage === "catalog") {
 	page.innerHTML = `<h1>Talqo demo shop</h1><label>Search products <input type="search" id="product-search"></label>
 <article data-product="everyday t-shirt"><h2>Everyday T-shirt</h2><p>Soft cotton. ${money(PRICE)}.</p><a href="${url("product")}">View Everyday T-shirt</a></article>
 <article data-product="canvas bag"><h2>Canvas bag</h2><p>Unavailable</p><button disabled>Add Canvas bag to cart</button></article>`
 	page.querySelector<HTMLInputElement>("#product-search")?.addEventListener("input", (event) => {
-		if (!(event.target instanceof HTMLInputElement)) return
-		const search = event.target.value.toLowerCase()
-		for (const article of page.querySelectorAll<HTMLElement>("article"))
-			article.hidden = !article.dataset.product?.includes(search)
+		if (event.target instanceof HTMLInputElement) applySearch(page, event.target.value)
 	})
 } else if (currentPage === "product") {
 	page.innerHTML = `<h1>Everyday T-shirt</h1><p>Soft cotton. ${money(PRICE)} each.</p>

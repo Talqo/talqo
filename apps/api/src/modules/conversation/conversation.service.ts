@@ -134,6 +134,20 @@ function requireUuid(value: string, error: Error): string {
 	return value
 }
 
+function validateMessage(input: SendInput): void {
+	if (!input.text) throw new InvalidChatInputError("Message text is required")
+	requireUuid(input.requestId, new InvalidChatInputError("Request ID is invalid"))
+}
+
+function removeDisabledPageTool(clientTools: SendInput["clientTools"], pageControl: { enabled: boolean }): void {
+	for (const [name, identity] of clientTools?.binding.names ?? []) {
+		if (identity.toolName === PAGE_TOOL_NAME && !pageControl.enabled) {
+			clientTools?.binding.names.delete(name)
+			delete clientTools?.binding.tools[name]
+		}
+	}
+}
+
 function isActiveStatus(
 	status: GenerationAttemptStatus,
 ): status is (typeof GENERATION_ATTEMPT_ACTIVE_STATUSES)[number] {
@@ -925,18 +939,12 @@ export function createConversationService(dependencies: Dependencies) {
 	return {
 		async send(input: SendInput, emit: (event: ChatEvent) => void = () => {}, annotate: Annotate = () => {}) {
 			await recoverUsage()
-			if (!input.text) throw new InvalidChatInputError("Message text is required")
-			requireUuid(input.requestId, new InvalidChatInputError("Request ID is invalid"))
+			validateMessage(input)
 			annotate({ "chat.request_id": input.requestId })
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
 			if (currentEmbed.isDisabled) throw new EmbedDisabledError()
 			const agent = await agentService.getAgent(currentEmbed.agentId)
-			for (const [name, identity] of input.clientTools?.binding.names ?? []) {
-				if (identity.toolName === PAGE_TOOL_NAME && !agent.pageControl.enabled) {
-					input.clientTools?.binding.names.delete(name)
-					delete input.clientTools?.binding.tools[name]
-				}
-			}
+			removeDisabledPageTool(input.clientTools, agent.pageControl)
 			if (Array.from(input.text).length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 			const conversationId = requireUuid(
 				input.credential,

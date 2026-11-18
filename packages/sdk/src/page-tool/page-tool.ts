@@ -15,8 +15,10 @@ const APPROVAL_LIMIT = 2000
 const INPUT_LIMIT = 10_000
 const OPTION_LIMIT = 1000
 const CENTER_DIVISOR = 2
+const PROPOSAL_CHANGED = "The proposal changed. Observe the page and request fresh approval."
+const THEME_TOKENS = ["primary", "text-on-primary", "background", "surface", "text"]
 
-const target = {
+const targetSchema = {
 	snapshot: z.string().describe("Required for click, fill, and select. Copy the latest observation's snapshot."),
 	index: z.number().int().nonnegative(),
 	description: z
@@ -38,18 +40,22 @@ const target = {
 }
 const actionSchema = z.discriminatedUnion("action", [
 	z.object({ action: z.literal("observe") }),
-	z.object({ action: z.literal("click"), ...target }),
-	z.object({ action: z.literal("fill"), ...target, text: z.string().max(INPUT_LIMIT) }),
-	z.object({ action: z.literal("select"), ...target, option: z.string().max(OPTION_LIMIT) }),
+	z.object({ action: z.literal("click"), ...targetSchema }),
+	z.object({ action: z.literal("fill"), ...targetSchema, text: z.string().max(INPUT_LIMIT) }),
+	z.object({ action: z.literal("select"), ...targetSchema, option: z.string().max(OPTION_LIMIT) }),
 	z.object({ action: z.literal("scroll"), down: z.boolean(), description: z.string().max(DESCRIPTION_LIMIT) }),
 ])
 const inputSchema = z.object({
 	action: z.enum(["observe", "click", "fill", "select", "scroll"]),
-	...z.object(target).partial().shape,
+	...z.object(targetSchema).partial().shape,
 	text: z.string().max(INPUT_LIMIT).optional(),
 	option: z.string().max(OPTION_LIMIT).optional(),
 	down: z.boolean().optional(),
 })
+
+type PageInput = z.infer<typeof actionSchema>
+type InteractiveInput = Extract<PageInput, { action: "click" | "fill" | "select" }>
+type FormControl = HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 
 const labels = {
 	en: {
@@ -90,6 +96,156 @@ function focusedElement(): Element | null {
 	return element
 }
 
+function assertTargetUsable(element: HTMLElement): void {
+	if (!element.isConnected || element.matches(":disabled, [aria-disabled=true]"))
+		throw new Error("Target is unavailable. Observe the page again.")
+}
+
+function isTargetOutsidePage(
+	element: HTMLElement,
+	panel: HTMLElement | undefined,
+	highlight: HTMLElement | undefined,
+	exclude: readonly Element[],
+): boolean {
+	return (
+		element.ownerDocument !== document ||
+		exclude.some((root) => root.contains(element)) ||
+		!!panel?.contains(element) ||
+		highlight === element
+	)
+}
+
+function assertTargetVisible(element: HTMLElement): void {
+	const rect = element.getBoundingClientRect()
+	if (!rect.width || !rect.height) throw new Error("Target is not visible.")
+	const x = Math.max(0, Math.min(innerWidth - 1, rect.left + rect.width / CENTER_DIVISOR))
+	const y = Math.max(0, Math.min(innerHeight - 1, rect.top + rect.height / CENTER_DIVISOR))
+	const hit = document.elementFromPoint(x, y)
+	if (hit !== element && !element.contains(hit))
+		throw new Error(`Target is covered by ${hit?.tagName ?? "the viewport"}. Observe the page again.`)
+}
+
+function pageBaseTarget(): string {
+	return document.querySelector("base[target]")?.getAttribute("target") ?? "_self"
+}
+
+function assertSameTabLink(element: HTMLElement, baseTarget: string): void {
+	const link = element.closest("a[href]")
+	if (!(link instanceof HTMLAnchorElement)) return
+	const target = (link.target || baseTarget).toLowerCase()
+	if (target === "_self" && new URL(link.href).origin === location.origin) return
+	throw new Error("This link requires the visitor. Only this tab and origin can be controlled.")
+}
+
+function formControl(element: HTMLElement): FormControl | undefined {
+	const control = element.closest("button, input, select, textarea")
+	if (
+		control instanceof HTMLButtonElement ||
+		control instanceof HTMLInputElement ||
+		control instanceof HTMLSelectElement ||
+		control instanceof HTMLTextAreaElement
+	)
+		return control
+	return undefined
+}
+
+function formTargetBlocked(
+	submitter: HTMLButtonElement | HTMLInputElement | undefined,
+	form: HTMLFormElement,
+	baseTarget: string,
+): boolean {
+	const action = submitter?.hasAttribute("formaction") ? submitter.formAction : form.action
+	const target = (submitter?.getAttribute("formtarget") || form.target || baseTarget).toLowerCase()
+	return new URL(action || location.href).origin !== location.origin || target !== "_self"
+}
+
+function assertSameTabForm(element: HTMLElement, baseTarget: string): void {
+	const control = formControl(element)
+	const form = control?.form ?? element.closest("form")
+	if (!form) return
+	const submitter = control instanceof HTMLButtonElement || control instanceof HTMLInputElement ? control : undefined
+	if (formTargetBlocked(submitter, form, baseTarget))
+		throw new Error("This form requires the visitor. Only this tab and origin can be controlled.")
+}
+
+function assertSameTarget(captured: HTMLElement, element: HTMLElement, page: PageController, index: number): void {
+	if (captured !== element || page.getElement(index) !== element) throw new Error(PROPOSAL_CHANGED)
+}
+
+function assertSameContent(
+	latest: BrowserState,
+	baseline: { content: string; url: string; fingerprint: string },
+	element: HTMLElement,
+): void {
+	if (
+		latest.content !== baseline.content ||
+		location.href !== baseline.url ||
+		element.outerHTML !== baseline.fingerprint
+	)
+		throw new Error(PROPOSAL_CHANGED)
+}
+
+function assertSamePage(
+	latest: BrowserState | undefined,
+	baseline: { content: string; url: string; fingerprint: string },
+	element: HTMLElement,
+): void {
+	if (!latest) return
+	assertSameContent(latest, baseline, element)
+}
+
+function restoreIgnoredRoots(previous: Map<Element, string | null>): void {
+	for (const [root, value] of previous) {
+		if (value === null) root.removeAttribute("data-page-agent-ignore")
+		else root.setAttribute("data-page-agent-ignore", value)
+	}
+}
+function reopenDialog(dialog: HTMLDialogElement, focus: Element | null): void {
+	if (!shouldReopen(dialog, focus)) return
+	dialog.close()
+	dialog.showModal()
+	if (focus instanceof HTMLElement) focus.focus({ preventScroll: true })
+}
+
+function shouldReopen(dialog: HTMLDialogElement, focus: Element | null): boolean {
+	return isReopenable(dialog) && holdsFocus(dialog, focus)
+}
+
+function isReopenable(dialog: HTMLDialogElement): boolean {
+	return dialog.isConnected && dialog.open && !dialog.matches(":modal")
+}
+
+function holdsFocus(dialog: HTMLDialogElement, focus: Element | null): boolean {
+	return focus !== null && dialog.contains(focus)
+}
+function dialogsIn(root: Element): HTMLDialogElement[] {
+	const dialogs = [...root.querySelectorAll<HTMLDialogElement>("dialog:modal")]
+	if (root instanceof HTMLDialogElement && root.matches(":modal")) dialogs.push(root)
+	return dialogs
+}
+function createHighlight(shadow: ShadowRoot): HTMLElement {
+	const element = document.createElement("div")
+	element.className = "highlight"
+	element.style.borderColor = getComputedStyle(shadow.host).getPropertyValue("--talqo-primary-input")
+	element.hidden = true
+	shadow.append(element)
+	return element
+}
+function pageChanged(
+	page: PageController,
+	index: number,
+	element: HTMLElement,
+	observed: { content: string; url: string },
+	state: BrowserState,
+): boolean {
+	return page.getElement(index) !== element || state.content !== observed.content || location.href !== observed.url
+}
+async function dispatchAction(page: PageController, input: InteractiveInput) {
+	if (input.action === "click") return page.clickElement(input.index)
+	if (input.action === "fill") return page.inputText(input.index, input.text)
+	return page.selectOption(input.index, input.option)
+}
+
 export function createPageTool(options: {
 	exclude: readonly Element[]
 	language: string
@@ -116,20 +272,33 @@ export function createPageTool(options: {
 	let stopping = new AbortController()
 	let taskSignal = stopping.signal
 	const text = options.language === "cs" ? labels.cs : labels.en
+
+	function validate(element: HTMLElement): void {
+		assertTargetUsable(element)
+		if (isTargetOutsidePage(element, panel, highlight, options.exclude))
+			throw new Error("Target is outside the permitted page.")
+		assertTargetVisible(element)
+		const baseTarget = pageBaseTarget()
+		assertSameTabLink(element, baseTarget)
+		assertSameTabForm(element, baseTarget)
+	}
+
+	function ignoredRoots(): Element[] {
+		const roots = [...options.exclude, ...privateControls(document)]
+		if (panel) roots.push(panel)
+		if (highlight) roots.push(highlight)
+		return roots
+	}
+
 	async function browserState(page: PageController): Promise<BrowserState> {
-		const excludedRoots = [...options.exclude, ...privateControls(document)]
-		if (panel) excludedRoots.push(panel)
-		if (highlight) excludedRoots.push(highlight)
-		const previous = new Map(excludedRoots.map((root) => [root, root.getAttribute("data-page-agent-ignore")]))
-		for (const root of previous.keys()) root.setAttribute("data-page-agent-ignore", "true")
+		const roots = ignoredRoots()
+		const previous = new Map(roots.map((root) => [root, root.getAttribute("data-page-agent-ignore")]))
+		for (const root of roots) root.setAttribute("data-page-agent-ignore", "true")
 		let state: BrowserState
 		try {
 			state = await page.getBrowserState()
 		} finally {
-			for (const [root, value] of previous) {
-				if (value === null) root.removeAttribute("data-page-agent-ignore")
-				else root.setAttribute("data-page-agent-ignore", value)
-			}
+			restoreIgnoredRoots(previous)
 		}
 		const url = new URL(state.url)
 		url.search = ""
@@ -144,8 +313,14 @@ export function createPageTool(options: {
 		}
 	}
 
+	function restoreModalDialogs(): void {
+		const focus = focusedElement()
+		for (const dialog of modalDialogs) reopenDialog(dialog, focus)
+		modalDialogs = []
+	}
+
 	function dispose() {
-		const restoreApprovalFocus = !!panel?.shadowRoot?.activeElement
+		const hadApprovalFocus = !!panel?.shadowRoot?.activeElement
 		stopping.abort(new Error("Page task ended"))
 		controller?.dispose()
 		controller = undefined
@@ -160,32 +335,22 @@ export function createPageTool(options: {
 		themeObserver = undefined
 		snapshot = undefined
 		validateAction = undefined
-		if (restoreApprovalFocus && approvalFocus?.isConnected) approvalFocus.focus({ preventScroll: true })
+		if (hadApprovalFocus && approvalFocus?.isConnected) approvalFocus.focus({ preventScroll: true })
 		approvalFocus = undefined
+		restoreModalDialogs()
+	}
+
+	function releaseChatDialog(dialog: HTMLDialogElement): void {
 		const focus = focusedElement()
-		for (const dialog of modalDialogs) {
-			if (dialog.isConnected && dialog.open && !dialog.matches(":modal") && focus && dialog.contains(focus)) {
-				dialog.close()
-				dialog.showModal()
-				if (focus instanceof HTMLElement) focus.focus({ preventScroll: true })
-			}
-		}
-		modalDialogs = []
+		if (!modalDialogs.includes(dialog)) modalDialogs.push(dialog)
+		dialog.close()
+		dialog.show()
+		if (focus instanceof HTMLElement && dialog.contains(focus)) focus.focus({ preventScroll: true })
 	}
 
 	function releaseChatDialogs(): void {
 		// A modal chat makes the host page and approval controls inert.
-		for (const root of options.exclude) {
-			const dialogs = [...root.querySelectorAll<HTMLDialogElement>("dialog:modal")]
-			if (root instanceof HTMLDialogElement && root.matches(":modal")) dialogs.push(root)
-			for (const dialog of dialogs) {
-				const focus = focusedElement()
-				if (!modalDialogs.includes(dialog)) modalDialogs.push(dialog)
-				dialog.close()
-				dialog.show()
-				if (focus instanceof HTMLElement && dialog.contains(focus)) focus.focus({ preventScroll: true })
-			}
-		}
+		for (const root of options.exclude) for (const dialog of dialogsIn(root)) releaseChatDialog(dialog)
 	}
 
 	function placePanel(element: HTMLElement): void {
@@ -200,6 +365,35 @@ export function createPageTool(options: {
 			panel.style.top = "auto"
 			panel.style.bottom = "16px"
 		}
+	}
+
+	function applyThemeToken(theme: CSSStyleDeclaration, token: string): void {
+		const property = `--talqo-${token}-input`
+		const value = theme.getPropertyValue(property).trim()
+		if (value) panel?.style.setProperty(property, value)
+		else panel?.style.removeProperty(property)
+	}
+
+	function syncTheme(themeRoot: Element): void {
+		const theme = getComputedStyle(themeRoot)
+		for (const token of THEME_TOKENS) applyThemeToken(theme, token)
+		if (highlight && panel)
+			highlight.style.borderColor = getComputedStyle(panel).getPropertyValue("--talqo-primary-input")
+	}
+
+	function watchTheme(themeRoot: Element): void {
+		const sync = () => syncTheme(themeRoot)
+		sync()
+		themeObserver = new MutationObserver(sync)
+		themeObserver.observe(themeRoot, { attributes: true, attributeFilter: ["style", "class", "data-scheme"] })
+	}
+
+	function stopTask(): void {
+		stopping.abort(new Error("Page task stopped"))
+		void options.stop().catch(async () => {
+			await setup()
+			if (status) status.textContent = text.stopped
+		})
 	}
 
 	async function setup(): Promise<PageController> {
@@ -225,39 +419,14 @@ export function createPageTool(options: {
 		const stop = document.createElement("button")
 		stop.textContent = text.stop
 		stop.title = options.language === "cs" ? "Zastavit celý úkol" : "Stop the entire task"
-		stop.addEventListener("click", () => {
-			stopping.abort(new Error("Page task stopped"))
-			void options.stop().catch(async () => {
-				await setup()
-				if (status) status.textContent = text.stopped
-			})
-		})
+		stop.addEventListener("click", stopTask)
 		header.append(heading, stop)
 		section.append(header, status, buttons)
 		shadow.append(style, section)
 		document.body.append(panel)
 		const themeRoot = options.themeRoot?.()
-		if (themeRoot) {
-			const syncTheme = () => {
-				const theme = getComputedStyle(themeRoot)
-				for (const token of ["primary", "text-on-primary", "background", "surface", "text"]) {
-					const property = `--talqo-${token}-input`
-					const value = theme.getPropertyValue(property).trim()
-					if (value) panel?.style.setProperty(property, value)
-					else panel?.style.removeProperty(property)
-				}
-				if (highlight && panel)
-					highlight.style.borderColor = getComputedStyle(panel).getPropertyValue("--talqo-primary-input")
-			}
-			syncTheme()
-			themeObserver = new MutationObserver(syncTheme)
-			themeObserver.observe(themeRoot, { attributes: true, attributeFilter: ["style", "class", "data-scheme"] })
-		}
-		highlight = document.createElement("div")
-		highlight.className = "highlight"
-		highlight.style.borderColor = getComputedStyle(panel).getPropertyValue("--talqo-primary-input")
-		highlight.hidden = true
-		shadow.append(highlight)
+		if (themeRoot) watchTheme(themeRoot)
+		highlight = createHighlight(shadow)
 		const { PageController: Controller } = await import("@talqo/page-controller")
 		controller = new Controller({
 			viewportExpansion: -1,
@@ -279,43 +448,18 @@ export function createPageTool(options: {
 		return { snapshot: snapshot.id, ...state }
 	}
 
-	function validate(element: HTMLElement) {
-		if (!element.isConnected || element.matches(":disabled, [aria-disabled=true]"))
-			throw new Error("Target is unavailable. Observe the page again.")
-		if (
-			element.ownerDocument !== document ||
-			options.exclude.some((root) => root.contains(element)) ||
-			panel?.contains(element) ||
-			highlight === element
-		)
-			throw new Error("Target is outside the permitted page.")
-		const rect = element.getBoundingClientRect()
-		if (!rect.width || !rect.height) throw new Error("Target is not visible.")
-		const x = Math.max(0, Math.min(innerWidth - 1, rect.left + rect.width / CENTER_DIVISOR))
-		const y = Math.max(0, Math.min(innerHeight - 1, rect.top + rect.height / CENTER_DIVISOR))
-		const hit = document.elementFromPoint(x, y)
-		if (hit !== element && !element.contains(hit))
-			throw new Error(`Target is covered by ${hit?.tagName ?? "the viewport"}. Observe the page again.`)
-		const baseTarget = document.querySelector("base[target]")?.getAttribute("target") ?? "_self"
-		const link = element.closest("a[href]")
-		if (
-			link instanceof HTMLAnchorElement &&
-			((link.target || baseTarget).toLowerCase() !== "_self" || new URL(link.href).origin !== location.origin)
-		)
-			throw new Error("This link requires the visitor. Only this tab and origin can be controlled.")
-		const control = element.closest("button, input, select, textarea")
-		const form =
-			control instanceof HTMLButtonElement ||
-			control instanceof HTMLInputElement ||
-			control instanceof HTMLSelectElement ||
-			control instanceof HTMLTextAreaElement
-				? control.form
-				: element.closest("form")
-		const submitter = control instanceof HTMLButtonElement || control instanceof HTMLInputElement ? control : undefined
-		const action = submitter?.hasAttribute("formaction") ? submitter.formAction : form?.action
-		const formTarget = (submitter?.getAttribute("formtarget") || form?.target || baseTarget).toLowerCase()
-		if (form && (new URL(action || location.href).origin !== location.origin || formTarget !== "_self"))
-			throw new Error("This form requires the visitor. Only this tab and origin can be controlled.")
+	function renderDecisionButton(label: string, approved: boolean, finish: (approved: boolean) => void): void {
+		const button = document.createElement("button")
+		if (approved) button.dataset.primary = ""
+		button.textContent = label
+		if (!approved) button.title = options.language === "cs" ? "Odmítnout tuto akci" : "Decline this action"
+		button.addEventListener("click", () => finish(approved), { once: true })
+		buttons?.append(button)
+	}
+
+	function renderDecisionButtons(finish: (approved: boolean) => void): void {
+		renderDecisionButton(text.approve, true, finish)
+		renderDecisionButton(text.cancel, false, finish)
 	}
 
 	function approve(summary: string, element: HTMLElement, signal: AbortSignal): Promise<boolean> {
@@ -325,7 +469,7 @@ export function createPageTool(options: {
 			const focus = focusedElement()
 			approvalFocus = focus instanceof HTMLElement ? focus : undefined
 			if (heading) heading.textContent = text.approval
-			const finish = (approved: boolean) => {
+			function finish(approved: boolean): void {
 				stopPositioning()
 				signal.removeEventListener("abort", abort)
 				buttons?.replaceChildren()
@@ -336,26 +480,116 @@ export function createPageTool(options: {
 				}
 				resolve(approved)
 			}
-			const abort = () => {
+			function abort(): void {
 				stopPositioning()
 				buttons?.replaceChildren()
 				reject(signal.reason)
 			}
 			signal.addEventListener("abort", abort, { once: true })
-			for (const [label, approved] of [
-				[text.approve, true],
-				[text.cancel, false],
-			] as const) {
-				const button = document.createElement("button")
-				if (approved) button.dataset.primary = ""
-				button.textContent = label
-				if (!approved) button.title = options.language === "cs" ? "Odmítnout tuto akci" : "Decline this action"
-				button.addEventListener("click", () => finish(approved), { once: true })
-				buttons.append(button)
-			}
+			renderDecisionButtons(finish)
 			const stopPositioning = anchorPageApproval(panel, highlight, element, options.exclude)
 			buttons.querySelector("button")?.focus({ preventScroll: true })
 		})
+	}
+
+	function createActionValidator(
+		page: PageController,
+		input: InteractiveInput,
+		element: HTMLElement,
+		baseline: { content: string; url: string; fingerprint: string },
+		signal: AbortSignal,
+	): (element: HTMLElement) => Promise<void> {
+		let actionValidated = false
+		return async (captured) => {
+			signal.throwIfAborted()
+			const latest = !actionValidated || input.approval ? await browserState(page) : undefined
+			signal.throwIfAborted()
+			assertSameTarget(captured, element, page, input.index)
+			assertSamePage(latest, baseline, element)
+			validate(element)
+			actionValidated = true
+		}
+	}
+
+	function showProgress(input: PageInput): void {
+		if (heading) heading.textContent = text.working
+		if (status) status.textContent = input.action === "observe" ? text.observing : input.description
+	}
+
+	async function scrollPage(page: PageController, input: Extract<PageInput, { action: "scroll" }>) {
+		const result = await page.scroll({ down: input.down, numPages: 1 })
+		return { result, page: await observe() }
+	}
+
+	function revealHighlight(element: HTMLElement): void {
+		if (!highlight) return
+		const rect = element.getBoundingClientRect()
+		Object.assign(highlight.style, {
+			left: `${rect.left}px`,
+			top: `${rect.top}px`,
+			width: `${rect.width}px`,
+			height: `${rect.height}px`,
+		})
+		highlight.hidden = false
+	}
+
+	async function interact(page: PageController, input: InteractiveInput, signal: AbortSignal): Promise<unknown> {
+		const observed = snapshot
+		if (!observed || observed.id !== input.snapshot) return { status: "stale", message: "Observe the page again." }
+		const element = page.getElement(input.index)
+		element.scrollIntoView({ block: "center", behavior: "instant" })
+		placePanel(element)
+		validate(element)
+		const baseline = {
+			fingerprint: element.outerHTML,
+			url: location.href,
+			content: "",
+		}
+		const before = await browserState(page)
+		baseline.content = before.content
+		if (pageChanged(page, input.index, element, observed, before)) return { status: "changed", page: await observe() }
+		revealHighlight(element)
+		if (input.approval && !(await approve(input.approval, element, signal)))
+			return { status: "declined", message: "Do not retry this commitment without a new visitor request." }
+		signal.throwIfAborted()
+		validateAction = createActionValidator(page, input, element, baseline, signal)
+		const result = await dispatchAction(page, input)
+		signal.throwIfAborted()
+		return { status: result.success ? "dispatched" : "failed", result, page: await observe() }
+	}
+
+	async function runOperation(input: PageInput, signal: AbortSignal): Promise<unknown> {
+		signal.throwIfAborted()
+		const page = await setup()
+		signal.throwIfAborted()
+		showProgress(input)
+		if (input.action === "observe") return await observe()
+		if (input.action === "scroll") return await scrollPage(page, input)
+		return await interact(page, input, signal)
+	}
+
+	function startTask(abortSignal: AbortSignal | undefined): AbortSignal {
+		if (activeSignal !== abortSignal) {
+			activeSignal = abortSignal
+			stopping = new AbortController()
+			taskSignal = AbortSignal.any([stopping.signal, ...(abortSignal ? [abortSignal] : [])])
+			taskSignal.addEventListener("abort", dispose, { once: true })
+		}
+		return taskSignal
+	}
+
+	function restoreApprovalFocus(): void {
+		if (!approvalFocus) return
+		if (approvalFocus.isConnected && panel?.shadowRoot?.activeElement) approvalFocus.focus({ preventScroll: true })
+		approvalFocus = undefined
+	}
+
+	function finishOperation(signal: AbortSignal): void {
+		busy = false
+		validateAction = undefined
+		if (highlight) highlight.hidden = true
+		restoreApprovalFocus()
+		if (signal.aborted) dispose()
 	}
 
 	return {
@@ -370,76 +604,11 @@ ${options.approvalInstructions ?? DEFAULT_APPROVAL_INSTRUCTIONS}`,
 			async execute(operation, { abortSignal }): Promise<unknown> {
 				const parsed = actionSchema.safeParse(operation)
 				if (!parsed.success) return { status: "invalid", message: z.prettifyError(parsed.error) }
-				const input = parsed.data
 				if (busy) return { status: "busy", message: "Wait for the current page action." }
 				busy = true
-				if (activeSignal !== abortSignal) {
-					activeSignal = abortSignal
-					stopping = new AbortController()
-					taskSignal = AbortSignal.any([stopping.signal, ...(abortSignal ? [abortSignal] : [])])
-					taskSignal.addEventListener("abort", dispose, { once: true })
-				}
-				const signal = taskSignal
+				const signal = startTask(abortSignal)
 				try {
-					signal.throwIfAborted()
-					const page = await setup()
-					signal.throwIfAborted()
-					if (heading) heading.textContent = text.working
-					if (status) status.textContent = input.action === "observe" ? text.observing : input.description
-					if (input.action === "observe") return await observe()
-					if (input.action === "scroll") {
-						const result = await page.scroll({ down: input.down, numPages: 1 })
-						return { result, page: await observe() }
-					}
-					if (snapshot?.id !== input.snapshot) return { status: "stale", message: "Observe the page again." }
-					const element = page.getElement(input.index)
-					element.scrollIntoView({ block: "center", behavior: "instant" })
-					placePanel(element)
-					validate(element)
-					const fingerprint = element.outerHTML
-					const beforeUrl = location.href
-					const before = await browserState(page)
-					if (
-						page.getElement(input.index) !== element ||
-						before.content !== snapshot.content ||
-						beforeUrl !== snapshot.url
-					)
-						return { status: "changed", page: await observe() }
-					if (highlight) {
-						const rect = element.getBoundingClientRect()
-						Object.assign(highlight.style, {
-							left: `${rect.left}px`,
-							top: `${rect.top}px`,
-							width: `${rect.width}px`,
-							height: `${rect.height}px`,
-						})
-						highlight.hidden = false
-					}
-					if (input.approval && !(await approve(input.approval, element, signal)))
-						return { status: "declined", message: "Do not retry this commitment without a new visitor request." }
-					signal.throwIfAborted()
-					let actionValidated = false
-					validateAction = async (captured) => {
-						signal.throwIfAborted()
-						const latest = !actionValidated || input.approval ? await browserState(page) : undefined
-						signal.throwIfAborted()
-						if (
-							captured !== element ||
-							(latest && latest.content !== before.content) ||
-							location.href !== beforeUrl ||
-							page.getElement(input.index) !== element ||
-							(latest && element.outerHTML !== fingerprint)
-						)
-							throw new Error("The proposal changed. Observe the page and request fresh approval.")
-						validate(element)
-						actionValidated = true
-					}
-					let result: { success: boolean; message: string }
-					if (input.action === "click") result = await page.clickElement(input.index)
-					else if (input.action === "fill") result = await page.inputText(input.index, input.text)
-					else result = await page.selectOption(input.index, input.option)
-					signal.throwIfAborted()
-					return { status: result.success ? "dispatched" : "failed", result, page: await observe() }
+					return await runOperation(parsed.data, signal)
 				} catch (error) {
 					if (signal.aborted) throw error
 					return {
@@ -448,15 +617,7 @@ ${options.approvalInstructions ?? DEFAULT_APPROVAL_INSTRUCTIONS}`,
 						...(controller ? { page: await observe() } : {}),
 					}
 				} finally {
-					busy = false
-					validateAction = undefined
-					if (highlight) highlight.hidden = true
-					if (approvalFocus) {
-						if (approvalFocus.isConnected && panel?.shadowRoot?.activeElement)
-							approvalFocus.focus({ preventScroll: true })
-						approvalFocus = undefined
-					}
-					if (signal.aborted) dispose()
+					finishOperation(signal)
 				}
 			},
 		}),
