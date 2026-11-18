@@ -651,6 +651,7 @@ describe("AI provider service", () => {
 					usage: Promise.resolve({}),
 					fullStream: (async function* () {
 						yield { type: "tool-call", toolCallId: "call-1", toolName: "lookup", input: { id: 1 } }
+						yield { type: "tool-error", toolCallId: "call-4", toolName: "lookup", error: new Error("boom") }
 					})(),
 				},
 				streamCalls,
@@ -685,6 +686,13 @@ describe("AI provider service", () => {
 				toolCallId: "call-1",
 				toolName: "lookup",
 				input: { id: 1 },
+			},
+			{
+				type: "tool-end",
+				identity: { serverName: "Shopify", toolName: "lookup" },
+				toolCallId: "call-4",
+				outcome: "failed",
+				errorText: "Tool execution failed",
 			},
 			{
 				type: "tool-end",

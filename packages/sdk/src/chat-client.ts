@@ -135,6 +135,21 @@ function isUnauthorizedCancellation(state: CancellationState, cause: unknown): b
 	return state.preAcceptance && cause instanceof ChatTransportError && cause.detail.status === HTTP_UNAUTHORIZED
 }
 
+function hasClientToolAction(message: ChatMessage | undefined): boolean {
+	return message?.parts.some((part) => part.type === "dynamic-tool" && part.toolMetadata.source === "client") === true
+}
+
+function hasUncertainWebsiteAction(message: ChatMessage | undefined): boolean {
+	if (message?.role !== "assistant") return false
+	if (message.outcome === "completed" || message.outcome === "streaming") return false
+	return message.parts.some((part) => part.type === "dynamic-tool" && part.toolMetadata.source === "client")
+}
+
+function sendWasDefinitelyRejected(state: SendState, cause: unknown): boolean {
+	if (state.accepted) return false
+	return isDefiniteRejection(cause) || (!state.send.dispatched && !state.send.cancellationRequested)
+}
+
 function withOutcome(message: ChatMessage, outcome: ChatMessage["outcome"]): ChatMessage {
 	const toolOutcome = outcome === "cancelled" || outcome === "interrupted" ? outcome : "failed"
 	return {
@@ -210,8 +225,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 
 	function canRetry(): boolean {
 		const lastMessage = messages.at(-1)
-		if (lastMessage?.parts.some((part) => part.type === "dynamic-tool" && part.toolMetadata.source === "client"))
-			return false
+		if (hasClientToolAction(lastMessage)) return false
 		return Boolean(error?.retriable && lastMessage?.role === "assistant" && lastMessage.outcome === "failed")
 	}
 
@@ -247,12 +261,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		const isAvailable = configuration?.isAvailable === true
 		const availableAfterError = newChatAvailable()
 		const latest = messages.at(-1)
-		const websiteActionUncertain =
-			latest?.role === "assistant" &&
-			latest.outcome !== "completed" &&
-			latest.outcome !== "streaming" &&
-			latest.parts.some((part) => part.type === "dynamic-tool" && part.toolMetadata.source === "client")
-		const visibleError: ChatError | undefined = websiteActionUncertain
+		const visibleError: ChatError | undefined = hasUncertainWebsiteAction(latest)
 			? { ...error, code: "website-action-uncertain", retriable: false }
 			: error
 		return {
@@ -345,35 +354,55 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		publish()
 	}
 
+	function pendingReplayCandidate(sessionCredential: string): PendingRecoveryAttempt | undefined {
+		if (pendingMessage === undefined || pendingMessage.clientTools) return undefined
+		return { ...pendingMessage, credential: sessionCredential }
+	}
+
+	async function replayPendingIfPresent(
+		attempted: PendingRecoveryAttempt | undefined,
+		controller: AbortController,
+	): Promise<void> {
+		if (attempted === undefined) return
+		await replayPending(attempted, controller.signal)
+	}
+
+	function missingClientToolRequest(session: SessionState): boolean {
+		return (
+			pendingMessage?.clientTools === true &&
+			!session.messages.some((message) => message.requestId === pendingMessage?.requestId)
+		)
+	}
+
+	function clientToolRecoveryDenied(cause: unknown): boolean {
+		return (
+			pendingMessage?.clientTools === true &&
+			cause instanceof ChatTransportError &&
+			cause.detail.status === HTTP_UNAUTHORIZED
+		)
+	}
+
+	async function clearPendingMessage(sessionCredential: string): Promise<void> {
+		if (pendingMessage === undefined) return
+		pendingMessage = undefined
+		await persist({ version: CHAT_STORAGE_VERSION, credential: sessionCredential })
+	}
+
 	async function recoverSession(controller: AbortController, delay: number): Promise<boolean> {
 		let attempted: PendingRecoveryAttempt | undefined
 		try {
 			await wait(delay, controller.signal)
 			if (credential === undefined) return true
-			if (pendingMessage !== undefined && !pendingMessage.clientTools) {
-				attempted = { ...pendingMessage, credential }
-				await replayPending(attempted, controller.signal)
-			}
+			attempted = pendingReplayCandidate(credential)
+			await replayPendingIfPresent(attempted, controller)
 			const session = await transport.loadSession({ ...context(controller.signal), credential })
-			if (
-				pendingMessage?.clientTools &&
-				!session.messages.some((message) => message.requestId === pendingMessage?.requestId)
-			)
-				return false
+			if (missingClientToolRequest(session)) return false
 			applySession(session)
-			if (pendingMessage !== undefined) {
-				pendingMessage = undefined
-				await persist({ version: CHAT_STORAGE_VERSION, credential })
-			}
+			await clearPendingMessage(credential)
 			return session.activeGeneration === undefined
 		} catch (cause) {
 			if (controller.signal.aborted) return true
-			if (
-				pendingMessage?.clientTools &&
-				cause instanceof ChatTransportError &&
-				cause.detail.status === HTTP_UNAUTHORIZED
-			)
-				return false
+			if (clientToolRecoveryDenied(cause)) return false
 			if (isDefiniteRejection(cause)) {
 				await rejectRecoveryAttempt(attempted, cause.detail)
 				return true
@@ -681,9 +710,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			})
 			await consumeSendEvents(state, events)
 		} catch (cause) {
-			const definitelyRejected =
-				!state.accepted && (isDefiniteRejection(cause) || (!state.send.dispatched && !state.send.cancellationRequested))
-			if (definitelyRejected) await rejectPendingSend(state, cause)
+			if (sendWasDefinitelyRejected(state, cause)) await rejectPendingSend(state, cause)
 			else handleStreamFailure(state, cause)
 			publish()
 			throw cause
@@ -765,41 +792,53 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		}
 	}
 
-	function cancelResponse(): Promise<void> {
-		requireUsable()
-		if (cancellationPromise !== undefined) return cancellationPromise
-		if (generation === "idle") return Promise.resolve()
-		const state: CancellationState = {
+	function createCancellationState(): CancellationState {
+		return {
 			previousGeneration: generation,
 			controller: new AbortController(),
 			preAcceptance: activeSend !== undefined && activeGenerationId === undefined,
 			send: activeSend,
 		}
+	}
+
+	function preparePreAcceptanceCancellation(state: CancellationState): void {
+		if (!state.preAcceptance || activeSend === undefined) return
+		activeSend.cancellationRequested = true
+		if (options.transport || !activeSend.dispatched) activeSend.controller.abort(new Error("Chat response cancelled"))
+	}
+
+	function settleCancellation(state: CancellationState, cancellation: Promise<void>): void {
+		if (cancellationController === state.controller) cancellationController = undefined
+		if (cancellationPromise === cancellation) cancellationPromise = undefined
+	}
+
+	function cancelResponse(): Promise<void> {
+		requireUsable()
+		if (cancellationPromise !== undefined) return cancellationPromise
+		if (generation === "idle") return Promise.resolve()
+		const state = createCancellationState()
 		cancellationController = state.controller
-		if (state.preAcceptance && activeSend !== undefined) {
-			activeSend.cancellationRequested = true
-			if (options.transport || !activeSend.dispatched) activeSend.controller.abort(new Error("Chat response cancelled"))
-		}
+		preparePreAcceptanceCancellation(state)
 		generation = "cancelling"
 		publish()
-		const cancellation = performCancellation(state).finally(() => {
-			if (cancellationController === state.controller) cancellationController = undefined
-			if (cancellationPromise === cancellation) cancellationPromise = undefined
-		})
+		const cancellation = performCancellation(state).finally(() => settleCancellation(state, cancellation))
 		cancellationPromise = cancellation
 		return cancellation
+	}
+
+	function lastFailedAssistantIndex(): number {
+		const index = messages.length - 1
+		const message = messages[index]
+		if (message?.role !== "assistant" || message.outcome !== "failed")
+			throw new Error("No failed response is available to retry")
+		return index
 	}
 
 	async function retryLastMessage(): Promise<void> {
 		requireUsable()
 		if (error?.retriable !== true) throw new Error("The latest chat error is not retriable")
-		if (messages.at(-1)?.parts.some((part) => part.type === "dynamic-tool" && part.toolMetadata.source === "client"))
-			throw new Error("A website action cannot be safely retried")
-		const failedAssistantIndex = messages.length - 1
-		const failedAssistant = messages[failedAssistantIndex]
-		if (failedAssistant?.role !== "assistant" || failedAssistant.outcome !== "failed") {
-			throw new Error("No failed response is available to retry")
-		}
+		if (hasClientToolAction(messages.at(-1))) throw new Error("A website action cannot be safely retried")
+		const failedAssistantIndex = lastFailedAssistantIndex()
 		const failedUserMessage = messages
 			.slice(0, failedAssistantIndex)
 			.findLast((message) => message.role === "user" && message.outcome === "completed")

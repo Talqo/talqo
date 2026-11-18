@@ -1,6 +1,6 @@
 import type { ClientToolRegistry } from "./client-tools.ts"
 import type { ClientToolManifest } from "./generated/models"
-import type { ChatEvent, ChatTransport } from "./types.ts"
+import type { ChatErrorCode, ChatEvent, ChatTransport } from "./types.ts"
 
 import { CLIENT_TOOL_CALL_LIMIT } from "./client-tools.ts"
 import { ChatServerFrameV1 } from "./generated/models/chatServerFrameV1.zod.ts"
@@ -9,6 +9,22 @@ import { isChatErrorCode } from "./types.ts"
 
 const SOCKET_BUFFER_BYTES = 8_388_608
 const encoder = new TextEncoder()
+
+type ServerFrame = ReturnType<typeof ChatServerFrameV1.parse>
+type ToolCallFrame = Extract<ServerFrame, { type: "tool-call" }>
+type EventFrame = Exclude<ServerFrame, { type: "rejected" | "tool-call" }>
+
+function validateErrorCode(code: string): ChatErrorCode {
+	if (!isChatErrorCode(code)) throw new Error("Invalid chat error code")
+	return code
+}
+
+function parseChatEvent(frame: EventFrame): ChatEvent {
+	const { version: _version, ...message } = frame
+	return message.type === "error"
+		? { ...message, error: { ...message.error, code: validateErrorCode(message.error.code) } }
+		: message
+}
 
 export function createWebSocketChatTransport(tools: ClientToolRegistry, options: ChatHttpOptions = {}): ChatTransport {
 	const http = createChatHttpClient(options)
@@ -104,6 +120,62 @@ export function createWebSocketChatTransport(tools: ClientToolRegistry, options:
 				{ signal: listeners.signal },
 			)
 			ws.addEventListener("close", finish, { signal: listeners.signal })
+			function rejectFrame(frame: Extract<ServerFrame, { type: "rejected" }>): void {
+				failure = new ChatTransportError({
+					code: isChatErrorCode(frame.code) ? frame.code : "invalid-response",
+					status: frame.status,
+					retryAt: frame.retryAt,
+				})
+				ws.close()
+				finish()
+			}
+			function acceptFrame(): void {
+				if (accepted) throw new Error("Duplicate acceptance")
+				accepted = true
+				acceptance.resolve()
+			}
+			function sendToolOutcome(
+				toolCallId: string,
+				result: { type: "tool-result"; output: unknown } | { type: "tool-error"; error: string },
+			) {
+				if (controller.signal.aborted || ws.readyState !== WebSocket.OPEN) return
+				ws.send(JSON.stringify({ version: 1, toolCallId, ...result }))
+			}
+			function dispatchToolCall(frame: ToolCallFrame): void {
+				if (dispatched.has(frame.toolCallId)) return
+				void (async () => {
+					if (!advertisedNames.has(frame.toolName)) throw new Error("Unadvertised client tool")
+					if (dispatched.size >= CLIENT_TOOL_CALL_LIMIT) throw new Error("Client tool call limit reached")
+					dispatched.add(frame.toolCallId)
+					return tools.execute(frame, controller.signal)
+				})().then(
+					(output) => sendToolOutcome(frame.toolCallId, { type: "tool-result", output }),
+					() => sendToolOutcome(frame.toolCallId, { type: "tool-error", error: "Website tool failed" }),
+				)
+			}
+			function enqueue(frame: EventFrame, bytes: number): void {
+				const parsed = parseChatEvent(frame)
+				queue.push({ event: parsed, bytes })
+				bufferedBytes += bytes
+				if (parsed.type === "terminal" || parsed.type === "error") {
+					terminal = true
+					controller.abort()
+				}
+				wake?.()
+			}
+			function handleFrame(frame: ServerFrame, bytes: number): void {
+				if (frame.type === "rejected") {
+					rejectFrame(frame)
+					return
+				}
+				if (frame.type === "accepted") acceptFrame()
+				else if (!accepted) throw new Error("Chat frame before acceptance")
+				if (frame.type === "tool-call") {
+					dispatchToolCall(frame)
+					return
+				}
+				enqueue(frame, bytes)
+			}
 			ws.addEventListener(
 				"message",
 				(event: MessageEvent<unknown>) => {
@@ -112,63 +184,7 @@ export function createWebSocketChatTransport(tools: ClientToolRegistry, options:
 						if (typeof event.data !== "string") throw new Error("Binary chat frame")
 						const bytes = encoder.encode(event.data).length
 						if (bytes + bufferedBytes > SOCKET_BUFFER_BYTES) throw new Error("Chat buffer limit exceeded")
-						const frame = ChatServerFrameV1.parse(JSON.parse(event.data))
-						if (frame.type === "rejected") {
-							failure = new ChatTransportError({
-								code: isChatErrorCode(frame.code) ? frame.code : "invalid-response",
-								status: frame.status,
-								retryAt: frame.retryAt,
-							})
-							ws.close()
-							finish()
-							return
-						}
-						if (frame.type === "accepted") {
-							if (accepted) throw new Error("Duplicate acceptance")
-							accepted = true
-							acceptance.resolve()
-						} else if (!accepted) throw new Error("Chat frame before acceptance")
-						if (frame.type === "tool-call") {
-							if (dispatched.has(frame.toolCallId)) return
-							const execute = async () => {
-								if (!advertisedNames.has(frame.toolName)) throw new Error("Unadvertised client tool")
-								if (dispatched.size >= CLIENT_TOOL_CALL_LIMIT) throw new Error("Client tool call limit reached")
-								dispatched.add(frame.toolCallId)
-								return tools.execute(frame, controller.signal)
-							}
-							void execute().then(
-								(output) => {
-									if (!controller.signal.aborted && ws.readyState === WebSocket.OPEN)
-										ws.send(JSON.stringify({ version: 1, type: "tool-result", toolCallId: frame.toolCallId, output }))
-								},
-								() => {
-									if (!controller.signal.aborted && ws.readyState === WebSocket.OPEN)
-										ws.send(
-											JSON.stringify({
-												version: 1,
-												type: "tool-error",
-												toolCallId: frame.toolCallId,
-												error: "Website tool failed",
-											}),
-										)
-								},
-							)
-							return
-						}
-						const { version: _version, ...message } = frame
-						let parsed: ChatEvent
-						if (message.type === "error") {
-							const code = message.error.code
-							if (!isChatErrorCode(code)) throw new Error("Invalid chat error code")
-							parsed = { ...message, error: { ...message.error, code } }
-						} else parsed = message
-						queue.push({ event: parsed, bytes })
-						bufferedBytes += bytes
-						if (parsed.type === "terminal" || parsed.type === "error") {
-							terminal = true
-							controller.abort()
-						}
-						wake?.()
+						handleFrame(ChatServerFrameV1.parse(JSON.parse(event.data)), bytes)
 					} catch {
 						failure = new ChatTransportError({ code: "invalid-response" })
 						ws.close()

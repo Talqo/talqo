@@ -401,6 +401,62 @@ describe("structured tool history", () => {
 		expect((await instance.getSession(CREDENTIAL_1)).messages.at(-1)?.outcome).toBe(scenario.outcome)
 	})
 
+	it("marks an in-flight browser tool interrupted when the connection drops", async () => {
+		const { createdEmbed } = await fixture()
+		const started = deferred()
+		const channel = createClientToolChannel([{ name: "readPage", inputSchema: { type: "object" } }], () => {}, 400_000)
+		const instance = createConversationService({
+			dailyLimit: 100,
+			concurrencyLimit: 2,
+			maxInputCharacters: 400_000,
+			maxOutputTokens: 100,
+			timeoutMs: 10_000,
+			prepare: async () => ({
+				provider: "openai-compatible",
+				model: "fake-model",
+				invoke: async function* (_signal, binding, onToolEvent) {
+					const name = Object.keys(binding?.tools ?? {})[0]
+					const toolIdentity = name ? binding?.names.get(name) : undefined
+					if (!name || !toolIdentity) throw new Error("Expected a client tool")
+					const toolCallId = "read-1"
+					await onToolEvent?.({ type: "tool-start", toolCallId, toolName: name, identity: toolIdentity, input: {} })
+					started.resolve()
+					await new Promise<void>((resolve) =>
+						channel.signal.addEventListener("abort", () => resolve(), { once: true }),
+					)
+					await onToolEvent?.({
+						type: "tool-end",
+						toolCallId,
+						identity: toolIdentity,
+						outcome: "failed",
+						errorText: "disconnected",
+					})
+					yield { type: "finish", outcome: "cancelled", provider: "openai-compatible", model: "fake-model", usage: {} }
+				},
+			}),
+		})
+		const sent = await instance.send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			networkHash: "network",
+			requestId: REQUEST_1,
+			text: "Run the browser tool",
+			clientTools: channel,
+		})
+		await started.promise
+		channel.interrupt()
+		await sent.done
+		const assistant = (await instance.getSession(CREDENTIAL_1)).messages.at(-1)
+		expect(assistant?.outcome).toBe("interrupted")
+		const toolPart = assistant?.parts.find((part) => part.type === "dynamic-tool")
+		expect(toolPart).toMatchObject({
+			type: "dynamic-tool",
+			toolCallId: "read-1",
+			state: "output-error",
+			toolMetadata: { outcome: "interrupted" },
+		})
+	})
+
 	it.each([false, true])("keeps HTTP cancellation after disconnect (cross-instance: %s)", async (crossInstance) => {
 		const { createdEmbed } = await fixture()
 		const channel = createClientToolChannel([], () => {}, 400_000)

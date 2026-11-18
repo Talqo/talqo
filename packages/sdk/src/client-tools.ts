@@ -16,6 +16,7 @@ const PAYLOAD_BYTES = 262_144
 const MANIFEST_BYTES = 131_072
 const CLIENT_TOOL_LIMIT = 8
 const TOOL_DESCRIPTION_CHARACTERS = 1000
+const TOOL_NAME_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
 export const CLIENT_TOOL_CALL_LIMIT = 16
 const encoder = new TextEncoder()
 const jsonSchemaObject = z.record(z.string(), z.unknown())
@@ -39,30 +40,45 @@ export function jsonValue(value: unknown): string {
 	return serialized
 }
 
+function hasValidator(schema: Parameters<typeof asSchema>[0]): boolean {
+	return typeof asSchema(schema).validate === "function"
+}
+
+function validateSchemas(name: string, definition: ToolSet[string]): void {
+	if (
+		!hasValidator(definition.inputSchema) ||
+		(definition.outputSchema !== undefined && !hasValidator(definition.outputSchema))
+	)
+		throw new Error(`Client tool schema requires a validator: ${name}`)
+}
+
+function isInvalidDescription(description: unknown): boolean {
+	if (description === undefined) return false
+	return typeof description !== "string" || Array.from(description).length > TOOL_DESCRIPTION_CHARACTERS
+}
+
+function validateFields(name: string, definition: ToolSet[string]): void {
+	for (const key of Object.keys(definition))
+		if (!ALLOWED_FIELDS.has(key)) throw new Error(`Unsupported client tool field: ${key}`)
+	if (isInvalidDescription(definition.description))
+		throw new Error(`Client tool requires a static description of at most 1000 characters: ${name}`)
+	if (definition.inputExamples !== undefined && !Array.isArray(definition.inputExamples))
+		throw new Error(`Client tool requires static input examples: ${name}`)
+}
+
+function validateDefinition(name: string, definition: ToolSet[string]): void {
+	if (!TOOL_NAME_PATTERN.test(name)) throw new Error(`Invalid client tool name: ${name}`)
+	if (definition.type !== undefined && definition.type !== "function")
+		throw new Error(`Unsupported client tool type: ${name}`)
+	if (typeof definition.execute !== "function") throw new Error(`Client tool requires execute: ${name}`)
+	validateSchemas(name, definition)
+	validateFields(name, definition)
+}
+
 export function captureClientTools(definitions: ToolSet = {}): ClientToolRegistry {
 	const registry = new Map(Object.entries(definitions).map(([name, definition]) => [name, { ...definition }]))
 	if (registry.size > CLIENT_TOOL_LIMIT) throw new Error("Register at most 8 client tools")
-	for (const [name, definition] of registry) {
-		if (!/^[A-Za-z0-9_-]{1,64}$/.test(name)) throw new Error(`Invalid client tool name: ${name}`)
-		if (definition.type !== undefined && definition.type !== "function")
-			throw new Error(`Unsupported client tool type: ${name}`)
-		if (typeof definition.execute !== "function") throw new Error(`Client tool requires execute: ${name}`)
-		if (
-			typeof asSchema(definition.inputSchema).validate !== "function" ||
-			(definition.outputSchema !== undefined && typeof asSchema(definition.outputSchema).validate !== "function")
-		)
-			throw new Error(`Client tool schema requires a validator: ${name}`)
-		for (const key of Object.keys(definition))
-			if (!ALLOWED_FIELDS.has(key)) throw new Error(`Unsupported client tool field: ${key}`)
-		if (
-			definition.description !== undefined &&
-			(typeof definition.description !== "string" ||
-				Array.from(definition.description).length > TOOL_DESCRIPTION_CHARACTERS)
-		)
-			throw new Error(`Client tool requires a static description of at most 1000 characters: ${name}`)
-		if (definition.inputExamples !== undefined && !Array.isArray(definition.inputExamples))
-			throw new Error(`Client tool requires static input examples: ${name}`)
-	}
+	for (const [name, definition] of registry) validateDefinition(name, definition)
 	let manifest: Promise<ClientToolManifest> | undefined
 	async function resolveManifest(): Promise<ClientToolManifest> {
 		const tools = await Promise.all(
