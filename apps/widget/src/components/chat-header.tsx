@@ -5,7 +5,7 @@ import SunIcon from "@/assets/icons/sun.svg?react"
 import { useTranslation } from "react-i18next"
 
 const headerControlClasses =
-	"tw:flex tw:size-10 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:focus-visible:outline-none tw:sm:size-8"
+	"tw:flex tw:size-10 tw:items-center tw:justify-center tw:rounded-control tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary-foreground/10 tw:focus-visible:ring-2 tw:focus-visible:ring-primary-foreground/50 tw:focus-visible:outline-none tw:sm:size-8"
 
 type ChatHeaderProps = {
 	title?: string
@@ -32,7 +32,7 @@ export function ChatHeader({
 	const isDark = scheme === "dark"
 
 	return (
-		<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3.5">
+		<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:bg-primary tw:px-4 tw:py-3.5 tw:text-primary-foreground">
 			<h2 className="tw:font-semibold tw:text-sm">{title ?? t("defaultTitle")}</h2>
 			<div className="tw:flex tw:items-center tw:gap-1">
 				{hasMessages && (
