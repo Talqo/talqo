@@ -222,37 +222,46 @@ export function createConversationRoutes(
 			}
 		}
 
+		function isPageStartRejected(frame: StartFrame): boolean {
+			if (started) return true
+			if (!frame.pageSession) return false
+			return pageConnections.has(frame.pageSession) || !frame.tools.some((tool) => tool.name === "talqo_page")
+		}
+
+		function registerPageSession(frame: StartFrame, ws: ChatSocket): void {
+			if (!frame.pageSession) return
+			const send = (message: string) => ws.send(message)
+			socketSender = send
+			pageConnection = createPageConnection({
+				credential: frame.credential,
+				embedToken,
+				origin,
+				send,
+				close: () => ws.close(SOCKET_NORMAL_CLOSE),
+				cancel: () => cancellation.abort(),
+			})
+			pageConnections.set(frame.pageSession, pageConnection)
+		}
+
+		function createTurnChannel(frame: StartFrame, ws: ChatSocket): void {
+			if (!frame.tools.length) return
+			channel = createClientToolChannel(
+				frame.tools,
+				(message) => sendTurnFrame(ws, message),
+				env.TALQO_CHAT_MAX_INPUT_CHARACTERS,
+			)
+			pageConnection?.setChannel(channel)
+		}
+
 		function startTurn(frame: StartFrame, ws: ChatSocket): void {
-			if (
-				started ||
-				(frame.pageSession &&
-					(pageConnections.has(frame.pageSession) || !frame.tools.some((tool) => tool.name === "talqo_page")))
-			) {
+			if (isPageStartRejected(frame)) {
 				failFrame(ws)
 				return
 			}
 			started = true
 			clearTimeout(deadline)
-			if (frame.pageSession) {
-				const send = (message: string) => ws.send(message)
-				socketSender = send
-				pageConnection = createPageConnection({
-					credential: frame.credential,
-					embedToken,
-					origin,
-					send,
-					close: () => ws.close(SOCKET_NORMAL_CLOSE),
-					cancel: () => cancellation.abort(),
-				})
-				pageConnections.set(frame.pageSession, pageConnection)
-			}
-			if (frame.tools.length)
-				channel = createClientToolChannel(
-					frame.tools,
-					(message) => sendTurnFrame(ws, message),
-					env.TALQO_CHAT_MAX_INPUT_CHARACTERS,
-				)
-			if (channel) pageConnection?.setChannel(channel)
+			registerPageSession(frame, ws)
+			createTurnChannel(frame, ws)
 			timeout = setTimeout(() => {
 				channel?.interrupt()
 				pageConnection?.finish()
@@ -327,16 +336,29 @@ export function createConversationRoutes(
 			}
 		}
 
+		function isStalePageFrame(): boolean {
+			return !!(pageConnection && socketSender && !pageConnection.owns(socketSender))
+		}
+
+		function cancelTurn(): void {
+			if (resuming) resumeCancellationRequested = true
+			else if (pageConnection) pageConnection.cancel()
+			else cancellation.abort()
+		}
+
+		function detachPageSocket(): boolean {
+			if (!pageConnection || !socketSender || terminal) return false
+			pageConnection.detach(socketSender)
+			return true
+		}
+
 		function handleClientFrame(frame: ClientFrame, ws: ChatSocket): void {
 			if (frame.type === "start") startTurn(frame, ws)
 			else if (frame.type === "resume") resumeTurn(frame, ws)
 			else if (!started) failFrame(ws)
-			else if (pageConnection && socketSender && !pageConnection.owns(socketSender)) return
-			else if (frame.type === "cancel") {
-				if (resuming) resumeCancellationRequested = true
-				else if (pageConnection) pageConnection.cancel()
-				else cancellation.abort()
-			} else acceptToolFrame(frame, ws)
+			else if (isStalePageFrame()) return
+			else if (frame.type === "cancel") cancelTurn()
+			else acceptToolFrame(frame, ws)
 		}
 
 		return upgradeWebSocket(c, {
@@ -366,16 +388,14 @@ export function createConversationRoutes(
 			onClose() {
 				closed = true
 				clearTimeout(deadline)
-				if (pageConnection && socketSender && !terminal) pageConnection.detach(socketSender)
-				else {
+				if (!detachPageSocket()) {
 					clearTimeout(timeout)
 					channel?.interrupt()
 				}
 				if (!started || resuming) completion.resolve()
 			},
 			onError() {
-				if (pageConnection && socketSender) pageConnection.detach(socketSender)
-				else channel?.interrupt()
+				if (!detachPageSocket()) channel?.interrupt()
 			},
 		}).catch((error: unknown) => {
 			completion.resolve()

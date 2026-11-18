@@ -237,9 +237,7 @@ export function createWebSocketChatTransport(
 				if (toolController.signal.aborted || dispatched.has(frame.toolCallId)) return
 				void (async () => {
 					if (!advertisedNames.has(frame.toolName)) throw new Error("Unadvertised client tool")
-					if (
-						dispatched.size >= (advertisedNames.has("talqo_page") ? PAGE_TOOL_CALL_LIMIT : CLIENT_TOOL_CALL_LIMIT)
-					)
+					if (dispatched.size >= (advertisedNames.has("talqo_page") ? PAGE_TOOL_CALL_LIMIT : CLIENT_TOOL_CALL_LIMIT))
 						throw new Error("Client tool call limit reached")
 					dispatched.add(frame.toolCallId)
 					return tools.execute(frame, toolController.signal)

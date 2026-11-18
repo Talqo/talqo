@@ -3,6 +3,10 @@ import type { ClientToolChannel } from "./conversation.client-tools.ts"
 const BUFFER_BYTES = 8_388_608
 const RECONNECT_MS = 20_000
 
+function isToolCall(message: unknown): boolean {
+	return typeof message === "object" && message !== null && "type" in message && message.type === "tool-call"
+}
+
 export function createPageConnection(input: {
 	credential: string
 	embedToken: string
@@ -25,6 +29,19 @@ export function createPageConnection(input: {
 		clearTimeout(detached)
 		close()
 	}
+	function buffer(serialized: string): boolean {
+		const frameBytes = Buffer.byteLength(serialized)
+		if (bytes + frameBytes > BUFFER_BYTES) {
+			console.warn("conversation.page-buffer.exceeded", { bufferedBytes: bytes, frameBytes })
+			channel?.interrupt()
+			input.cancel()
+			finish()
+			return false
+		}
+		bytes += frameBytes
+		frames.push(serialized)
+		return true
+	}
 	return {
 		credential: input.credential,
 		embedToken: input.embedToken,
@@ -43,18 +60,7 @@ export function createPageConnection(input: {
 			if (finished) return
 			const serialized = JSON.stringify(message)
 			// Tool invocations are never replayed to a replacement document.
-			if (!(typeof message === "object" && message !== null && "type" in message && message.type === "tool-call")) {
-				const frameBytes = Buffer.byteLength(serialized)
-				if (bytes + frameBytes > BUFFER_BYTES) {
-					console.warn("conversation.page-buffer.exceeded", { bufferedBytes: bytes, frameBytes })
-					channel?.interrupt()
-					input.cancel()
-					finish()
-					return
-				}
-				bytes += frameBytes
-				frames.push(serialized)
-			}
+			if (!isToolCall(message) && !buffer(serialized)) return
 			sender?.(serialized)
 		},
 		detach(owner: (message: string) => void) {

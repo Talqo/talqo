@@ -1,3 +1,4 @@
+import type { ClientToolRegistry } from "./client-tools.ts"
 import type {
 	ChatClient,
 	ChatClientOptions,
@@ -6,6 +7,7 @@ import type {
 	ChatEvent,
 	ChatMessage,
 	ChatSnapshot,
+	ChatTransport,
 	SessionState,
 } from "./types.ts"
 
@@ -185,6 +187,27 @@ function withOutcome(message: ChatMessage, outcome: ChatMessage["outcome"]): Cha
 	}
 }
 
+function pageLanguage(configuration: ChatConfiguration): string {
+	return typeof configuration.appearance.language === "string" ? configuration.appearance.language : "en"
+}
+
+function cloneCustomTools(tools: ChatClientOptions["tools"]): NonNullable<ChatClientOptions["tools"]> {
+	return Object.fromEntries(Object.entries(tools ?? {}).map(([name, definition]) => [name, { ...definition }]))
+}
+
+function createTransport(options: ChatClientOptions, tools: ClientToolRegistry): ChatTransport {
+	return (
+		options.transport ??
+		createWebSocketChatTransport({
+			get size() {
+				return tools.size
+			},
+			manifest: () => tools.manifest(),
+			execute: (request, signal) => tools.execute(request, signal),
+		})
+	)
+}
+
 export function createChatClient(options: ChatClientOptions): ChatClient {
 	let configuration: ChatConfiguration | undefined
 	let messages: readonly ChatMessage[] = []
@@ -207,22 +230,12 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	const storageKey = createChatStorageKey(options.apiUrl, options.embedToken)
 	const randomUUID = options.randomUUID ?? defaultRandomUUID
 	const now = options.now ?? (() => new Date())
-	const customTools = Object.fromEntries(
-		Object.entries(options.tools ?? {}).map(([name, definition]) => [name, { ...definition }]),
-	)
+	const customTools = cloneCustomTools(options.tools)
 	let tools = captureClientTools(customTools)
 	let pageTool: ReturnType<typeof createPageTool> | undefined
 	let pageStorageUnavailable = false
 	if (options.transport && tools.size) throw new Error("Client tools require the WebSocket transport")
-	const transport =
-		options.transport ??
-		createWebSocketChatTransport({
-			get size() {
-				return tools.size
-			},
-			manifest: () => tools.manifest(),
-			execute: (request, signal) => tools.execute(request, signal),
-		})
+	const transport = createTransport(options, tools)
 
 	const storage = createResilientStorage(
 		options.storage ?? {
@@ -503,52 +516,74 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		}
 	}
 
+	function pageControlRequested(loaded: ChatConfiguration): boolean {
+		return (
+			!options.transport &&
+			!!options.pageControl &&
+			loaded.pageControl?.enabled === true &&
+			typeof document !== "undefined"
+		)
+	}
+
+	function pageExclude(): readonly Element[] {
+		return options.pageControl?.exclude ?? []
+	}
+
+	function requirePageToolSlot(): void {
+		if (Object.hasOwn(customTools, PAGE_TOOL_NAME)) throw new Error("Reserved client tool name: talqo_page")
+		if (tools.size === CLIENT_TOOL_LIMIT)
+			throw new Error(
+				"Page control uses one of 8 client tools. Disable page control or register at most 7 custom tools.",
+			)
+	}
+
+	function installPageTool(loaded: ChatConfiguration): void {
+		if (!pageControlRequested(loaded)) return
+		pageStorageUnavailable = !canStorePageContinuation()
+		if (pageStorageUnavailable) return
+		const exclude = pageExclude()
+		if (!exclude.length) throw new Error("Page control requires the chat root in pageControl.exclude")
+		requirePageToolSlot()
+		pageTool = createPageTool({
+			approvalInstructions: loaded.pageControl?.approvalInstructions,
+			exclude,
+			themeRoot: options.pageControl?.themeRoot,
+			language: pageLanguage(loaded),
+			stop: cancelResponse,
+		})
+		tools = captureClientTools({ ...customTools, [PAGE_TOOL_NAME]: pageTool.definition })
+	}
+
+	function readPageTurn(): PageContinuation | undefined {
+		return pageTool ? readPageContinuation(options.apiUrl, options.embedToken) : undefined
+	}
+
+	function matchesCurrentSession(continuation: PageContinuation | undefined): continuation is PageContinuation {
+		return !!continuation && continuation.credential === credential && continuation.generationId === activeGenerationId
+	}
+
+	function resumePageTurn(): boolean {
+		const continuation = readPageTurn()
+		if (!matchesCurrentSession(continuation)) return false
+		generation = "idle"
+		activeGenerationId = undefined
+		void sendMessage(continuation.text, continuation).catch(() => {
+			removePageContinuation(options.apiUrl, options.embedToken)
+		})
+		return true
+	}
+
 	async function loadInitialState(controller: AbortController): Promise<void> {
 		const [loadedConfiguration, serialized] = await Promise.all([
 			transport.loadConfiguration(context(controller.signal)),
 			storage.getItem(storageKey),
 		])
 		configuration = loadedConfiguration
-		if (
-			!options.transport &&
-			options.pageControl &&
-			loadedConfiguration.pageControl?.enabled &&
-			typeof document !== "undefined"
-		) {
-			if (!options.pageControl.exclude?.length)
-				throw new Error("Page control requires the chat root in pageControl.exclude")
-			pageStorageUnavailable = !canStorePageContinuation()
-			if (!pageStorageUnavailable) {
-				if (Object.hasOwn(customTools, PAGE_TOOL_NAME)) throw new Error("Reserved client tool name: talqo_page")
-				if (tools.size === CLIENT_TOOL_LIMIT)
-					throw new Error(
-						"Page control uses one of 8 client tools. Disable page control or register at most 7 custom tools.",
-					)
-				pageTool = createPageTool({
-					approvalInstructions: loadedConfiguration.pageControl.approvalInstructions,
-					exclude: options.pageControl.exclude,
-					themeRoot: options.pageControl.themeRoot,
-					language:
-						typeof loadedConfiguration.appearance.language === "string"
-							? loadedConfiguration.appearance.language
-							: "en",
-					stop: cancelResponse,
-				})
-				tools = captureClientTools({ ...customTools, [PAGE_TOOL_NAME]: pageTool.definition })
-			}
-		}
+		installPageTool(loadedConfiguration)
 		if (loadedConfiguration.isAvailable) await restoreStoredSession(serialized, controller.signal)
 		initialization = "ready"
 		publish()
-		const continuation = pageTool ? readPageContinuation(options.apiUrl, options.embedToken) : undefined
-		if (continuation && continuation.credential === credential && continuation.generationId === activeGenerationId) {
-			generation = "idle"
-			activeGenerationId = undefined
-			void sendMessage(continuation.text, continuation).catch(() => {
-				removePageContinuation(options.apiUrl, options.embedToken)
-			})
-			return
-		}
+		if (resumePageTurn()) return
 		if (activeGenerationId !== undefined || pendingMessage !== undefined) beginSessionRecoveryPolling()
 	}
 
@@ -598,12 +633,16 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		if (generation !== "idle") throw new Error("A chat response is already active")
 	}
 
+	function newPageSession(): string | undefined {
+		return pageTool ? randomUUID() : undefined
+	}
+
 	function beginSend(text: string, continuation?: PageContinuation): SendState {
 		const newSession = credential === undefined
 		credential ??= randomUUID()
 		const sendCredential = credential
 		const requestId = continuation?.requestId ?? randomUUID()
-		const pageSession = continuation?.pageSession ?? (pageTool ? randomUUID() : undefined)
+		const pageSession = continuation?.pageSession ?? newPageSession()
 		const controller = new AbortController()
 		pendingMessage = { requestId, text, ...(tools.size ? { clientTools: true } : {}) }
 		generation = "sending"

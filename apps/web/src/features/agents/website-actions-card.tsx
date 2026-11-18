@@ -13,7 +13,14 @@ import { Switch } from "@talqo/ui/components/switch"
 import { Textarea } from "@talqo/ui/components/textarea"
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
-import { Controller, useForm, useWatch } from "react-hook-form"
+import {
+	Controller,
+	type FieldError,
+	useForm,
+	type UseFormRegister,
+	type UseFormSetValue,
+	useWatch,
+} from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { z } from "zod"
 
@@ -22,6 +29,87 @@ const schema = z.object({
 	approvalInstructions: z.string().trim().min(1).max(APPROVAL_INSTRUCTIONS_MAX_LENGTH),
 })
 type Values = z.infer<typeof schema>
+
+function ErrorAlert({ message }: { message: string }) {
+	return (
+		<p role="alert" className="text-destructive text-sm">
+			{message}
+		</p>
+	)
+}
+
+function ApprovalInstructions({
+	canManage,
+	pending,
+	error,
+	register,
+}: {
+	canManage: boolean
+	pending: boolean
+	error: FieldError | undefined
+	register: UseFormRegister<Values>
+}) {
+	const { t } = useTranslation()
+	return (
+		<div className="space-y-2">
+			<Label htmlFor="website-approval">{t("pageControl.instructions")}</Label>
+			<Textarea
+				id="website-approval"
+				rows={5}
+				readOnly={!canManage || pending}
+				maxLength={APPROVAL_INSTRUCTIONS_MAX_LENGTH}
+				aria-invalid={!!error}
+				aria-describedby={error ? "website-approval-error" : undefined}
+				{...register("approvalInstructions")}
+			/>
+			{error && (
+				<p id="website-approval-error" role="alert" className="text-destructive text-xs">
+					{t("pageControl.instructionsRequired", { max: APPROVAL_INSTRUCTIONS_MAX_LENGTH })}
+				</p>
+			)}
+		</div>
+	)
+}
+
+function Actions({
+	saved,
+	showReset,
+	pending,
+	dirty,
+	instructions,
+	setValue,
+}: {
+	saved: boolean
+	showReset: boolean
+	pending: boolean
+	dirty: boolean
+	instructions: string
+	setValue: UseFormSetValue<Values>
+}) {
+	const { t } = useTranslation()
+	return (
+		<FormActions status={saved ? t("agentConfig.saved") : undefined}>
+			{showReset && (
+				<Button
+					type="button"
+					variant="outline"
+					disabled={pending || instructions === DEFAULT_APPROVAL_INSTRUCTIONS}
+					onClick={() =>
+						setValue("approvalInstructions", DEFAULT_APPROVAL_INSTRUCTIONS, {
+							shouldDirty: true,
+							shouldValidate: true,
+						})
+					}
+				>
+					{t("pageControl.restoreDefaults")}
+				</Button>
+			)}
+			<Button type="submit" disabled={pending || !dirty}>
+				{pending ? t("agentConfig.saving") : t("agentConfig.save")}
+			</Button>
+		</FormActions>
+	)
+}
 
 export function WebsiteActionsCard({ agent, canManage }: { agent: Agent; canManage: boolean }) {
 	const { t } = useTranslation()
@@ -40,6 +128,7 @@ export function WebsiteActionsCard({ agent, canManage }: { agent: Agent; canMana
 	const isEnabled = useWatch({ control, name: "enabled" })
 	const instructions = useWatch({ control, name: "approvalInstructions" })
 	const guard = useDirtyFormGuard(formState.isDirty)
+	const showInstructions = isEnabled || !!formState.errors.approvalInstructions
 
 	async function save(values: Values): Promise<void> {
 		if (!canManage) return
@@ -88,51 +177,24 @@ export function WebsiteActionsCard({ agent, canManage }: { agent: Agent; canMana
 			</CardHeader>
 			<CardContent>
 				<form onSubmit={handleSubmit(save, () => setFocus("approvalInstructions"))} className="space-y-4">
-					{error && (
-						<p role="alert" className="text-destructive text-sm">
-							{error}
-						</p>
-					)}
-					{(isEnabled || formState.errors.approvalInstructions) && (
-						<div className="space-y-2">
-							<Label htmlFor="website-approval">{t("pageControl.instructions")}</Label>
-							<Textarea
-								id="website-approval"
-								rows={5}
-								readOnly={!canManage || update.isPending}
-								maxLength={APPROVAL_INSTRUCTIONS_MAX_LENGTH}
-								aria-invalid={!!formState.errors.approvalInstructions}
-								aria-describedby={formState.errors.approvalInstructions ? "website-approval-error" : undefined}
-								{...register("approvalInstructions")}
-							/>
-							{formState.errors.approvalInstructions && (
-								<p id="website-approval-error" role="alert" className="text-destructive text-xs">
-									{t("pageControl.instructionsRequired", { max: APPROVAL_INSTRUCTIONS_MAX_LENGTH })}
-								</p>
-							)}
-						</div>
+					{error && <ErrorAlert message={error} />}
+					{showInstructions && (
+						<ApprovalInstructions
+							canManage={canManage}
+							pending={update.isPending}
+							error={formState.errors.approvalInstructions}
+							register={register}
+						/>
 					)}
 					{canManage && (
-						<FormActions status={saved && !formState.isDirty ? t("agentConfig.saved") : undefined}>
-							{(isEnabled || formState.errors.approvalInstructions) && (
-								<Button
-									type="button"
-									variant="outline"
-									disabled={update.isPending || instructions === DEFAULT_APPROVAL_INSTRUCTIONS}
-									onClick={() =>
-										setValue("approvalInstructions", DEFAULT_APPROVAL_INSTRUCTIONS, {
-											shouldDirty: true,
-											shouldValidate: true,
-										})
-									}
-								>
-									{t("pageControl.restoreDefaults")}
-								</Button>
-							)}
-							<Button type="submit" disabled={update.isPending || !formState.isDirty}>
-								{update.isPending ? t("agentConfig.saving") : t("agentConfig.save")}
-							</Button>
-						</FormActions>
+						<Actions
+							saved={saved && !formState.isDirty}
+							showReset={showInstructions}
+							pending={update.isPending}
+							dirty={formState.isDirty}
+							instructions={instructions}
+							setValue={setValue}
+						/>
 					)}
 				</form>
 				{guard}
