@@ -48,6 +48,12 @@ type PeerSource = (context: { env?: ChatBindings; req: { header(name: string): s
 }
 
 type ToolCounts = { calls: number; failures: number }
+type ClientFrame = ReturnType<typeof chatClientFrameSchema.parse>
+type StartFrame = Extract<ClientFrame, { type: "start" }>
+type ChatSocket = {
+	close(code?: number, reason?: string): void
+	send(data: string): void
+}
 
 function annotateOutcome(c: Context<ChatEnv>, event: Extract<ChatEvent, { type: "terminal" | "error" }>): void {
 	if (event.type === "terminal") annotate(c, { "chat.outcome": event.outcome })
@@ -67,6 +73,25 @@ function annotateChatEvent(c: Context<ChatEnv>, event: ChatEvent, counts: ToolCo
 	if (event.type === "accepted") annotate(c, { "generation.id": event.generationId })
 	else if (event.type === "terminal" || event.type === "error") annotateOutcome(c, event)
 	else if (event.type === "part") annotateToolEvent(c, event.part, counts)
+}
+
+function parseClientFrame(data: string): ClientFrame | undefined {
+	try {
+		const parsed = chatClientFrameSchema.safeParse(JSON.parse(data))
+		return parsed.success ? parsed.data : undefined
+	} catch {
+		return undefined
+	}
+}
+
+function rejectionFrame(error: unknown) {
+	return {
+		version: 1,
+		type: "rejected",
+		code: error instanceof ApiError ? error.problemCode : PROBLEM_CODES.INTERNAL_SERVER_ERROR,
+		status: error instanceof ApiError ? error.status : HTTP_STATUS.INTERNAL_SERVER_ERROR,
+		retryAt: error instanceof ApiError ? error.headers?.["X-RateLimit-Reset"] : undefined,
+	}
 }
 
 export function createConversationRoutes(
@@ -120,6 +145,109 @@ export function createConversationRoutes(
 		const completion = Promise.withResolvers<void>()
 		const toolCounts: ToolCounts = { calls: 0, failures: 0 }
 		deferWideEvent(c, completion.promise)
+
+		function sendFrame(ws: ChatSocket, message: unknown): void {
+			if (closed) return
+			const serialized = JSON.stringify(message)
+			if (Buffer.byteLength(serialized) > MAX_SERVER_FRAME_BYTES) throw new Error("Chat frame too large")
+			ws.send(serialized)
+		}
+
+		function failFrame(ws: ChatSocket): void {
+			if (!started)
+				ws.send(
+					JSON.stringify({
+						version: 1,
+						type: "rejected",
+						code: PROBLEM_CODES.INVALID_REQUEST,
+						status: HTTP_STATUS.BAD_REQUEST,
+					}),
+				)
+			terminal = true
+			channel?.interrupt()
+			ws.close(SOCKET_POLICY_VIOLATION, "Invalid chat frame")
+		}
+
+		function frameLimit(): number {
+			return started
+				? TOOL_PAYLOAD_BYTES + FRAME_ENVELOPE_BYTES
+				: env.TALQO_CHAT_MAX_INPUT_CHARACTERS * MAX_JSON_BYTES_PER_CODE_POINT + MANIFEST_BYTES + FRAME_ENVELOPE_BYTES
+		}
+
+		async function runTurn(frame: StartFrame, ws: ChatSocket): Promise<void> {
+			try {
+				const result = await activeService().send(
+					{
+						...frame,
+						embedToken,
+						networkHash,
+						clientTools: channel,
+						cancellationSignal: cancellation.signal,
+						clientManifestFingerprint: frame.tools.length
+							? createHash("sha256").update(JSON.stringify(frame.tools)).digest("hex")
+							: undefined,
+					},
+					(message) => {
+						if (message.type === "terminal" || message.type === "error") terminal = true
+						annotateChatEvent(c, message, toolCounts)
+						sendFrame(ws, message)
+					},
+					annotator(c),
+				)
+				await result.done
+			} catch (error) {
+				sendFrame(ws, rejectionFrame(error))
+			} finally {
+				clearTimeout(timeout)
+				completion.resolve()
+				ws.close(SOCKET_NORMAL_CLOSE)
+			}
+		}
+
+		function startTurn(frame: StartFrame, ws: ChatSocket): void {
+			if (started) {
+				failFrame(ws)
+				return
+			}
+			started = true
+			clearTimeout(deadline)
+			if (frame.tools.length)
+				channel = createClientToolChannel(
+					frame.tools,
+					(message) => sendFrame(ws, message),
+					env.TALQO_CHAT_MAX_INPUT_CHARACTERS,
+				)
+			timeout = setTimeout(() => {
+				channel?.interrupt()
+				ws.close(SOCKET_POLICY_VIOLATION, "Turn deadline exceeded")
+			}, env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS * MILLISECONDS_PER_SECOND)
+			void runTurn(frame, ws)
+		}
+
+		function acceptToolFrame(
+			frame: Extract<ClientFrame, { type: "tool-result" | "tool-error" }>,
+			ws: ChatSocket,
+		): void {
+			if (cancellation.signal.aborted) return
+			try {
+				if (!channel) throw new Error("No client tools")
+				channel.accept(
+					frame.type === "tool-error"
+						? { toolCallId: frame.toolCallId, error: frame.error }
+						: { toolCallId: frame.toolCallId, output: frame.output },
+				)
+			} catch {
+				failFrame(ws)
+			}
+		}
+
+		function handleClientFrame(frame: ClientFrame, ws: ChatSocket): void {
+			if (frame.type === "start") startTurn(frame, ws)
+			else if (!started) failFrame(ws)
+			else if (frame.type === "cancel") cancellation.abort()
+			else acceptToolFrame(frame, ws)
+		}
+
 		return upgradeWebSocket(c, {
 			onOpen(_event, ws) {
 				deadline = setTimeout(() => {
@@ -128,115 +256,21 @@ export function createConversationRoutes(
 				}, SOCKET_START_DEADLINE_MS)
 			},
 			onMessage(event, ws) {
-				const fail = () => {
-					if (!started)
-						ws.send(
-							JSON.stringify({
-								version: 1,
-								type: "rejected",
-								code: PROBLEM_CODES.INVALID_REQUEST,
-								status: HTTP_STATUS.BAD_REQUEST,
-							}),
-						)
-					terminal = true
-					channel?.interrupt()
-					ws.close(SOCKET_POLICY_VIOLATION, "Invalid chat frame")
-				}
 				if (terminal) return
 				if (typeof event.data !== "string") {
-					fail()
+					failFrame(ws)
 					return
 				}
-				const limit = started
-					? TOOL_PAYLOAD_BYTES + FRAME_ENVELOPE_BYTES
-					: env.TALQO_CHAT_MAX_INPUT_CHARACTERS * MAX_JSON_BYTES_PER_CODE_POINT + MANIFEST_BYTES + FRAME_ENVELOPE_BYTES
-				if (Buffer.byteLength(event.data) > limit) {
-					fail()
+				if (Buffer.byteLength(event.data) > frameLimit()) {
+					failFrame(ws)
 					return
 				}
-				let parsed: ReturnType<typeof chatClientFrameSchema.safeParse>
-				try {
-					parsed = chatClientFrameSchema.safeParse(JSON.parse(event.data))
-				} catch {
-					fail()
+				const frame = parseClientFrame(event.data)
+				if (!frame) {
+					failFrame(ws)
 					return
 				}
-				if (!parsed.success) {
-					fail()
-					return
-				}
-				const frame = parsed.data
-				if (frame.type === "start") {
-					if (started) {
-						fail()
-						return
-					}
-					started = true
-					clearTimeout(deadline)
-					const sendFrame = (message: unknown) => {
-						if (closed) return
-						const serialized = JSON.stringify(message)
-						if (Buffer.byteLength(serialized) > MAX_SERVER_FRAME_BYTES) throw new Error("Chat frame too large")
-						ws.send(serialized)
-					}
-					if (frame.tools.length)
-						channel = createClientToolChannel(frame.tools, sendFrame, env.TALQO_CHAT_MAX_INPUT_CHARACTERS)
-					timeout = setTimeout(() => {
-						channel?.interrupt()
-						ws.close(SOCKET_POLICY_VIOLATION, "Turn deadline exceeded")
-					}, env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS * MILLISECONDS_PER_SECOND)
-					void (async () => {
-						try {
-							const result = await activeService().send(
-								{
-									...frame,
-									embedToken,
-									networkHash,
-									clientTools: channel,
-									cancellationSignal: cancellation.signal,
-									clientManifestFingerprint: frame.tools.length
-										? createHash("sha256").update(JSON.stringify(frame.tools)).digest("hex")
-										: undefined,
-								},
-								(message) => {
-									if (message.type === "terminal" || message.type === "error") terminal = true
-									annotateChatEvent(c, message, toolCounts)
-									sendFrame(message)
-								},
-								annotator(c),
-							)
-							await result.done
-						} catch (error) {
-							const retryAt = error instanceof ApiError ? error.headers?.["X-RateLimit-Reset"] : undefined
-							sendFrame({
-								version: 1,
-								type: "rejected",
-								code: error instanceof ApiError ? error.problemCode : PROBLEM_CODES.INTERNAL_SERVER_ERROR,
-								status: error instanceof ApiError ? error.status : HTTP_STATUS.INTERNAL_SERVER_ERROR,
-								retryAt,
-							})
-						} finally {
-							clearTimeout(timeout)
-							completion.resolve()
-							ws.close(SOCKET_NORMAL_CLOSE)
-						}
-					})()
-				} else if (!started) fail()
-				else if (frame.type === "cancel") {
-					cancellation.abort()
-				} else {
-					if (cancellation.signal.aborted) return
-					try {
-						if (!channel) throw new Error("No client tools")
-						channel.accept(
-							frame.type === "tool-error"
-								? { toolCallId: frame.toolCallId, error: frame.error }
-								: { toolCallId: frame.toolCallId, output: frame.output },
-						)
-					} catch {
-						fail()
-					}
-				}
+				handleClientFrame(frame, ws)
 			},
 			onClose() {
 				closed = true

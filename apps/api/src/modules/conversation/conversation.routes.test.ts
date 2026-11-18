@@ -117,7 +117,7 @@ function serve(app: ReturnType<typeof routes>["app"]) {
 	return Bun.serve({ port: 0, fetch: (request, host) => app.fetch(request, { server: host }), websocket })
 }
 
-function connect(origin: string, frame: unknown) {
+function connect(origin: string, frame: unknown, onAccepted?: (socket: WebSocket) => void) {
 	const events: unknown[] = []
 	const accepted = Promise.withResolvers<void>()
 	const socket = new WebSocket(`${origin.replace("http:", "ws:")}/chat/embed/socket`)
@@ -126,8 +126,10 @@ function connect(origin: string, frame: unknown) {
 		socket.addEventListener("message", (event) => {
 			const message: unknown = JSON.parse(String(event.data))
 			events.push(message)
-			if (typeof message === "object" && message !== null && "type" in message && message.type === "accepted")
+			if (typeof message === "object" && message !== null && "type" in message && message.type === "accepted") {
 				accepted.resolve()
+				onAccepted?.(socket)
+			}
 		})
 		socket.addEventListener("close", (event) => resolve(event.code))
 		socket.addEventListener("error", reject)
@@ -144,6 +146,21 @@ describe("public conversation routes", () => {
 			expect(await connect(server.url.origin, frame).closed).toBe(1008)
 			expect(calls).toBeEmpty()
 		} finally {
+			await server.stop(true)
+		}
+	})
+
+	it("rejects a browser tool result without a pending call", async () => {
+		const { app, release } = routes("late-error")
+		const server = serve(app)
+		try {
+			const tools = [{ name: "lookup", inputSchema: {} }]
+			const turn = connect(server.url.origin, { ...START, tools }, (socket) =>
+				socket.send(JSON.stringify({ version: 1, type: "tool-result", toolCallId: "missing", output: null })),
+			)
+			expect(await turn.closed).toBe(1008)
+		} finally {
+			release()
 			await server.stop(true)
 		}
 	})

@@ -181,6 +181,35 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 		for (const pending of persistedCalls.values()) pending.reject(new Error("Tool execution aborted"))
 	}
 	const identity = (name: string): ToolIdentity => input.toolNames?.get(name) ?? { serverName: "", toolName: name }
+	async function recordToolCall(part: { input: unknown; toolCallId: string; toolName: string }): Promise<void> {
+		await input.onToolEvent?.({
+			type: "tool-start",
+			identity: identity(part.toolName),
+			toolCallId: part.toolCallId,
+			toolName: part.toolName,
+			input: part.input,
+		})
+		callPersistence(part.toolCallId).resolve()
+	}
+	async function recordToolError(part: { toolCallId: string; toolName: string }): Promise<void> {
+		if (completedCalls.has(part.toolCallId)) return
+		await input.onToolEvent?.({
+			type: "tool-end",
+			identity: identity(part.toolName),
+			toolCallId: part.toolCallId,
+			outcome: "failed",
+			errorText: "Tool execution failed",
+		})
+	}
+	async function* streamParts(stream: ReturnType<typeof aiStreamText>) {
+		for await (const part of stream.fullStream) {
+			if (part.type === "text-delta") yield { type: "text" as const, text: part.text }
+			else if (part.type === "start-step") yield { type: "step-start" as const }
+			else if (part.type === "tool-call") await recordToolCall(part)
+			else if (part.type === "tool-error") await recordToolError(part)
+			else if (part.type === "error") throw part.error
+		}
+	}
 	input.signal.addEventListener("abort", abort, { once: true })
 	try {
 		result = streamText({
@@ -213,28 +242,7 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 				completedCalls.add(toolCall.toolCallId)
 			},
 		})
-		for await (const part of result.fullStream) {
-			if (part.type === "text-delta") yield { type: "text", text: part.text }
-			else if (part.type === "start-step") yield { type: "step-start" }
-			else if (part.type === "tool-call") {
-				await input.onToolEvent?.({
-					type: "tool-start",
-					identity: identity(part.toolName),
-					toolCallId: part.toolCallId,
-					toolName: part.toolName,
-					input: part.input,
-				})
-				callPersistence(part.toolCallId).resolve()
-			} else if (part.type === "tool-error" && !completedCalls.has(part.toolCallId)) {
-				await input.onToolEvent?.({
-					type: "tool-end",
-					identity: identity(part.toolName),
-					toolCallId: part.toolCallId,
-					outcome: "failed",
-					errorText: "Tool execution failed",
-				})
-			} else if (part.type === "error") throw part.error
-		}
+		yield* streamParts(result)
 		const usage = await result.usage
 		yield {
 			type: "finish",
