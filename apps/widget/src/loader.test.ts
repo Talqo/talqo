@@ -103,6 +103,11 @@ describe("widget loader", () => {
 
 	afterEach(() => {
 		globals().TalqoWidget?.unmount()
+		document.querySelectorAll("script[data-talqo-embed-token], script[data-talqo-preview]").forEach((script) => {
+			script.remove()
+		})
+		document.querySelector("#talqo-widget")?.remove()
+		Reflect.deleteProperty(window, "TalqoWidgetChat")
 		document.head.append = originalAppend
 		fetchSpy.mockRestore()
 	})

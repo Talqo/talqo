@@ -9,6 +9,10 @@ import type { MountOptions, MountTarget } from "./widget"
 // Import paused: with a parsed document the module auto-mounts at import, outside any test,
 // so a broken mount surfaces as an unhandled error between tests instead of a failed test.
 const { mount, unmount } = await import("./test-setup").then(async () => {
+	// Earlier test files in the same process can leave snippets that the widget captures at import.
+	document
+		.querySelectorAll("script[data-talqo-embed-token], script[data-talqo-preview]")
+		.forEach((element) => element.remove())
 	const parsedState = Object.getOwnPropertyDescriptor(document, "readyState")
 	Object.defineProperty(document, "readyState", { configurable: true, value: "loading" })
 	try {
