@@ -1,5 +1,5 @@
 import { access } from "@/http/access.ts"
-import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
+import { fileFieldSchema, noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
@@ -33,9 +33,6 @@ const fileParamsSchema = z.object({
 	agentId: z.string().openapi({ param: { name: "agentId", in: "path" } }),
 	fileName: z.string().openapi({ param: { name: "fileName", in: "path" } }),
 })
-
-// Overridden to OpenAPI's binary string so clients generate an upload field.
-const fileFieldSchema = z.custom<File>((value) => value instanceof File).openapi({ type: "string", format: "binary" })
 
 // Binary response so generated clients read a Blob instead of parsing JSON.
 const fileContentResponseSchema = z

@@ -1,0 +1,1 @@
+ALTER TABLE "embed" ADD COLUMN "icon_updated_at" timestamp with time zone;

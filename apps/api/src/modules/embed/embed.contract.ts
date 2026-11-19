@@ -1,5 +1,5 @@
 import { access } from "@/http/access.ts"
-import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
+import { fileFieldSchema, noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
@@ -62,6 +62,12 @@ const appearanceResponseSchema = z
 	})
 	.openapi("EmbedAppearance")
 
+// Only ever an image source: inlining the operator's SVG markup would let it run script.
+const iconUrlSchema = z.string().nullable().openapi({
+	description:
+		"Custom launcher icon path, relative to the API origin; use it only as an image source. Null for the default icon",
+})
+
 const embedResponseSchema = z
 	.object({
 		id: z.string(),
@@ -71,6 +77,7 @@ const embedResponseSchema = z
 		accessVersion: z.number().int().positive(),
 		isDisabled: z.boolean(),
 		appearance: appearanceResponseSchema,
+		iconUrl: iconUrlSchema,
 	})
 	.openapi("Embed")
 
@@ -80,6 +87,7 @@ export const embedConfigResponseSchema = z
 		version: z.number(),
 		name: z.string(),
 		appearance: appearanceResponseSchema,
+		iconUrl: iconUrlSchema,
 		// Requires an enabled embed and a usable text provider.
 		isAvailable: z.boolean(),
 	})
@@ -251,6 +259,70 @@ export const deleteEmbedRoute = createRoute({
 		401: authRequired,
 		403: forbidden,
 		404: embedNotFound,
+		500: serverError,
+	},
+})
+
+const iconUploadSchema = z.object({ file: fileFieldSchema })
+
+export const setEmbedIconRoute = createRoute({
+	method: "put",
+	path: "/{embedId}/icon",
+	operationId: "setEmbedIcon",
+	tags: ["Embed"],
+	...access.agent(roles.AgentPermission.AgentManage),
+	request: {
+		params: embedParamsSchema,
+		body: { content: { "multipart/form-data": { schema: iconUploadSchema } }, required: true },
+	},
+	responses: {
+		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Icon replaced" },
+		400: problemResponse([PROBLEM_CODES.EMBED_ICON_INVALID, PROBLEM_CODES.INVALID_REQUEST]),
+		401: authRequired,
+		403: forbidden,
+		404: embedNotFound,
+		413: payloadTooLargeResponse,
+		500: serverError,
+	},
+})
+
+export const deleteEmbedIconRoute = createRoute({
+	method: "delete",
+	path: "/{embedId}/icon",
+	operationId: "deleteEmbedIcon",
+	tags: ["Embed"],
+	...access.agent(roles.AgentPermission.AgentManage),
+	request: { params: embedParamsSchema },
+	responses: {
+		200: {
+			content: { "application/json": { schema: embedDetailResponseSchema } },
+			description: "Default icon restored",
+		},
+		401: authRequired,
+		403: forbidden,
+		404: embedNotFound,
+		500: serverError,
+	},
+})
+
+// Binary response so generated clients read a Blob instead of parsing JSON.
+const iconContentSchema = z.custom<Blob>((value) => value instanceof Blob).openapi({ type: "string", format: "binary" })
+
+// Unauthenticated like the config it belongs to; keyed by token so the internal id stays private.
+export const getEmbedIconRoute = createRoute({
+	method: "get",
+	path: "/{embedToken}/icon",
+	operationId: "getEmbedIcon",
+	tags: ["Public Chat"],
+	...access.public,
+	request: { params: embedTokenParamsSchema },
+	responses: {
+		200: {
+			content: { "image/svg+xml": { schema: iconContentSchema } },
+			description: "The embed's custom launcher icon, sandboxed by its Content-Security-Policy",
+		},
+		304: { description: "Icon unchanged since the supplied ETag" },
+		404: problemResponse([PROBLEM_CODES.EMBED_ICON_NOT_FOUND]),
 		500: serverError,
 	},
 })

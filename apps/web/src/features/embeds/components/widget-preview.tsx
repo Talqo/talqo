@@ -25,6 +25,8 @@ const insetClasses: Record<WidgetPosition, string> = {
 type WidgetPreviewProps = {
 	appearance: WidgetAppearance
 	title?: string
+	/** API-relative icon path from the embed; sent over postMessage only, never in the first-paint URL. */
+	iconUrl?: string | null
 	/** Which tab the operator is editing; forces the preview to that scheme. Omit to let the
 	 * embed pick its own scheme from the operator's theme setting, like the real widget does. */
 	activeScheme?: "light" | "dark"
@@ -89,7 +91,9 @@ function useFrameScale(ref: RefObject<HTMLDivElement | null>): number {
  * Frames the real widget bundle rather than a dashboard-side replica, so the preview
  * cannot drift from what customers see and the widget's scoped CSS stays isolated.
  */
-export function WidgetPreview({ appearance, title, activeScheme, previewKey }: WidgetPreviewProps) {
+export function WidgetPreview({ appearance, title, iconUrl: iconPath, activeScheme, previewKey }: WidgetPreviewProps) {
+	// The preview frame may sit on another origin, so it needs the icon's absolute address on the API.
+	const iconUrl = iconPath ? new URL(iconPath, window.location.origin).href : undefined
 	const { t } = useTranslation()
 	const frameRef = useRef<HTMLDivElement>(null)
 	const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -113,11 +117,11 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 		const origin = new URL(previewUrl).origin
 		return { expectedOrigin: origin, src, srcDoc: undefined, targetOrigin: origin }
 	})
-	const latest = useRef({ appearance, title, activeScheme })
+	const latest = useRef({ appearance, title, iconUrl, activeScheme })
 	// Out of the `ready` effect's deps to avoid a re-subscribe per keystroke.
 	useEffect(() => {
-		latest.current = { appearance, title, activeScheme }
-	}, [appearance, title, activeScheme])
+		latest.current = { appearance, title, iconUrl, activeScheme }
+	}, [appearance, title, iconUrl, activeScheme])
 
 	const targetOrigin = source.targetOrigin
 
@@ -133,6 +137,7 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 			childWindow?.postMessage(
 				configMessage(latest.current.appearance, {
 					title: latest.current.title,
+					iconUrl: latest.current.iconUrl,
 					forcedScheme: latest.current.activeScheme,
 					isAvailable: true,
 				}),
@@ -146,10 +151,10 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 	useEffect(() => {
 		// Dropped harmlessly if the child is not listening yet; its next `ready` re-syncs.
 		iframeRef.current?.contentWindow?.postMessage(
-			configMessage(appearance, { title, forcedScheme: activeScheme, isAvailable: true }),
+			configMessage(appearance, { title, iconUrl, forcedScheme: activeScheme, isAvailable: true }),
 			targetOrigin,
 		)
-	}, [appearance, title, activeScheme, targetOrigin])
+	}, [appearance, title, iconUrl, activeScheme, targetOrigin])
 
 	return (
 		<div

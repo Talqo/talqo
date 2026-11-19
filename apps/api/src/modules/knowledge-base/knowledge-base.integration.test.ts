@@ -23,6 +23,7 @@ const LARGE_UPLOAD_BYTES = 300_000
 // Integration uploads must not fall back to a directory inside src/.
 const UPLOAD_ROOT = process.env.TALQO_UPLOAD_DIR
 if (!UPLOAD_ROOT) throw new Error("TALQO_UPLOAD_DIR must be set; run via bun run test:integration")
+const KNOWLEDGE_ROOT = join(UPLOAD_ROOT, "knowledge")
 
 async function createReaderSession(): Promise<string> {
 	const username = uniqueUsername()
@@ -158,7 +159,7 @@ describe("knowledge embeddings", () => {
 			await repository.complete(job, "recovery-key", [{ text: "orphaned", embedding: [1, 0, 0] }])
 			expect(await repository.search(owner.id, [1, 0, 0], "recovery-key", 5)).toEqual(["orphaned"])
 
-			await rm(join(UPLOAD_ROOT, owner.id, "guide.md"))
+			await rm(join(KNOWLEDGE_ROOT, owner.id, "guide.md"))
 			await reconcileDanglingRows()
 
 			expect(await repository.statuses(owner.id)).toEqual(new Map())
@@ -174,16 +175,16 @@ describe("knowledge embeddings", () => {
 		}
 	})
 
-	it("skips the recovery sweep when the uploads root itself is missing", async () => {
+	it("skips the recovery sweep when the knowledge directory itself is missing", async () => {
 		const owner = await createOwner("Recovery")
 		try {
 			await uploadFile(owner.id, "guide.md", new TextEncoder().encode("content").buffer)
 
-			await rm(UPLOAD_ROOT, { recursive: true, force: true })
+			await rm(KNOWLEDGE_ROOT, { recursive: true, force: true })
 			await reconcileDanglingRows()
 			expect((await repository.statuses(owner.id)).has("guide.md")).toBe(true)
 
-			await mkdir(UPLOAD_ROOT, { recursive: true })
+			await mkdir(KNOWLEDGE_ROOT, { recursive: true })
 			await reconcileDanglingRows()
 			expect(await repository.statuses(owner.id)).toEqual(new Map())
 		} finally {
@@ -262,8 +263,8 @@ describe("ingestion worker", () => {
 		)
 		const owner = await createOwner("Worker")
 		const orphanAgentId = crypto.randomUUID()
-		await mkdir(join(UPLOAD_ROOT, orphanAgentId), { recursive: true })
-		await writeFile(join(UPLOAD_ROOT, orphanAgentId, "orphan.md"), "orphan")
+		await mkdir(join(KNOWLEDGE_ROOT, orphanAgentId), { recursive: true })
+		await writeFile(join(KNOWLEDGE_ROOT, orphanAgentId, "orphan.md"), "orphan")
 		await aiProvider.saveConfiguration({
 			expectedRevision: 0,
 			text: {
@@ -296,7 +297,7 @@ describe("ingestion worker", () => {
 			await stub.stop(true)
 			await sql`DELETE FROM ai_provider_config`
 			await agent.deleteAgent(owner.id)
-			await rm(join(UPLOAD_ROOT, orphanAgentId), { recursive: true, force: true })
+			await rm(join(KNOWLEDGE_ROOT, orphanAgentId), { recursive: true, force: true })
 		}
 	})
 })
@@ -338,7 +339,7 @@ describe("agent knowledge files", () => {
 		const { file } = (await uploaded.json()) as { file: { name: string; sizeBytes: number; createdAt: string } }
 		expect(file.name).toBe("a.md")
 		expect(file.sizeBytes).toBe(5)
-		expect(await readFile(join(UPLOAD_ROOT, agentId, "a.md"), "utf8")).toBe("hello")
+		expect(await readFile(join(KNOWLEDGE_ROOT, agentId, "a.md"), "utf8")).toBe("hello")
 
 		const listed = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: cookie } })
 		expect(listed.status).toBe(200)
@@ -380,7 +381,7 @@ describe("agent knowledge files", () => {
 		const job = await repository.claim("ghost-key")
 		if (!job) throw new Error("Expected an ingestion job")
 		await repository.complete(job, "ghost-key", [{ text: "chunk", embedding: [1, 0, 0] }])
-		await rm(join(UPLOAD_ROOT, agentId, "a.md"))
+		await rm(join(KNOWLEDGE_ROOT, agentId, "a.md"))
 
 		const removed = await app.request(`/api/agents/${agentId}/files/a.md`, {
 			method: "DELETE",
@@ -462,7 +463,7 @@ describe("agent knowledge files", () => {
 		await expect(
 			uploadFile(missingAgentId, "guide.md", new TextEncoder().encode("content").buffer),
 		).rejects.toMatchObject({ code: "23503" })
-		await expect(stat(join(UPLOAD_ROOT, missingAgentId, "guide.md"))).rejects.toMatchObject({ code: "ENOENT" })
+		await expect(stat(join(KNOWLEDGE_ROOT, missingAgentId, "guide.md"))).rejects.toMatchObject({ code: "ENOENT" })
 	})
 
 	it("renames a file to its current name without touching its contents", async () => {
@@ -478,7 +479,7 @@ describe("agent knowledge files", () => {
 
 		expect(response.status).toBe(200)
 		expect(((await response.json()) as { file: { name: string } }).file.name).toBe("a.md")
-		expect(await readFile(join(UPLOAD_ROOT, agentId, "a.md"), "utf8")).toBe("hello")
+		expect(await readFile(join(KNOWLEDGE_ROOT, agentId, "a.md"), "utf8")).toBe("hello")
 		expect((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId}`) as { name: string }[]).toEqual([
 			{ name: "a.md" },
 		])
@@ -497,8 +498,8 @@ describe("agent knowledge files", () => {
 		})
 
 		await expectProblem(response, 409, "agent-file-name-taken")
-		expect(await readFile(join(UPLOAD_ROOT, agentId, "a.md"), "utf8")).toBe("hello")
-		expect(await readFile(join(UPLOAD_ROOT, agentId, "b.md"), "utf8")).toBe("second")
+		expect(await readFile(join(KNOWLEDGE_ROOT, agentId, "a.md"), "utf8")).toBe("hello")
+		expect(await readFile(join(KNOWLEDGE_ROOT, agentId, "b.md"), "utf8")).toBe("second")
 		expect(
 			((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId} ORDER BY name`) as { name: string }[]).map(
 				({ name }) => name,
@@ -520,7 +521,7 @@ describe("agent knowledge files", () => {
 
 		await expectProblem(await rename("missing.md", "missing"), 404, "agent-file-not-found")
 		await expectProblem(await rename("missing.md", "renamed"), 404, "agent-file-not-found")
-		expect((await readdir(join(UPLOAD_ROOT, agentId))).includes("renamed.md")).toBe(false)
+		expect((await readdir(join(KNOWLEDGE_ROOT, agentId))).includes("renamed.md")).toBe(false)
 	})
 
 	it("rejects an oversized file with 413 over HTTP", async () => {
@@ -577,10 +578,10 @@ describe("agent knowledge files", () => {
 		const { cookie } = await createAdminSession()
 		const agentId = await createAgent(cookie, "Cleanup")
 		expect((await upload(cookie, agentId)).status).toBe(201)
-		expect((await stat(join(UPLOAD_ROOT, agentId))).isDirectory()).toBe(true)
+		expect((await stat(join(KNOWLEDGE_ROOT, agentId))).isDirectory()).toBe(true)
 
 		const deleted = await app.request(`/api/agents/${agentId}`, { method: "DELETE", headers: { Cookie: cookie } })
 		expect(deleted.status).toBe(204)
-		await expect(readdir(join(UPLOAD_ROOT, agentId))).rejects.toMatchObject({ code: "ENOENT" })
+		await expect(readdir(join(KNOWLEDGE_ROOT, agentId))).rejects.toMatchObject({ code: "ENOENT" })
 	})
 })

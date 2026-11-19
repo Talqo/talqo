@@ -162,6 +162,18 @@ describe("WidgetPreview", () => {
 		)
 	})
 
+	test("sends the embed's icon as an absolute URL, since the frame may sit on another origin", async () => {
+		await renderPreview()
+		const postMessage = mockChildWindow(frameElement())
+
+		await renderPreview({ iconUrl: "/api/embed-config/token/icon?v=1" })
+
+		expect(postMessage).toHaveBeenLastCalledWith(
+			expect.objectContaining({ iconUrl: `${window.location.origin}/api/embed-config/token/icon?v=1` }),
+			PREVIEW_ORIGIN,
+		)
+	})
+
 	test("posts appearance updates without replacing or reloading the frame", async () => {
 		await renderPreview()
 		const frame = frameElement()

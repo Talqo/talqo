@@ -4,6 +4,8 @@ import { app } from "./app.ts"
 import { parseEnv } from "./config/env.ts"
 import { createStaticResponder, resolveStaticDirs } from "./http/static.ts"
 import { stdoutWideEventLog } from "./http/wide-event-stdout.ts"
+import { migrateLegacyUploadLayout } from "./lib/upload-storage.ts"
+import { removeOrphanIcons } from "./modules/embed/embed.service.ts"
 import { runIngestion } from "./modules/knowledge-base/knowledge-base.service.ts"
 
 const WORKER_RESTART_DELAY_MS = 3_000
@@ -23,6 +25,8 @@ export async function runIngestionLoop(): Promise<never> {
 if (import.meta.main) {
 	// Misconfiguration must fail the process at boot, not during the first request.
 	const config = parseEnv(process.env)
+	// Before serving, so no request reads a half-moved upload layout.
+	await migrateLegacyUploadLayout()
 	// Static files bypass the API app entirely so its routes stay API-only.
 	const serveStatic = createStaticResponder(resolveStaticDirs())
 	const server = Bun.serve({
@@ -45,5 +49,6 @@ if (import.meta.main) {
 			}
 		})
 	}
+	void removeOrphanIcons().catch((error: unknown) => console.error("embed.icons.sweep_failed", { error }))
 	void runIngestionLoop()
 }

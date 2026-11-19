@@ -42,6 +42,11 @@ export interface EmbedConfig {
   version: number;
   name: string;
   appearance: EmbedAppearance;
+  /**
+     * Custom launcher icon path, relative to the API origin; use it only as an image source. Null for the default icon
+     * @nullable
+     */
+  iconUrl: string | null;
   isAvailable: boolean;
 }
 
@@ -126,6 +131,12 @@ export type ProblemDetails = {
 } | {
   code: 'embed-disabled';
   type: 'https://docs.talqo.chat/problems#embed-disabled';
+} | {
+  code: 'embed-icon-invalid';
+  type: 'https://docs.talqo.chat/problems#embed-icon-invalid';
+} | {
+  code: 'embed-icon-not-found';
+  type: 'https://docs.talqo.chat/problems#embed-icon-not-found';
 } | {
   code: 'embed-not-found';
   type: 'https://docs.talqo.chat/problems#embed-not-found';
@@ -380,6 +391,62 @@ export const getEmbedConfig = async (embedToken: string, options?: RequestInit):
 
   const data: getEmbedConfigResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getEmbedConfigResponse
+}
+
+
+
+export type getEmbedIconResponse200 = {
+  data: Blob
+  status: 200
+}
+
+export type getEmbedIconResponse304 = {
+  data: void
+  status: 304
+}
+
+export type getEmbedIconResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getEmbedIconResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type getEmbedIconResponseSuccess = (getEmbedIconResponse200) & {
+  headers: Headers;
+};
+export type getEmbedIconResponseError = (getEmbedIconResponse304 | getEmbedIconResponse404 | getEmbedIconResponse500) & {
+  headers: Headers;
+};
+
+export type getEmbedIconResponse = (getEmbedIconResponseSuccess | getEmbedIconResponseError)
+
+export const getGetEmbedIconUrl = (embedToken: string,) => {
+
+
+
+
+  return `/api/embed-config/${embedToken}/icon`
+}
+
+export const getEmbedIcon = async (embedToken: string, options?: RequestInit): Promise<getEmbedIconResponse> => {
+
+  const res = await fetch(getGetEmbedIconUrl(embedToken),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
+  const data: getEmbedIconResponse['data'] = body as getEmbedIconResponse['data']
+  return { data, status: res.status, headers: res.headers } as getEmbedIconResponse
 }
 
 

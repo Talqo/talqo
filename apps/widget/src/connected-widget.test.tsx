@@ -18,6 +18,7 @@ const READY_SNAPSHOT: ChatSnapshot = {
 			theme: "light",
 			light: { primary: "#123456", background: "#fefefe" },
 		},
+		iconUrl: null,
 		isAvailable: true,
 	},
 	messages: [],
@@ -226,6 +227,10 @@ afterEach(async () => {
 	host.remove()
 })
 
+function launcherImage(): HTMLImageElement | null {
+	return host.querySelector<HTMLImageElement>("button[aria-haspopup=dialog] img")
+}
+
 describe("ConnectedEmbeddedWidget", () => {
 	test("initializes the semantic client and uses SDK configuration with host overrides", async () => {
 		const store = fakeClient()
@@ -248,6 +253,24 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(host.querySelector("h2")?.textContent).toBe("Host title")
 		await render(<ConnectedEmbeddedWidget client={store.client} appearance={{ light: { primary: "#654321" } }} />)
 		expect(host.querySelector("h2")?.textContent).toBe("SDK support")
+	})
+
+	test("shows the operator's launcher icon as an image and keeps the logo otherwise", async () => {
+		const store = fakeClient()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		expect(launcherImage()).toBeNull()
+
+		const withIcon = (iconUrl: string) =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				configuration: { title: "SDK support", appearance: {}, iconUrl, isAvailable: true },
+			})
+		const iconUrl = "https://api.example.test/api/embed-config/token/icon?v=1"
+		await act(async () => withIcon(iconUrl))
+		expect(launcherImage()?.getAttribute("src")).toBe(iconUrl)
+
+		await act(async () => withIcon("javascript:alert(1)"))
+		expect(launcherImage()).toBeNull()
 	})
 
 	test("renders SDK transcript updates and cancellation with partial cancelled output", async () => {
@@ -904,7 +927,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await act(async () =>
 			store.setSnapshot({
 				...READY_SNAPSHOT,
-				configuration: { title: "SDK support", appearance: { language: "cs" }, isAvailable: true },
+				configuration: { title: "SDK support", appearance: { language: "cs" }, iconUrl: null, isAvailable: true },
 			}),
 		)
 		await act(async () => {})
