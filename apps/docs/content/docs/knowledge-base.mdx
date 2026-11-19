@@ -1,22 +1,28 @@
 ---
-title: Knowledge files
-description: Let an agent answer from your own documents.
+title: Knowledge sources
+description: Let an agent answer from your documents and public websites.
 ---
 
-An agent answers from the knowledge files you upload, alongside its system prompt and tools. It never loads a whole file into a chat. For each question it pulls in only the few best-matching excerpts, at most five per message, and ignores them when they do not fit the question.
+An agent answers from uploaded files and crawled websites, alongside its system prompt and tools. It never loads a whole source into a chat. For each question it pulls in only the few best-matching excerpts, at most five per message, and ignores them when they do not fit the question.
 
 ## Processing takes time
 
-Uploads are prepared in the background. A file reaches answers only once it shows as ready; before that the agent answers without it.
+Knowledge sources are prepared in the background. A source reaches answers only once it shows as ready; before that the agent answers without it. If preparation fails, the agent keeps answering from the other sources. Once the cause is fixed, retry the source.
 
-If preparation fails, the file stays in place and the agent keeps answering from the rest. Once the cause is fixed, retry the file.
+## Website scope and limits
+
+Crawling supports public, static HTML pages over HTTP or HTTPS. A website crawl follows same-origin links within the entered path prefix. A sitemap lists the pages to process, and sitemap indexes can point to other same-origin sitemaps. Talqo honors robots.txt. It does not execute JavaScript, send cookies or credentials, or crawl authenticated pages.
+
+Each source can contain at most 50 pages. HTML is limited to 2 MB per page and 20 MB across a crawl, and each sitemap is limited to 5 MB. Input and normalized addresses are limited to 2,048 characters. Redirects, sitemap indexes, request time, and total crawl time are also bounded. Talqo fails the source instead of indexing an incomplete crawl when a cap is exceeded or more in-scope pages remain at the page cap.
+
+Websites are crawled only when added or manually refreshed; there is no scheduled refresh. Raw website HTML is not retained. Deleting a website removes its indexed text from the agent, and deleted websites can be restored only by adding and processing their address again.
 
 ## Answers follow the AI configuration
 
-Files are prepared with the embedding model from your [AI provider configuration](/ai-provider-configuration). Switching the embedding model re-processes every file, and each file returns to answers only as it becomes ready again.
+Sources are prepared with the embedding model from your [AI provider configuration](/ai-provider-configuration). Changing the embedding provider, model, or connection re-processes every uploaded file and crawls every website again. Each source returns to answers only as it becomes ready again.
 
-If the embedding provider stops working, new uploads wait or fail and the agent answers without them. Visitors see nothing of this, so check file statuses after changing AI settings.
+If the embedding provider stops working, new sources wait or fail and the agent answers without them. Visitors see nothing of this, so check source statuses after changing AI settings.
 
-## What visitors can learn from files
+## What visitors and providers can learn
 
-Retrieved excerpts become part of the model input, so answers from large files add to token usage. Visitors cannot download your files from the chat, but the agent may quote or paraphrase what it retrieves. Upload nothing visitors must never read.
+Retrieved file and website excerpts become part of the configured AI provider's model input, so answers from large sources add to token usage. Visitors cannot download your source files or raw website HTML from the chat, but the agent may quote or paraphrase what it retrieves. Add nothing visitors must never read.

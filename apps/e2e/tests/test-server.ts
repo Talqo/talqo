@@ -7,6 +7,8 @@ type PendingStream = { release(): void }
 type ProviderState = {
 	requests: { messages: ChatMessage[]; model: string }[]
 	pendingStreams: PendingStream[]
+	doclingTasks: Map<string, string[]>
+	nextTaskId: number
 }
 const encoder = new TextEncoder()
 
@@ -66,6 +68,13 @@ function answerFor(messages: ChatMessage[]): { chunks: string[]; delayed: boolea
 	const latest = text(messages.at(-1))
 	if (latest === "Give me the first answer") return { chunks: ["First streame", "d answer", "."], delayed: true }
 	if (latest === "Where is my order?") return { chunks: ["It ships **tomorrow**."], delayed: false }
+	if (latest === "What is the verification hatch code?") {
+		const grounded = messages.some((message) => text(message).includes("LANTERN-7429"))
+		return {
+			chunks: [grounded ? "The verification hatch code is **LANTERN-7429**." : "The website answer is missing."],
+			delayed: false,
+		}
+	}
 	if (latest === "Stream until I cancel") {
 		return { chunks: ["Cancellation partial output remains visible"], delayed: true }
 	}
@@ -118,7 +127,7 @@ function streamCompletion(request: Request, messages: ChatMessage[], state: Prov
 }
 
 export function createTestServer(): Bun.Server<undefined> {
-	const state: ProviderState = { requests: [], pendingStreams: [] }
+	const state: ProviderState = { requests: [], pendingStreams: [], doclingTasks: new Map(), nextTaskId: 0 }
 	return Bun.serve({
 		hostname: "127.0.0.1",
 		port: 0,
@@ -130,13 +139,41 @@ export function createTestServer(): Bun.Server<undefined> {
 		},
 		async fetch(request) {
 			const { pathname } = new URL(request.url)
+			if (pathname === "/robots.txt") {
+				return new Response("User-agent: *\nAllow: /knowledge/\nDisallow: /\n", {
+					headers: { "Content-Type": "text/plain" },
+				})
+			}
+			if (pathname === "/knowledge/" || pathname === "/knowledge/index.html") {
+				return new Response(Bun.file(path.join(import.meta.dirname, "fixtures/knowledge-index.html")), {
+					headers: { "Content-Type": "text/html; charset=utf-8" },
+				})
+			}
+			if (pathname === "/knowledge/sitemap.xml") {
+				const sitemap = await Bun.file(path.join(import.meta.dirname, "fixtures/knowledge-sitemap.xml")).text()
+				return new Response(sitemap.replaceAll("http://talqo.fixture", new URL(request.url).origin), {
+					headers: { "Content-Type": "application/xml" },
+				})
+			}
 			if (pathname === "/health") return Response.json({ status: "ok" })
 			if (pathname === "/mcp-unavailable") return new Response("MCP unavailable", { status: 503 })
 			if (pathname === "/v1/chunk/hybrid/file/async" && request.method === "POST") {
-				return Response.json({ task_id: "reader-guide" })
+				const form = await request.formData()
+				const file = form.get("files")
+				const contents = file instanceof File ? await file.text() : ""
+				const chunks = contents.includes("LANTERN-7429")
+					? ["The Talqo verification hatch code is LANTERN-7429."]
+					: ["Reader guide"]
+				state.nextTaskId += 1
+				const taskId = `docling-${state.nextTaskId}`
+				state.doclingTasks.set(taskId, chunks)
+				return Response.json({ task_id: taskId })
 			}
-			if (pathname === "/v1/status/poll/reader-guide") return Response.json({ task_status: "success" })
-			if (pathname === "/v1/result/reader-guide") return Response.json({ chunks: [{ text: "Reader guide" }] })
+			if (pathname.startsWith("/v1/status/poll/")) return Response.json({ task_status: "success" })
+			if (pathname.startsWith("/v1/result/")) {
+				const chunks = state.doclingTasks.get(pathname.slice("/v1/result/".length)) ?? ["Reader guide"]
+				return Response.json({ chunks: chunks.map((chunk) => ({ text: chunk })) })
+			}
 			if (pathname === "/v1/embeddings" && request.method === "POST") {
 				const body: unknown = await request.json()
 				if (

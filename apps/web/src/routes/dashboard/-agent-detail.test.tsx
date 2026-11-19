@@ -90,6 +90,9 @@ async function respond(request: RequestInfo | URL, init?: RequestInit): Promise<
 	if (url === `/api/agents/${AGENT_ID}/files`) {
 		return json({ files: [], maxSizeBytes: 10_485_760, maxNameLength: 255, allowedExtensions: [".md"] })
 	}
+	if (url === `/api/agents/${AGENT_ID}/websites`) {
+		return json({ websites: [], maxPages: 50 })
+	}
 	if (url === `/api/agents/${AGENT_ID}/mcp-servers`) {
 		return json({ servers: [], stdioAllowed: false })
 	}
@@ -298,6 +301,7 @@ describe("agent detail access and editing", () => {
 		expect(nameInput().value).toBe(INITIAL_AGENT.name)
 		const protectedKeys = [
 			["/api/agents/agent-1/files"],
+			["/api/agents/agent-1/websites"],
 			["/api/agents/agent-1/mcp-servers"],
 			["/api/embeds/embed-1"],
 			["/api/conversations/conversation-1"],
@@ -562,7 +566,9 @@ describe("agent tabs", () => {
 		expect(router.state.location.search).toEqual({ tab: "context" })
 		expect(button(t("agentConfig.tabContext")).getAttribute("aria-selected")).toBe("true")
 		expect(host.textContent).toContain(t("agentFiles.cardTitle"))
+		expect(host.textContent).toContain(t("agentWebsites.cardTitle"))
 		expect(requests.some(({ url }) => url === `/api/agents/${AGENT_ID}/files`)).toBe(true)
+		expect(requests.some(({ url }) => url === `/api/agents/${AGENT_ID}/websites`)).toBe(true)
 	})
 
 	test("renders every tab label and switches panels through the URL", async () => {

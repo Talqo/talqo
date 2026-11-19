@@ -11,6 +11,7 @@ export const agentFile = pgTable(
 			.notNull()
 			.references(() => agent.id, { onDelete: "cascade" }),
 		name: text("name").notNull(),
+		kind: text("kind").notNull().default("file"),
 		status: text("status").notNull(),
 		error: text("error"),
 		modelKey: text("model_key"),

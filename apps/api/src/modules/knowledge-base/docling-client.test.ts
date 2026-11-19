@@ -50,6 +50,21 @@ describe("Docling Serve chunking", () => {
 		expect(urls).toContain("http://docling.internal:5001/v1/result/t1")
 	})
 
+	it("submits crawler pages as HTML without sending a source URL", async () => {
+		let submitted: File | undefined
+		await chunkFile("website-page-1.html", new Uint8Array([60]), BASE_URL, async (input, init) => {
+			const url = String(input)
+			if (url.endsWith("/async")) {
+				submitted = (init.body as FormData).get("files") as File
+				return Response.json({ task_id: "t1" })
+			}
+			if (url.includes("/status/poll/")) return Response.json({ task_status: "success" })
+			return Response.json({ chunks: [{ text: "Page" }] })
+		})
+		expect(submitted?.name).toBe("website-page-1.html")
+		expect(submitted?.type).toStartWith("text/html")
+	})
+
 	it("fails when the submit is rejected", async () => {
 		await expect(chunk("notes.txt", async () => new Response("nope", { status: 503 }))).rejects.toThrow(
 			"Docling Serve rejected the file (503)",

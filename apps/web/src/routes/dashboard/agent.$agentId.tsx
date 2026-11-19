@@ -27,6 +27,7 @@ import {
 } from "@/features/agents/agent-schema"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
 import { AgentFilesCard } from "@/features/context/agent-files-card"
+import { AgentWebsitesCard } from "@/features/context/agent-websites-card"
 import { EMBED_FORM_DEFAULTS } from "@/features/embeds/embed-appearance-form"
 import { McpConnectionsCard } from "@/features/mcp/mcp-connections-card"
 import { clearAgentContent } from "@/features/permissions/clear-agent-content"
@@ -691,7 +692,10 @@ function AgentDetailTabs(props: {
 				/>
 			</TabsContent>
 			<TabsContent value="context">
-				<AgentFilesCard agentId={props.agentId} canManage={props.canManage} />
+				<div className="space-y-6">
+					<AgentFilesCard agentId={props.agentId} canManage={props.canManage} />
+					<AgentWebsitesCard agentId={props.agentId} canManage={props.canManage} />
+				</div>
 			</TabsContent>
 			<TabsContent value="embeds">
 				<AgentEmbedsPanel agentId={props.agentId} canManage={props.canManage} />

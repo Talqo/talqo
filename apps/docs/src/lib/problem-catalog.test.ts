@@ -14,6 +14,16 @@ describe("renderProblemsMarkdown", () => {
 		expect(markdown).toContain("/problems#")
 	})
 
+	test("covers every website lifecycle problem", () => {
+		const websiteCodes = PROBLEMS.filter(({ code }) => code.startsWith("agent-website-")).map(({ code }) => code)
+		expect(websiteCodes).toEqual([
+			"agent-website-duplicate",
+			"agent-website-invalid",
+			"agent-website-not-found",
+			"agent-website-not-refreshable",
+		])
+	})
+
 	test("renders each problem as one titled section", () => {
 		const markdown = renderProblemsMarkdown()
 		const sample = PROBLEMS[0]!

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test"
 
-import { IngestionError, processPendingFiles } from "./knowledge-base.worker.ts"
+import { IngestionError, processPendingSources } from "./knowledge-base.worker.ts"
 
 describe("knowledge ingestion", () => {
 	it("reports a document with no chunks as a file failure", async () => {
 		let claimed = false
 		let failure: unknown
-		await processPendingFiles({
+		await processPendingSources({
 			claim: async () => {
 				if (claimed) return undefined
 				claimed = true
@@ -26,13 +26,13 @@ describe("knowledge ingestion", () => {
 		expect(failure).toBeInstanceOf(IngestionError)
 		expect((failure as IngestionError).reason).toBe("empty-document")
 	})
-	it("processes files and their embedding requests in order, then continues after a failure", async () => {
+	it("processes mixed files and websites in order, then continues after a failure", async () => {
 		const events: string[] = []
 		const jobs = [
-			{ id: "first", name: "first.md" },
-			{ id: "second", name: "second.txt" },
+			{ id: "first", name: "https://example.test", kind: "website" },
+			{ id: "second", name: "second.txt", kind: "file" },
 		]
-		await processPendingFiles({
+		await processPendingSources({
 			claim: async () => jobs.shift(),
 			convert: async (job) => {
 				events.push(`convert:${job.id}`)
