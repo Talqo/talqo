@@ -375,15 +375,28 @@ function toolPart(call: SeedToolCall, toolCallId: string): MessagePart {
 	}
 }
 
-function assistantParts(calls: readonly SeedToolCall[], answer: string, idPrefix: string): MessagePart[] {
+function assistantParts(calls: readonly SeedToolCall[] | undefined, answer: string, idPrefix: string): MessagePart[] {
 	const parts: MessagePart[] = []
-	if (calls.length > 0) {
+	if (calls && calls.length > 0) {
 		parts.push({ type: "step-start" })
 		calls.forEach((call, index) => parts.push(toolPart(call, `${idPrefix}-tool-${index}`)))
 		parts.push({ type: "step-start" })
 	}
 	if (answer.length > 0) parts.push({ type: "text", text: answer })
 	return parts
+}
+
+function turnUsage(input: {
+	contextTokens: number
+	parts: readonly MessagePart[]
+	question: string
+	tools?: readonly SeedToolCall[]
+}): { inputTokens: number; outputTokens: number } {
+	const toolOverhead = input.tools && input.tools.length > 0 ? TOOL_SCHEMA_TOKENS : 0
+	return {
+		inputTokens: input.contextTokens + estimateTokens(input.question) + toolOverhead,
+		outputTokens: partsTokenCount(input.parts),
+	}
 }
 
 function planConversation(input: {
@@ -410,10 +423,13 @@ function planConversation(input: {
 		const answeredAt = new Date(askedAt.getTime() + between(random, ANSWER_DELAY_MIN_MS, ANSWER_DELAY_MAX_MS))
 		if (answeredAt.getTime() > now.getTime()) break
 		const attemptId = nextId("attempt")
-		const parts = assistantParts(question.tools ?? [], question.answer, attemptId)
-		const inputTokens =
-			contextTokens + estimateTokens(question.question) + ((question.tools?.length ?? 0) > 0 ? TOOL_SCHEMA_TOKENS : 0)
-		const outputTokens = partsTokenCount(parts)
+		const parts = assistantParts(question.tools, question.answer, attemptId)
+		const { inputTokens, outputTokens } = turnUsage({
+			contextTokens,
+			parts,
+			question: question.question,
+			tools: question.tools,
+		})
 		contextTokens = inputTokens + outputTokens
 		const askedMessageId = nextId("message")
 		const answeredMessageId = nextId("message")
@@ -755,10 +771,13 @@ export function transcriptRows(now: number) {
 			)
 			const questionId = seedId("99999999", (messageCount += 1))
 			const answerId = seedId("99999999", (messageCount += 1))
-			const parts = assistantParts(turn.tools ?? [], turn.answer, attemptId)
-			const inputTokens =
-				contextTokens + estimateTokens(turn.question) + ((turn.tools?.length ?? 0) > 0 ? TOOL_SCHEMA_TOKENS : 0)
-			const outputTokens = partsTokenCount(parts)
+			const parts = assistantParts(turn.tools, turn.answer, attemptId)
+			const { inputTokens, outputTokens } = turnUsage({
+				contextTokens,
+				parts,
+				question: turn.question,
+				tools: turn.tools,
+			})
 			contextTokens = inputTokens + outputTokens
 			if (turn.outcome === "completed") {
 				latestCompletedMessageId = answerId
