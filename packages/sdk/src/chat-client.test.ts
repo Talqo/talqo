@@ -1317,6 +1317,86 @@ describe("createChatClient", () => {
 		}
 	})
 
+	test("keeps an unrelated failure when the website action finished", async () => {
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async () =>
+					streamFrom([
+						acceptedEvent("generation"),
+						{
+							type: "part",
+							assistantMessageId: "a1",
+							index: 0,
+							part: {
+								type: "dynamic-tool",
+								toolName: "readPage",
+								toolCallId: "call-1",
+								input: {},
+								state: "output-available",
+								output: { text: "Shop" },
+								toolMetadata: { source: "client", displayName: "Read page", outcome: "completed" },
+							},
+						},
+						{
+							type: "error",
+							outcome: "failed",
+							error: { code: "provider-error", retriable: true, newChatAvailable: false },
+						},
+					]),
+			}),
+		})
+		try {
+			await client.initialize()
+			await expect(client.sendMessage("Read it")).rejects.toMatchObject({ detail: { code: "provider-error" } })
+
+			expect(client.getSnapshot().error).toMatchObject({ code: "provider-error", retriable: true })
+		} finally {
+			client.dispose()
+		}
+	})
+
+	test("drops an unrecoverable website-tool send so the session can be used again", async () => {
+		const storage = createMemoryStorage()
+		const key = createChatStorageKey("https://api.example.test", "embed")
+		await storage.setItem(
+			key,
+			JSON.stringify({
+				version: 1,
+				credential: "credential",
+				pending: { requestId: "request", text: "Update the page", clientTools: true },
+			}),
+		)
+		const options = {
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage,
+			transport: baseTransport({
+				loadSession: async () => ({ messages: [], activeGeneration: undefined }),
+			}),
+			recoveryDelays: [0],
+		}
+		const client = createChatClient(options)
+		try {
+			await client.initialize()
+			await waitForSnapshot(client, () => client.getSnapshot().notices.includes("recovery-unavailable"))
+
+			expect(readChatStorageRecord(await storage.getItem(key))).toEqual({ version: 1, credential: "credential" })
+			expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "Update the page", outcome: "interrupted" })
+		} finally {
+			client.dispose()
+		}
+
+		const reloaded = createChatClient(options)
+		try {
+			await reloaded.initialize()
+			await waitForSnapshot(reloaded, () => reloaded.getSnapshot().activity === "idle")
+
+			expect(reloaded.getSnapshot().actions).toContain("send")
+		} finally {
+			reloaded.dispose()
+		}
+	})
+
 	test("resubmits a stored pending message with its original identity", async () => {
 		const storage = createMemoryStorage()
 		const pending = { requestId: "request", text: "hello" }

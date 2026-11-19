@@ -8,7 +8,19 @@ import { type ChatHttpOptions, ChatTransportError, createChatHttpClient } from "
 import { isChatErrorCode } from "./types.ts"
 
 const SOCKET_BUFFER_BYTES = 8_388_608
+const CANCEL_TIMEOUT_MS = 5_000
 const encoder = new TextEncoder()
+
+async function settlesWithin(promise: Promise<void>, milliseconds: number): Promise<void> {
+	let timer: ReturnType<typeof setTimeout> | undefined
+	await Promise.race([
+		promise,
+		new Promise<void>((resolve) => {
+			timer = setTimeout(resolve, milliseconds)
+		}),
+	])
+	clearTimeout(timer)
+}
 
 type ServerFrame = ReturnType<typeof ChatServerFrameV1.parse>
 type ToolCallFrame = Extract<ServerFrame, { type: "tool-call" }>
@@ -26,8 +38,17 @@ function parseChatEvent(frame: EventFrame): ChatEvent {
 		: message
 }
 
-export function createWebSocketChatTransport(tools: ClientToolRegistry, options: ChatHttpOptions = {}): ChatTransport {
+type WebSocketTransportOptions = ChatHttpOptions & {
+	/** How long a cancel waits for the server to close before the socket is torn down locally. */
+	cancelTimeoutMs?: number
+}
+
+export function createWebSocketChatTransport(
+	tools: ClientToolRegistry,
+	options: WebSocketTransportOptions = {},
+): ChatTransport {
 	const http = createChatHttpClient(options)
+	const cancelTimeoutMs = options.cancelTimeoutMs ?? CANCEL_TIMEOUT_MS
 	const sockets = new Map<string, { cancel(): Promise<void> }>()
 	return {
 		...http,
@@ -89,9 +110,14 @@ export function createWebSocketChatTransport(tools: ClientToolRegistry, options:
 			input.signal.addEventListener("abort", abort, { once: true })
 			cancelLive = async () => {
 				controller.abort()
-				await opened.promise
+				await settlesWithin(opened.promise, cancelTimeoutMs)
 				if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ version: 1, type: "cancel" }))
-				await settled.promise
+				// A server that acknowledges the cancel but keeps the socket open must not block stopping.
+				await settlesWithin(settled.promise, cancelTimeoutMs)
+				if (!closed) {
+					ws.close()
+					finish()
+				}
 			}
 			ws.addEventListener(
 				"open",

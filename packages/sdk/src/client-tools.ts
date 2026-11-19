@@ -110,8 +110,10 @@ export function captureClientTools(definitions: ToolSet = {}): ClientToolRegistr
 		async execute(request: Extract<ChatServerFrameV1, { type: "tool-call" }>, signal: AbortSignal): Promise<unknown> {
 			const definition = registry.get(request.toolName)
 			if (!definition?.execute) throw new Error("Unknown client tool")
-			jsonValue(request.input)
-			const validated = await validateValue(asSchema(definition.inputSchema), request.input)
+			// JSON drops an absent payload, so a no-argument call arrives without one.
+			const input = request.input ?? {}
+			jsonValue(input)
+			const validated = await validateValue(asSchema(definition.inputSchema), input)
 			const messages = request.messages.map((message) => modelMessageSchema.parse(message))
 			signal.throwIfAborted()
 			// The original schema validates the erased input type before invocation.

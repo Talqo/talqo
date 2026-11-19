@@ -142,7 +142,14 @@ function hasClientToolAction(message: ChatMessage | undefined): boolean {
 function hasUncertainWebsiteAction(message: ChatMessage | undefined): boolean {
 	if (message?.role !== "assistant") return false
 	if (message.outcome === "completed" || message.outcome === "streaming") return false
-	return message.parts.some((part) => part.type === "dynamic-tool" && part.toolMetadata.source === "client")
+	return message.parts.some(
+		(part) =>
+			part.type === "dynamic-tool" &&
+			part.toolMetadata.source === "client" &&
+			(part.state === "input-available" ||
+				part.toolMetadata.outcome === "interrupted" ||
+				part.toolMetadata.outcome === "cancelled"),
+	)
 }
 
 function sendWasDefinitelyRejected(state: SendState, cause: unknown): boolean {
@@ -257,6 +264,24 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		return notices
 	}
 
+	function activeTools(): ChatSnapshot["activeTools"] {
+		// Only the newest answer can hold a running call, so avoid rescanning all history for every token.
+		const latest = messages.findLast((message) => message.role === "assistant")
+		if (latest === undefined) return []
+		return latest.parts.flatMap((part) =>
+			part.type === "dynamic-tool" && part.state === "input-available"
+				? [
+						{
+							toolCallId: part.toolCallId,
+							serverName: part.toolMetadata.serverName ?? "",
+							toolName: part.toolMetadata.displayName,
+							source: part.toolMetadata.source,
+						},
+					]
+				: [],
+		)
+	}
+
 	function createSnapshot(): ChatSnapshot {
 		const isAvailable = configuration?.isAvailable === true
 		const availableAfterError = newChatAvailable()
@@ -267,20 +292,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		return {
 			isAvailable,
 			configuration,
-			activeTools: messages.flatMap((message) =>
-				message.parts.flatMap((part) =>
-					part.type === "dynamic-tool" && part.state === "input-available"
-						? [
-								{
-									toolCallId: part.toolCallId,
-									serverName: part.toolMetadata.serverName ?? "",
-									toolName: part.toolMetadata.displayName,
-									source: part.toolMetadata.source,
-								},
-							]
-						: [],
-				),
-			),
+			activeTools: activeTools(),
 			messages,
 			activity: currentActivity(),
 			actions: snapshotActions(isAvailable, availableAfterError),
@@ -411,14 +423,15 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		}
 	}
 
-	function exhaustRecovery(): void {
-		if (!disposed && generation === "recovery") {
-			generation = "recovery-exhausted"
-			messages = messages.map((message) =>
-				message.outcome === "streaming" ? withOutcome(message, "interrupted") : message,
-			)
-			publish()
-		}
+	async function exhaustRecovery(): Promise<void> {
+		if (disposed || generation !== "recovery") return
+		generation = "recovery-exhausted"
+		messages = messages.map((message) =>
+			message.outcome === "streaming" ? withOutcome(message, "interrupted") : message,
+		)
+		// A client-tool send the server never recorded cannot be replayed, so stop restoring it on every reload.
+		if (pendingMessage?.clientTools === true && credential !== undefined) await clearPendingMessage(credential)
+		publish()
 	}
 
 	async function pollRecovery(controller: AbortController): Promise<void> {
@@ -428,7 +441,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			const delay = delays[Math.min(poll, delays.length - 1)] ?? FIVE_SECONDS_MS
 			return (await recoverSession(controller, delay)) || attempt(poll + 1)
 		}
-		if (!(await attempt(0))) exhaustRecovery()
+		if (!(await attempt(0))) await exhaustRecovery()
 	}
 
 	function beginSessionRecoveryPolling(): void {
