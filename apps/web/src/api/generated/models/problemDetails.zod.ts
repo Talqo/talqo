@@ -88,6 +88,12 @@ export const ProblemDetails = zod.union([zod.object({
   "code": zod.enum(['embed-disabled']),
   "type": zod.enum(['https://docs.talqo.chat/problems#embed-disabled'])
 }),zod.object({
+  "code": zod.enum(['embed-icon-invalid']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#embed-icon-invalid'])
+}),zod.object({
+  "code": zod.enum(['embed-icon-not-found']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#embed-icon-not-found'])
+}),zod.object({
   "code": zod.enum(['embed-not-found']),
   "type": zod.enum(['https://docs.talqo.chat/problems#embed-not-found'])
 }),zod.object({

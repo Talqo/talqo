@@ -4,6 +4,8 @@ import type { AsyncStorage } from "./storage.ts"
 export type ChatConfiguration = {
 	readonly title: string
 	readonly appearance: Readonly<Record<string, unknown>>
+	/** Absolute URL of the operator's launcher icon (SVG), or null for your own default. Use it only as an `<img>` source; never inline it. */
+	readonly iconUrl: string | null
 	/** Requires an enabled embed and a usable text provider. */
 	readonly isAvailable: boolean
 }

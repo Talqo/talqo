@@ -39,6 +39,7 @@ const INITIAL_EMBED: Embed = {
 	embedToken: "embed-token",
 	accessVersion: 1,
 	isDisabled: false,
+	iconUrl: null,
 	appearance: EMBED_FORM_DEFAULTS,
 }
 const OTHER_AGENT_EMBED: Embed = { ...INITIAL_EMBED, id: "embed-2", agentId: OTHER_AGENT_ID }

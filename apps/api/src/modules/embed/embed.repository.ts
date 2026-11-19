@@ -5,7 +5,7 @@ import { embed } from "./embed.schema.ts"
 
 export type Embed = typeof embed.$inferSelect
 export type NewEmbed = typeof embed.$inferInsert
-export type EmbedPatch = Omit<NewEmbed, "accessVersion" | "createdAt" | "embedToken" | "id">
+export type EmbedPatch = Omit<NewEmbed, "accessVersion" | "createdAt" | "embedToken" | "iconUpdatedAt" | "id">
 
 export async function listEmbeds(scope: readonly string[] | "all"): Promise<Embed[]> {
 	return db
@@ -70,6 +70,29 @@ export async function setEmbedDisabled(
 		.where(and(eq(embed.id, id), eq(embed.agentId, sourceAgentId)))
 		.returning()
 	return row
+}
+
+// `updatedAt` moves so the public config ETag flips and live widgets pick up the new icon.
+export async function setEmbedIconUpdatedAt(
+	id: string,
+	iconUpdatedAt: Date | null,
+	sourceAgentId: string,
+): Promise<Embed | undefined> {
+	const [row] = await db
+		.update(embed)
+		.set({ iconUpdatedAt, updatedAt: new Date() })
+		.where(and(eq(embed.id, id), eq(embed.agentId, sourceAgentId)))
+		.returning()
+	return row
+}
+
+export async function findExistingEmbedIds(ids: readonly string[]): Promise<Set<string>> {
+	if (ids.length === 0) return new Set()
+	const rows = await db
+		.select({ id: embed.id })
+		.from(embed)
+		.where(inArray(embed.id, [...ids]))
+	return new Set(rows.map(({ id }) => id))
 }
 
 export async function deleteEmbed(id: string, sourceAgentId: string): Promise<boolean> {

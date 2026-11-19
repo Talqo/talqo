@@ -29,6 +29,7 @@ afterAll(() => {
 const configuration: ChatConfiguration = {
 	title: "Support",
 	appearance: { primary: "#123456" },
+	iconUrl: null,
 	isAvailable: true,
 }
 

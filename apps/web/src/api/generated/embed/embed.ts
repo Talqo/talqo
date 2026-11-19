@@ -32,6 +32,10 @@ import type {
 } from '../models/embed/createEmbedBody.zod';
 
 import type {
+  DeleteEmbedIcon200
+} from '../models/embed/deleteEmbedIcon200.zod';
+
+import type {
   DisableEmbed200
 } from '../models/embed/disableEmbed200.zod';
 
@@ -54,6 +58,14 @@ import type {
 import type {
   RotateEmbedToken200
 } from '../models/embed/rotateEmbedToken200.zod';
+
+import type {
+  SetEmbedIcon200
+} from '../models/embed/setEmbedIcon200.zod';
+
+import type {
+  SetEmbedIconBody
+} from '../models/embed/setEmbedIconBody.zod';
 
 import type {
   UpdateEmbed200
@@ -1092,4 +1104,245 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
         TContext
       > => {
       return useMutation(getEnableEmbedMutationOptions(options), queryClient);
+    }
+    export type setEmbedIconResponse200 = {
+  data: SetEmbedIcon200
+  status: 200
+}
+
+export type setEmbedIconResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type setEmbedIconResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type setEmbedIconResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type setEmbedIconResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type setEmbedIconResponse413 = {
+  data: ProblemDetails
+  status: 413
+}
+
+export type setEmbedIconResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type setEmbedIconResponseSuccess = (setEmbedIconResponse200) & {
+  headers: Headers;
+};
+export type setEmbedIconResponseError = (setEmbedIconResponse400 | setEmbedIconResponse401 | setEmbedIconResponse403 | setEmbedIconResponse404 | setEmbedIconResponse413 | setEmbedIconResponse500) & {
+  headers: Headers;
+};
+
+export const getSetEmbedIconUrl = (embedId: string,) => {
+
+
+
+
+  return `/api/embeds/${embedId}/icon`
+}
+
+export const setEmbedIcon = async (embedId: string,
+    setEmbedIconBody: SetEmbedIconBody, options?: RequestInit): Promise<setEmbedIconResponseSuccess> => {
+    const formData = new FormData();
+formData.append(`file`, setEmbedIconBody.file);
+
+  const res = await fetch(getSetEmbedIconUrl(embedId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'PUT'
+    ,
+    body: formData
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: setEmbedIconResponseError['data'], status?: number} = new globalThis.Error();
+    const data : setEmbedIconResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: setEmbedIconResponseSuccess['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as setEmbedIconResponseSuccess
+}
+
+
+
+
+
+export const getSetEmbedIconMutationKey = () => ['setEmbedIcon'] as const;
+
+export const getSetEmbedIconMutationOptions = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setEmbedIcon>>, TError,SetEmbedIconMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof setEmbedIcon>>, TError,SetEmbedIconMutationVariables, TContext> => {
+
+const mutationKey = getSetEmbedIconMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setEmbedIcon>>, SetEmbedIconMutationVariables> = (props) => {
+          const {embedId,data} = props ?? {};
+
+          return  setEmbedIcon(embedId,data,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetEmbedIconMutationResult = NonNullable<Awaited<ReturnType<typeof setEmbedIcon>>>
+    export type SetEmbedIconMutationBody = SetEmbedIconBody
+    export type SetEmbedIconMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+    export type SetEmbedIconMutationVariables = {embedId: string;data: SetEmbedIconBody}
+
+    export const useSetEmbedIcon = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setEmbedIcon>>, TError,SetEmbedIconMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setEmbedIcon>>,
+        TError,
+        SetEmbedIconMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetEmbedIconMutationOptions(options), queryClient);
+    }
+    export type deleteEmbedIconResponse200 = {
+  data: DeleteEmbedIcon200
+  status: 200
+}
+
+export type deleteEmbedIconResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type deleteEmbedIconResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteEmbedIconResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type deleteEmbedIconResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type deleteEmbedIconResponseSuccess = (deleteEmbedIconResponse200) & {
+  headers: Headers;
+};
+export type deleteEmbedIconResponseError = (deleteEmbedIconResponse401 | deleteEmbedIconResponse403 | deleteEmbedIconResponse404 | deleteEmbedIconResponse500) & {
+  headers: Headers;
+};
+
+export const getDeleteEmbedIconUrl = (embedId: string,) => {
+
+
+
+
+  return `/api/embeds/${embedId}/icon`
+}
+
+export const deleteEmbedIcon = async (embedId: string, options?: RequestInit): Promise<deleteEmbedIconResponseSuccess> => {
+
+  const res = await fetch(getDeleteEmbedIconUrl(embedId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'DELETE'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: deleteEmbedIconResponseError['data'], status?: number} = new globalThis.Error();
+    const data : deleteEmbedIconResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: deleteEmbedIconResponseSuccess['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as deleteEmbedIconResponseSuccess
+}
+
+
+
+
+
+export const getDeleteEmbedIconMutationKey = () => ['deleteEmbedIcon'] as const;
+
+export const getDeleteEmbedIconMutationOptions = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmbedIcon>>, TError,DeleteEmbedIconMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteEmbedIcon>>, TError,DeleteEmbedIconMutationVariables, TContext> => {
+
+const mutationKey = getDeleteEmbedIconMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEmbedIcon>>, DeleteEmbedIconMutationVariables> = (props) => {
+          const {embedId} = props ?? {};
+
+          return  deleteEmbedIcon(embedId,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteEmbedIconMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEmbedIcon>>>
+
+    export type DeleteEmbedIconMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+    export type DeleteEmbedIconMutationVariables = {embedId: string}
+
+    export const useDeleteEmbedIcon = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmbedIcon>>, TError,DeleteEmbedIconMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteEmbedIcon>>,
+        TError,
+        DeleteEmbedIconMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteEmbedIconMutationOptions(options), queryClient);
     }

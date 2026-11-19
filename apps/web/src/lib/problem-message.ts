@@ -24,6 +24,7 @@ const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) =>
 	"conversation-not-found": (t) => t("problems.conversation-not-found"),
 	"current-password-incorrect": (t) => t("problems.current-password-incorrect"),
 	"default-role-delete-not-allowed": (t) => t("problems.default-role-delete-not-allowed"),
+	"embed-icon-invalid": (t) => t("problems.embed-icon-invalid"),
 	"embed-not-found": (t) => t("problems.embed-not-found"),
 	"internal-server-error": (t) => t("problems.internal-server-error"),
 	"invalid-ai-provider-configuration": (t) => t("problems.invalid-ai-provider-configuration"),

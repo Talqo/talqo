@@ -1,5 +1,6 @@
 import type { ActiveTool, ChatClient, ChatMessage, ChatSnapshot } from "@talqo/sdk"
 
+import { isIconUrl } from "@talqo/shared/embed-icon"
 import {
 	DEFAULT_WIDGET_APPEARANCE,
 	isHexColor,
@@ -42,6 +43,8 @@ import "./index.css"
 export type EmbeddedWidgetProps = {
 	title?: string
 	appearance?: WidgetAppearanceInput
+	/** Absolute URL of the operator's launcher icon; anything but HTTP(S) keeps the Talqo logo. */
+	iconUrl?: string | null
 	/** Preview-only: pins the scheme to whichever tab the operator is editing. */
 	forcedScheme?: ColorScheme
 	/** Preview-only: mirrors the deployment's reply availability without an SDK client. */
@@ -280,9 +283,24 @@ function createChatActions(
 	return { startNewChat, cancel, retry }
 }
 
+// An <img> rather than inline markup, so operator SVG cannot run script or style the host page.
+function LauncherIcon({ iconUrl }: { iconUrl?: string | null }) {
+	if (isIconUrl(iconUrl)) {
+		return <img src={iconUrl} alt="" aria-hidden="true" className="tw:size-7 tw:object-contain" />
+	}
+	return (
+		<span
+			aria-hidden="true"
+			className="tw:size-7 tw:bg-current tw:mask-(--talqo-logo) tw:mask-contain tw:mask-center tw:mask-no-repeat"
+			style={LOGO_MASK}
+		/>
+	)
+}
+
 function WidgetChat({
 	title,
 	appearance,
+	iconUrl,
 	defaultOpen,
 	forcedScheme,
 	snapshot,
@@ -290,6 +308,7 @@ function WidgetChat({
 }: {
 	title?: string
 	appearance: WidgetAppearance
+	iconUrl?: string | null
 	defaultOpen?: boolean
 	forcedScheme?: ColorScheme
 	snapshot?: ChatSnapshot
@@ -385,17 +404,20 @@ function WidgetChat({
 				aria-haspopup="dialog"
 				className="tw:flex tw:size-12 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary tw:text-primary-foreground tw:shadow-lg tw:transition-transform tw:hover:scale-105"
 			>
-				<span
-					aria-hidden="true"
-					className="tw:size-7 tw:bg-current tw:mask-(--talqo-logo) tw:mask-contain tw:mask-center tw:mask-no-repeat"
-					style={LOGO_MASK}
-				/>
+				<LauncherIcon iconUrl={iconUrl} />
 			</button>
 		</div>
 	)
 }
 
-export function EmbeddedWidget({ title, appearance, defaultOpen, forcedScheme, isAvailable }: EmbeddedWidgetProps) {
+export function EmbeddedWidget({
+	title,
+	appearance,
+	iconUrl,
+	defaultOpen,
+	forcedScheme,
+	isAvailable,
+}: EmbeddedWidgetProps) {
 	const resolved = resolveAppearance(appearance)
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
@@ -407,7 +429,13 @@ export function EmbeddedWidget({ title, appearance, defaultOpen, forcedScheme, i
 
 	return (
 		<I18nextProvider i18n={i18n}>
-			<WidgetChat title={title} appearance={resolved} defaultOpen={defaultOpen} forcedScheme={forcedScheme} />
+			<WidgetChat
+				title={title}
+				appearance={resolved}
+				iconUrl={iconUrl}
+				defaultOpen={defaultOpen}
+				forcedScheme={forcedScheme}
+			/>
 		</I18nextProvider>
 	)
 }
@@ -455,6 +483,7 @@ function ConnectedWidgetContent({
 			<WidgetChat
 				title={title ?? snapshot.configuration?.title}
 				appearance={resolved}
+				iconUrl={snapshot.configuration?.iconUrl}
 				forcedScheme={forcedScheme}
 				snapshot={snapshot}
 				client={client}

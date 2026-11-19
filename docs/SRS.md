@@ -144,6 +144,7 @@ Talqo is related to these repos:
 | FR-2.21 | Operator can set on the embed whether the widget displays a light/dark mode switch to end users | Low | Done |
 | FR-2.22 | Operator can set the embed's display language | Low | Done |
 | FR-2.23 | Operator can set the embed's avatar image | Low | Not started |
+| FR-2.23a | Operator can replace the embed's launcher icon with their own SVG and restore the default | Low | Done |
 | FR-2.24 | Operator can set the embed's on-page position (e.g. bottom-right, bottom-left) | Low | Done |
 
 #### 3.2.6 Analytics (FR-2f)

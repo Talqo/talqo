@@ -130,6 +130,11 @@ function embedConfiguration(value: unknown): EmbedConfig | undefined {
 	return value as unknown as EmbedConfig
 }
 
+// The API sends a root-relative path; an older API omits it, which reads as the default icon.
+function iconUrl(value: unknown, apiUrl: string): string | null {
+	return typeof value === "string" && value.startsWith("/") ? new URL(value, apiUrl).href : null
+}
+
 function retryAt(response: Response, now: () => Date): string | undefined {
 	const reset = response.headers.get("X-RateLimit-Reset")
 	if (reset !== null && !Number.isNaN(Date.parse(reset))) return reset
@@ -256,6 +261,7 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			return {
 				title: configuration.name,
 				appearance: configuration.appearance as unknown as Readonly<Record<string, unknown>>,
+				iconUrl: iconUrl(configuration.iconUrl, input.apiUrl),
 				isAvailable: configuration.isAvailable,
 			}
 		},

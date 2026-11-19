@@ -389,6 +389,20 @@ export const PROBLEMS = [
 		guidance: "Enable the embed before using it for chat.",
 	},
 	{
+		code: "embed-icon-invalid",
+		title: "Invalid embed icon",
+		status: "400",
+		meaning: "The uploaded launcher icon is not an SVG image.",
+		guidance: "Upload an SVG file whose root element is <svg>, without a DOCTYPE.",
+	},
+	{
+		code: "embed-icon-not-found",
+		title: "Embed icon not found",
+		status: "404",
+		meaning: "The embed has no custom launcher icon, or its token is unknown.",
+		guidance: "Use the iconUrl from the embed configuration; it is null when the default icon applies.",
+	},
+	{
 		code: "embed-not-found",
 		title: "Embed not found",
 		status: "404",

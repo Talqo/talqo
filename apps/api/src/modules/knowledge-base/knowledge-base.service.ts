@@ -4,10 +4,10 @@ import { env } from "@/config/env.ts"
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
+import { uploadAreaDir } from "@/lib/upload-storage.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import { constants as fsConstants } from "node:fs"
 import { copyFile, mkdir, readdir, readFile, rm, stat, unlink, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
 import { extname, join } from "node:path"
 import { z } from "zod"
 
@@ -39,7 +39,9 @@ export function uploadExtension(name: string): AllowedExtension | "other" {
 	return isAllowedExtension(extension) ? extension : "other"
 }
 
-const UPLOAD_DIR = env.TALQO_UPLOAD_DIR ?? join(tmpdir(), "talqo")
+function knowledgeDir(): string {
+	return uploadAreaDir("knowledge")
+}
 
 const FORBIDDEN_NAME_CHARS = /[/\\\0]|\.{2}/
 
@@ -85,7 +87,7 @@ class FileTooLargeError extends ApiError {
 }
 
 function agentDir(agentId: string): string {
-	return join(UPLOAD_DIR, agentId)
+	return join(knowledgeDir(), agentId)
 }
 
 function buildFile(name: string, stats: { size: number; birthtime: Date; mtime: Date }): StoredFile {
@@ -139,7 +141,7 @@ function isFileMissing(error: unknown): boolean {
 
 async function listAgentDirectories(): Promise<string[]> {
 	try {
-		const entries = await readdir(UPLOAD_DIR, { withFileTypes: true })
+		const entries = await readdir(knowledgeDir(), { withFileTypes: true })
 		return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
 	} catch (error) {
 		if (!isFileMissing(error)) throw error
@@ -309,9 +311,9 @@ async function recoverUploads(): Promise<void> {
 }
 
 export async function reconcileDanglingRows(): Promise<void> {
-	// A missing uploads root means unreadable storage: every stat would read ENOENT and the sweep would wipe the index.
+	// A missing knowledge directory means unreadable storage: every stat would read ENOENT and the sweep would wipe the index.
 	try {
-		await stat(UPLOAD_DIR)
+		await stat(knowledgeDir())
 	} catch {
 		console.error("agent-file.recovery.root_missing", { skipped: true })
 		return

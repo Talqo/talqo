@@ -26,6 +26,8 @@ export const PROBLEM_CODES = {
 	DEFAULT_ROLE_DELETE_NOT_ALLOWED: "default-role-delete-not-allowed",
 	DUPLICATE_MCP_SERVER_NAME: "duplicate-mcp-server-name",
 	EMBED_DISABLED: "embed-disabled",
+	EMBED_ICON_INVALID: "embed-icon-invalid",
+	EMBED_ICON_NOT_FOUND: "embed-icon-not-found",
 	EMBED_NOT_FOUND: "embed-not-found",
 	INTERNAL_SERVER_ERROR: "internal-server-error",
 	INVALID_MCP_SERVER_URL: "invalid-mcp-server-url",

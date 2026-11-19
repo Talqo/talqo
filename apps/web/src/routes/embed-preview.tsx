@@ -46,7 +46,12 @@ function EmbedPreviewPage() {
 					<Skeleton className="h-96 w-full" />
 				</div>
 			) : embed ? (
-				<WidgetPreview appearance={toAppearance(toFormValues(embed))} title={embed.name} previewKey={embed.id} />
+				<WidgetPreview
+					appearance={toAppearance(toFormValues(embed))}
+					title={embed.name}
+					iconUrl={embed.iconUrl}
+					previewKey={embed.id}
+				/>
 			) : (
 				<p className="text-muted-foreground mt-4">{t("embedSetup.notFound")}</p>
 			)}

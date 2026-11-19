@@ -1,6 +1,12 @@
 import type { Embed } from "@/api/generated/models/embed.zod"
 
-import { getGetEmbedQueryKey, getListEmbedsQueryKey, useUpdateEmbed } from "@/api/generated/embed/embed.ts"
+import {
+	deleteEmbedIcon,
+	getGetEmbedQueryKey,
+	getListEmbedsQueryKey,
+	setEmbedIcon,
+	updateEmbed,
+} from "@/api/generated/embed/embed.ts"
 import {
 	EMBED_FORM_DEFAULTS,
 	embedFormSchema,
@@ -8,6 +14,7 @@ import {
 	toAppearance,
 	toFormValues,
 } from "@/features/embeds/embed-appearance-form"
+import { getProblemMessage } from "@/lib/problem-message"
 import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
@@ -20,11 +27,12 @@ import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { Switch } from "@talqo/ui/components/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
-import { useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { type Control, Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import { ColorField } from "./-color-field"
+import { EmbedIconField } from "./-embed-icon-field"
 import { EmbedPreviewCard } from "./-embed-preview-card"
 
 export type ColorSchemeTab = "light" | "dark"
@@ -145,29 +153,44 @@ export function EmbedAppearanceSection({
 }: EmbedAppearanceSectionProps) {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
-	const updateEmbed = useUpdateEmbed({
-		mutation: {
-			onSuccess: async () => {
-				await queryClient.invalidateQueries({ queryKey: getGetEmbedQueryKey(embedId) })
-				await queryClient.invalidateQueries({ queryKey: getListEmbedsQueryKey() })
-			},
-		},
-	})
-
 	const { register, handleSubmit, reset, control, setFocus, formState } = useForm<EmbedFormValues>({
 		resolver: zodResolver(embedFormSchema),
 		// `values` lands one render after mount; without defaults the selects mount uncontrolled.
-		defaultValues: { name: "", ...EMBED_FORM_DEFAULTS },
+		defaultValues: { name: "", icon: { url: null }, ...EMBED_FORM_DEFAULTS },
 		// keepDirtyValues so a background refetch never discards the operator's typing.
 		values: toFormValues(embed),
 		resetOptions: { keepDirtyValues: true },
 	})
 	const dirtyGuard = useDirtyFormGuard(formState.isDirty)
 
+	// Retrying after a partial failure is safe: both requests are idempotent.
+	const save = useMutation({
+		mutationFn: async (submitted: EmbedFormValues) => {
+			const saved = (
+				await updateEmbed(embedId, {
+					name: submitted.name.trim(),
+					// The agent selector is gone from the form; the update contract still requires it.
+					agentId: embed.agentId,
+					appearance: toAppearance(submitted),
+				})
+			).data.embed
+			const { file, url } = submitted.icon
+			if (file) return (await setEmbedIcon(embedId, { file })).data.embed
+			if (url === null && saved.iconUrl !== null) return (await deleteEmbedIcon(embedId)).data.embed
+			return saved
+		},
+		// Re-sync on save so the stored values show through and the fields go clean.
+		onSuccess: (saved) => reset(toFormValues(saved), { keepDirtyValues: false }),
+		onSettled: async () => {
+			await queryClient.invalidateQueries({ queryKey: getGetEmbedQueryKey(embedId) })
+			await queryClient.invalidateQueries({ queryKey: getListEmbedsQueryKey() })
+		},
+	})
+
 	// Follows the form, not the server, so the preview updates before a save.
-	const { appearance, name } = useWatch({
+	const { appearance, iconUrl, name } = useWatch({
 		control,
-		compute: (values) => ({ appearance: toAppearance(values), name: values.name }),
+		compute: (values) => ({ appearance: toAppearance(values), iconUrl: values.icon.url, name: values.name }),
 	})
 
 	// Base UI shows the raw value in a closed trigger unless `items` maps it to a label.
@@ -177,19 +200,7 @@ export function EmbedAppearanceSection({
 
 	function onValid(submitted: EmbedFormValues) {
 		if (!canManage) return
-		updateEmbed.mutate(
-			{
-				embedId,
-				// The agent selector is gone from the form; the update contract still requires it.
-				data: {
-					name: submitted.name.trim(),
-					agentId: embed.agentId,
-					appearance: toAppearance(submitted),
-				},
-			},
-			// Re-sync on save so the stored values show through and the fields go clean.
-			{ onSuccess: (saved) => reset(toFormValues(saved.data.embed), { keepDirtyValues: false }) },
-		)
+		save.mutate(submitted)
 	}
 
 	return (
@@ -204,6 +215,14 @@ export function EmbedAppearanceSection({
 					<CardContent>
 						<form onSubmit={handleSubmit(onValid, () => setFocus("name"))} className="space-y-4">
 							<fieldset className="space-y-4">
+								<Controller
+									control={control}
+									name="icon"
+									render={({ field }) => (
+										<EmbedIconField canManage={canManage} value={field.value} onChange={field.onChange} />
+									)}
+								/>
+
 								<div className="space-y-2">
 									<Label htmlFor="widget-name">{t("embedSetup.nameLabel")}</Label>
 									<Input
@@ -344,15 +363,15 @@ export function EmbedAppearanceSection({
 								</div>
 							</fieldset>
 
-							{updateEmbed.isError && (
+							{save.isError && (
 								<p role="alert" className="text-destructive text-sm">
-									{t("embedSetup.saveError")}
+									{getProblemMessage(save.error, t, t("embedSetup.saveError"))}
 								</p>
 							)}
 							{canManage && (
-								<FormActions status={updateEmbed.isSuccess && !formState.isDirty ? t("embedSetup.saved") : undefined}>
-									<Button type="submit" disabled={updateEmbed.isPending || !formState.isDirty}>
-										{updateEmbed.isPending ? t("embedSetup.saving") : t("embedSetup.save")}
+								<FormActions status={save.isSuccess && !formState.isDirty ? t("embedSetup.saved") : undefined}>
+									<Button type="submit" disabled={save.isPending || !formState.isDirty}>
+										{save.isPending ? t("embedSetup.saving") : t("embedSetup.save")}
 									</Button>
 								</FormActions>
 							)}
@@ -360,7 +379,13 @@ export function EmbedAppearanceSection({
 					</CardContent>
 				</Card>
 
-				<EmbedPreviewCard appearance={appearance} title={name} activeScheme={colorTab} embedId={embedId} />
+				<EmbedPreviewCard
+					appearance={appearance}
+					title={name}
+					iconUrl={iconUrl}
+					activeScheme={colorTab}
+					embedId={embedId}
+				/>
 			</div>
 		</>
 	)
