@@ -39,7 +39,7 @@ function parseChatEvent(frame: EventFrame): ChatEvent {
 }
 
 type WebSocketTransportOptions = ChatHttpOptions & {
-	/** How long a cancel waits for the server to close before the socket is torn down locally. */
+	/** How long to wait for the server to confirm the turn's outcome after Stop. */
 	cancelTimeoutMs?: number
 }
 
@@ -49,25 +49,21 @@ export function createWebSocketChatTransport(
 ): ChatTransport {
 	const http = createChatHttpClient(options)
 	const cancelTimeoutMs = options.cancelTimeoutMs ?? CANCEL_TIMEOUT_MS
-	const sockets = new Map<string, { cancel(): Promise<void> }>()
+	const activeSends = new Map<string, () => Promise<void>>()
 	return {
 		...http,
 		async sendMessage(input) {
-			if (sockets.has(input.credential)) throw new Error("A chat connection is already active")
-			let cancelled = false
-			let cancelLive: (() => Promise<void>) | undefined
-			sockets.set(input.credential, {
-				async cancel() {
-					cancelled = true
-					await cancelLive?.()
-				},
+			if (activeSends.has(input.credential)) throw new Error("A chat connection is already active")
+			let stopRequested = false
+			activeSends.set(input.credential, async () => {
+				stopRequested = true
 			})
 			let manifest: ClientToolManifest
 			let ws: WebSocket
 			try {
 				manifest = input.tools ?? (await tools.manifest())
 				input.signal.throwIfAborted()
-				if (cancelled) throw new Error("Chat send cancelled before connection")
+				if (stopRequested) throw new Error("Chat send cancelled before connection")
 				const url = new URL(input.apiUrl)
 				url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
 				url.pathname = `/api/chat/${encodeURIComponent(input.embedToken)}/socket`
@@ -75,61 +71,50 @@ export function createWebSocketChatTransport(
 				url.hash = ""
 				ws = new WebSocket(url)
 			} catch (error) {
-				sockets.delete(input.credential)
+				activeSends.delete(input.credential)
 				throw error
 			}
 			const queue: { event: ChatEvent; bytes: number }[] = []
 			let bufferedBytes = 0
 			let wake: (() => void) | undefined
-			let failure: unknown
+			let failure: ChatTransportError | undefined
 			let closed = false
+			let started = false
 			let terminal = false
 			let accepted = false
 			const dispatched = new Set<string>()
 			const advertisedNames = new Set(manifest.map((definition) => definition.name))
-			const controller = new AbortController()
+			const toolController = new AbortController()
 			const listeners = new AbortController()
 			const acceptance = Promise.withResolvers<void>()
-			const opened = Promise.withResolvers<void>()
 			const settled = Promise.withResolvers<void>()
-			function finish() {
+			function close() {
+				if (closed) return
 				closed = true
-				controller.abort()
 				listeners.abort()
-				input.signal.removeEventListener("abort", abort)
-				sockets.delete(input.credential)
+				toolController.abort()
+				ws.close()
+				input.signal.removeEventListener("abort", close)
+				activeSends.delete(input.credential)
+				if (stopRequested && !terminal) failure = new ChatTransportError({ code: "cancel-failed" })
 				if (!accepted) acceptance.reject(failure ?? new ChatTransportError({ code: "transport-error" }))
-				opened.resolve()
 				wake?.()
 				settled.resolve()
 			}
-			function abort() {
-				ws.close()
-				finish()
-			}
-			input.signal.addEventListener("abort", abort, { once: true })
-			cancelLive = async () => {
-				controller.abort()
-				await settlesWithin(opened.promise, cancelTimeoutMs)
-				if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ version: 1, type: "cancel" }))
-				// A server that acknowledges the cancel but keeps the socket open must not block stopping.
-				await settlesWithin(settled.promise, cancelTimeoutMs)
-				if (!closed) {
-					// End the turn as cancelled so local teardown is not read as a transport failure.
-					if (accepted && !terminal) enqueue({ version: 1, type: "terminal", outcome: "cancelled" }, 0)
-					ws.close()
-					finish()
+			input.signal.addEventListener("abort", close, { once: true })
+			activeSends.set(input.credential, async () => {
+				stopRequested = started && !terminal
+				toolController.abort()
+				if (stopRequested && ws.readyState === WebSocket.OPEN) {
+					ws.send(JSON.stringify({ version: 1, type: "cancel" }))
+					await settlesWithin(settled.promise, cancelTimeoutMs)
 				}
-			}
+				close()
+				if (failure?.detail.code === "cancel-failed") throw failure
+			})
 			ws.addEventListener(
 				"open",
 				() => {
-					// A handshake that completes after a cancel must not start an abandoned turn.
-					if (controller.signal.aborted) {
-						ws.close()
-						finish()
-						return
-					}
 					ws.send(
 						JSON.stringify({
 							version: 1,
@@ -140,7 +125,7 @@ export function createWebSocketChatTransport(
 							tools: manifest,
 						}),
 					)
-					opened.resolve()
+					started = true
 				},
 				{ signal: listeners.signal },
 			)
@@ -148,20 +133,19 @@ export function createWebSocketChatTransport(
 				"error",
 				() => {
 					failure = new ChatTransportError({ code: "transport-error" })
-					ws.close()
-					finish()
+					close()
 				},
 				{ signal: listeners.signal },
 			)
-			ws.addEventListener("close", finish, { signal: listeners.signal })
+			ws.addEventListener("close", close, { signal: listeners.signal })
 			function rejectFrame(frame: Extract<ServerFrame, { type: "rejected" }>): void {
 				failure = new ChatTransportError({
 					code: isChatErrorCode(frame.code) ? frame.code : "invalid-response",
 					status: frame.status,
 					retryAt: frame.retryAt,
 				})
-				ws.close()
-				finish()
+				terminal = !accepted
+				close()
 			}
 			function acceptFrame(): void {
 				if (accepted) throw new Error("Duplicate acceptance")
@@ -172,16 +156,16 @@ export function createWebSocketChatTransport(
 				toolCallId: string,
 				result: { type: "tool-result"; output: unknown } | { type: "tool-error"; error: string },
 			) {
-				if (controller.signal.aborted || ws.readyState !== WebSocket.OPEN) return
+				if (toolController.signal.aborted || ws.readyState !== WebSocket.OPEN) return
 				ws.send(JSON.stringify({ version: 1, toolCallId, ...result }))
 			}
 			function dispatchToolCall(frame: ToolCallFrame): void {
-				if (dispatched.has(frame.toolCallId)) return
+				if (toolController.signal.aborted || dispatched.has(frame.toolCallId)) return
 				void (async () => {
 					if (!advertisedNames.has(frame.toolName)) throw new Error("Unadvertised client tool")
 					if (dispatched.size >= CLIENT_TOOL_CALL_LIMIT) throw new Error("Client tool call limit reached")
 					dispatched.add(frame.toolCallId)
-					return tools.execute(frame, controller.signal)
+					return tools.execute(frame, toolController.signal)
 				})().then(
 					(output) => sendToolOutcome(frame.toolCallId, { type: "tool-result", output }),
 					() => sendToolOutcome(frame.toolCallId, { type: "tool-error", error: "Website tool failed" }),
@@ -193,7 +177,8 @@ export function createWebSocketChatTransport(
 				bufferedBytes += bytes
 				if (parsed.type === "terminal" || parsed.type === "error") {
 					terminal = true
-					controller.abort()
+					toolController.abort()
+					settled.resolve()
 				}
 				wake?.()
 			}
@@ -221,8 +206,7 @@ export function createWebSocketChatTransport(
 						handleFrame(ChatServerFrameV1.parse(JSON.parse(event.data)), bytes)
 					} catch {
 						failure = new ChatTransportError({ code: "invalid-response" })
-						ws.close()
-						finish()
+						close()
 					}
 				},
 				{ signal: listeners.signal },
@@ -240,8 +224,7 @@ export function createWebSocketChatTransport(
 								}
 								if (failure) throw failure
 								if (closed || terminal) {
-									ws.close()
-									finish()
+									close()
 									return { done: true, value: undefined }
 								}
 								await new Promise<void>((resolve) => {
@@ -250,8 +233,7 @@ export function createWebSocketChatTransport(
 							}
 						},
 						async return(): Promise<IteratorResult<ChatEvent>> {
-							ws.close()
-							finish()
+							close()
 							return { done: true, value: undefined }
 						},
 					}
@@ -259,8 +241,8 @@ export function createWebSocketChatTransport(
 			}
 		},
 		async cancelResponse(input) {
-			const socket = sockets.get(input.credential)
-			if (socket) await socket.cancel()
+			const stop = activeSends.get(input.credential)
+			if (stop) await stop()
 			else await http.cancelResponse(input)
 		},
 	}
