@@ -1356,9 +1356,9 @@ describe("createChatClient", () => {
 	})
 
 	test("drops an unrecoverable website-tool send so the session can be used again", async () => {
-		const storage = createMemoryStorage()
+		const memory = createMemoryStorage()
 		const key = createChatStorageKey("https://api.example.test", "embed")
-		await storage.setItem(
+		await memory.setItem(
 			key,
 			JSON.stringify({
 				version: 1,
@@ -1366,6 +1366,21 @@ describe("createChatClient", () => {
 				pending: { requestId: "request", text: "Update the page", clientTools: true },
 			}),
 		)
+		const clearingStarted = Promise.withResolvers<void>()
+		const finishClearing = Promise.withResolvers<void>()
+		const clearingFinished = Promise.withResolvers<void>()
+		const storage = {
+			...memory,
+			async setItem(storageKey: string, value: string) {
+				const cleared = readChatStorageRecord(value)?.pending === undefined
+				if (cleared) {
+					clearingStarted.resolve()
+					await finishClearing.promise
+				}
+				await memory.setItem(storageKey, value)
+				if (cleared) clearingFinished.resolve()
+			},
+		}
 		const options = {
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
@@ -1378,9 +1393,13 @@ describe("createChatClient", () => {
 		const client = createChatClient(options)
 		try {
 			await client.initialize()
+			// The exhausted state must publish before the cleanup write finishes.
 			await waitForSnapshot(client, () => client.getSnapshot().notices.includes("recovery-unavailable"))
+			await clearingStarted.promise
+			finishClearing.resolve()
+			await clearingFinished.promise
 
-			expect(readChatStorageRecord(await storage.getItem(key))).toEqual({ version: 1, credential: "credential" })
+			expect(readChatStorageRecord(await memory.getItem(key))).toEqual({ version: 1, credential: "credential" })
 			expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "Update the page", outcome: "interrupted" })
 		} finally {
 			client.dispose()

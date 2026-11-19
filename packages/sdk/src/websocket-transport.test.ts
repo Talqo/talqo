@@ -222,7 +222,41 @@ test("stops locally when a cancelled turn leaves the socket open", async () => {
 		await transport.cancelResponse(input)
 
 		expect(frames).toEqual(["start", "cancel"])
-		expect(await events).toMatchObject([{ type: "accepted" }])
+		expect(await events).toMatchObject([{ type: "accepted" }, { type: "terminal", outcome: "cancelled" }])
+	} finally {
+		await server.stop(true)
+	}
+})
+
+test("does not start a turn when the handshake finishes after a cancel", async () => {
+	const upgradeStarted = Promise.withResolvers<void>()
+	const releaseUpgrade = Promise.withResolvers<void>()
+	const frames: string[] = []
+	const server = Bun.serve({
+		port: 0,
+		async fetch(request, host) {
+			upgradeStarted.resolve()
+			await releaseUpgrade.promise
+			return host.upgrade(request) ? undefined : new Response(null, { status: 400 })
+		},
+		websocket: {
+			message(_ws, data) {
+				frames.push((JSON.parse(String(data)) as { type: string }).type)
+			},
+		},
+	})
+	try {
+		const transport = createWebSocketChatTransport(captureClientTools(), { cancelTimeoutMs: 100 })
+		const input = sendInput(server.url.origin)
+		const sending = transport.sendMessage(input).catch((error: unknown) => error)
+		await upgradeStarted.promise
+		const cancelling = transport.cancelResponse(input)
+		await new Promise((resolve) => setTimeout(resolve, 5))
+		releaseUpgrade.resolve()
+		await cancelling
+
+		expect(frames).not.toContain("start")
+		expect(await sending).toMatchObject({ name: "ChatTransportError" })
 	} finally {
 		await server.stop(true)
 	}

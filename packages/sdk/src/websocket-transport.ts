@@ -115,6 +115,8 @@ export function createWebSocketChatTransport(
 				// A server that acknowledges the cancel but keeps the socket open must not block stopping.
 				await settlesWithin(settled.promise, cancelTimeoutMs)
 				if (!closed) {
+					// End the turn as cancelled so local teardown is not read as a transport failure.
+					if (accepted && !terminal) enqueue({ version: 1, type: "terminal", outcome: "cancelled" }, 0)
 					ws.close()
 					finish()
 				}
@@ -122,6 +124,12 @@ export function createWebSocketChatTransport(
 			ws.addEventListener(
 				"open",
 				() => {
+					// A handshake that completes after a cancel must not start an abandoned turn.
+					if (controller.signal.aborted) {
+						ws.close()
+						finish()
+						return
+					}
 					ws.send(
 						JSON.stringify({
 							version: 1,
