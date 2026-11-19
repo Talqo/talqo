@@ -678,6 +678,8 @@ describe("AI provider service", () => {
 		callEnd(options, "lookup", "call-1", { type: "tool-result", output: { isError: true } })
 		callEnd(options, "lookup", "call-2", { type: "tool-result", output: { content: [] } })
 		callEnd(options, "unmapped", "call-3", { type: "tool-error", error: new Error("boom") })
+		// The stream already reported this failure and a duplicate end would abort the turn.
+		callEnd(options, "lookup", "call-4", { type: "tool-error", error: new Error("boom") })
 
 		expect(toolEvents).toEqual([
 			{

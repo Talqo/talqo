@@ -39,6 +39,29 @@ describe("client tool registration and execution", () => {
 		await expect(registry.execute({ ...request, toolName: "other" }, signal)).rejects.toThrow("Unknown client tool")
 	})
 
+	test("runs a no-argument tool when the payload is absent", async () => {
+		let received: unknown
+		const registry = captureClientTools({
+			ping: tool({
+				inputSchema: z.object({}),
+				execute: (input) => {
+					received = input
+					return "pong"
+				},
+			}),
+		})
+		const request = {
+			version: 1 as const,
+			type: "tool-call" as const,
+			toolCallId: "call-1",
+			toolName: "ping",
+			input: undefined,
+			messages: [],
+		}
+		expect(await registry.execute(request, new AbortController().signal)).toBe("pong")
+		expect(received).toEqual({})
+	})
+
 	test("rejects unsupported behavior and a ninth tool before dispatch", () => {
 		const definition = tool({ inputSchema: z.object({}), execute: () => null })
 		expect(

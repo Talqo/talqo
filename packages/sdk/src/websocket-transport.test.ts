@@ -26,6 +26,38 @@ const call = (id: string) => ({
 	messages: [{ role: "user", content: "Read this page" }],
 })
 
+function recordingChatServer(onFrame: (ws: Bun.ServerWebSocket<undefined>, frame: { type: string }) => void): {
+	server: ReturnType<typeof Bun.serve>
+	frames: string[]
+} {
+	const frames: string[] = []
+	const server = Bun.serve({
+		port: 0,
+		fetch(request, host) {
+			return host.upgrade(request) ? undefined : new Response(null, { status: 400 })
+		},
+		websocket: {
+			message(ws, data) {
+				const frame = JSON.parse(String(data)) as { type: string }
+				frames.push(frame.type)
+				onFrame(ws, frame)
+			},
+		},
+	})
+	return { server, frames }
+}
+
+function sendInput(apiUrl: string) {
+	return {
+		apiUrl,
+		embedToken: "embed",
+		credential: CREDENTIAL,
+		requestId: REQUEST_ID,
+		text: "hello",
+		signal: new AbortController().signal,
+	}
+}
+
 test("rejects unknown error codes after validating the frame", async () => {
 	const server = Bun.serve({
 		port: 0,
@@ -139,37 +171,19 @@ test("processes cancellation while a browser execute promise is still pending", 
 				}),
 		}),
 	})
-	const frames: string[] = []
-	const server = Bun.serve({
-		port: 0,
-		fetch(request, host) {
-			return host.upgrade(request) ? undefined : new Response(null, { status: 400 })
-		},
-		websocket: {
-			message(ws, data) {
-				const frame = JSON.parse(String(data)) as { type: string }
-				frames.push(frame.type)
-				if (frame.type === "start") {
-					ws.send(JSON.stringify(accepted))
-					ws.send(JSON.stringify(call("pending")))
-				}
-				if (frame.type === "cancel") {
-					ws.send(JSON.stringify({ version: 1, type: "terminal", outcome: "cancelled" }))
-					ws.close()
-				}
-			},
-		},
+	const { server, frames } = recordingChatServer((ws, frame) => {
+		if (frame.type === "start") {
+			ws.send(JSON.stringify(accepted))
+			ws.send(JSON.stringify(call("pending")))
+		}
+		if (frame.type === "cancel") {
+			ws.send(JSON.stringify({ version: 1, type: "terminal", outcome: "cancelled" }))
+			ws.close()
+		}
 	})
 	try {
 		const transport = createWebSocketChatTransport(registry)
-		const input = {
-			apiUrl: server.url.origin,
-			embedToken: "embed",
-			credential: CREDENTIAL,
-			requestId: REQUEST_ID,
-			text: "hello",
-			signal: new AbortController().signal,
-		}
+		const input = sendInput(server.url.origin)
 		const events = Array.fromAsync(await transport.sendMessage(input))
 		await started.promise
 		await transport.cancelResponse(input)
@@ -189,18 +203,29 @@ test("cancels connection setup without falling back to HTTP cancellation", async
 			throw new Error("Unexpected HTTP request")
 		},
 	})
-	const input = {
-		apiUrl: "http://127.0.0.1:1",
-		embedToken: "embed",
-		credential: CREDENTIAL,
-		requestId: REQUEST_ID,
-		text: "hello",
-		signal: new AbortController().signal,
-	}
+	const input = sendInput("http://127.0.0.1:1")
 	const sending = transport.sendMessage(input).catch((error: unknown) => error)
 	await transport.cancelResponse(input)
 	await expect(sending).resolves.toMatchObject({ message: "Chat send cancelled before connection" })
 	expect(httpCalls).toBe(0)
+})
+
+test("stops locally when a cancelled turn leaves the socket open", async () => {
+	const { server, frames } = recordingChatServer((ws, frame) => {
+		if (frame.type === "start") ws.send(JSON.stringify(accepted))
+	})
+	try {
+		const transport = createWebSocketChatTransport(captureClientTools(), { cancelTimeoutMs: 10 })
+		const input = sendInput(server.url.origin)
+		const events = Array.fromAsync(await transport.sendMessage(input))
+
+		await transport.cancelResponse(input)
+
+		expect(frames).toEqual(["start", "cancel"])
+		expect(await events).toMatchObject([{ type: "accepted" }])
+	} finally {
+		await server.stop(true)
+	}
 })
 
 test("stopping before dispatch cannot open a turn during asynchronous storage cleanup", async () => {

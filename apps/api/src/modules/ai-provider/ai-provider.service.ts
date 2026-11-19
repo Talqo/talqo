@@ -193,6 +193,8 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 	}
 	async function recordToolError(part: { toolCallId: string; toolName: string }): Promise<void> {
 		if (completedCalls.has(part.toolCallId)) return
+		// Claim before awaiting so the execution callback cannot emit a second end for this call.
+		completedCalls.add(part.toolCallId)
 		await input.onToolEvent?.({
 			type: "tool-end",
 			identity: identity(part.toolName),
@@ -230,6 +232,9 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 				await callPersistence(toolCall.toolCallId).promise
 			},
 			onToolExecutionEnd: async ({ toolCall, toolOutput }) => {
+				if (completedCalls.has(toolCall.toolCallId)) return
+				// Claim before awaiting so the stream callback cannot emit a second end for this call.
+				completedCalls.add(toolCall.toolCallId)
 				await input.onToolEvent?.({
 					type: "tool-end",
 					identity: identity(toolCall.toolName),
@@ -239,7 +244,6 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 						? { output: toolOutput.output }
 						: { errorText: "Tool execution failed" }),
 				})
-				completedCalls.add(toolCall.toolCallId)
 			},
 		})
 		yield* streamParts(result)
