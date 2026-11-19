@@ -429,9 +429,15 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		messages = messages.map((message) =>
 			message.outcome === "streaming" ? withOutcome(message, "interrupted") : message,
 		)
-		// A client-tool send the server never recorded cannot be replayed, so stop restoring it on every reload.
-		if (pendingMessage?.clientTools === true && credential !== undefined) await clearPendingMessage(credential)
 		publish()
+		// A client-tool send the server never recorded cannot be replayed, so stop restoring it on every reload.
+		if (pendingMessage?.clientTools === true && credential !== undefined) {
+			try {
+				await clearPendingMessage(credential)
+			} catch {
+				// The usable in-memory state is already published; a failed write must not undo it.
+			}
+		}
 	}
 
 	async function pollRecovery(controller: AbortController): Promise<void> {
