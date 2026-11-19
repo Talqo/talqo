@@ -210,23 +210,26 @@ test("cancels connection setup without falling back to HTTP cancellation", async
 	expect(httpCalls).toBe(0)
 })
 
-test("stops locally when a cancelled turn leaves the socket open", async () => {
-	const { server, frames } = recordingChatServer((ws, frame) => {
-		if (frame.type === "start") ws.send(JSON.stringify(accepted))
+for (const disconnect of ["closes", "stays open"] as const) {
+	test(`reports unconfirmed Stop when the socket ${disconnect} without a terminal frame`, async () => {
+		const { server, frames } = recordingChatServer((ws, frame) => {
+			if (frame.type === "start") ws.send(JSON.stringify(accepted))
+			if (frame.type === "cancel" && disconnect === "closes") ws.close()
+		})
+		try {
+			const transport = createWebSocketChatTransport(captureClientTools(), { cancelTimeoutMs: 50 })
+			const input = sendInput(server.url.origin)
+			const events = (await transport.sendMessage(input))[Symbol.asyncIterator]()
+			expect(await events.next()).toMatchObject({ value: { type: "accepted" }, done: false })
+
+			await expect(transport.cancelResponse(input)).rejects.toThrow("cancel-failed")
+			await expect(events.next()).rejects.toThrow("cancel-failed")
+			expect(frames).toEqual(["start", "cancel"])
+		} finally {
+			await server.stop(true)
+		}
 	})
-	try {
-		const transport = createWebSocketChatTransport(captureClientTools(), { cancelTimeoutMs: 10 })
-		const input = sendInput(server.url.origin)
-		const events = Array.fromAsync(await transport.sendMessage(input))
-
-		await transport.cancelResponse(input)
-
-		expect(frames).toEqual(["start", "cancel"])
-		expect(await events).toMatchObject([{ type: "accepted" }, { type: "terminal", outcome: "cancelled" }])
-	} finally {
-		await server.stop(true)
-	}
-})
+}
 
 test("does not start a turn when the handshake finishes after a cancel", async () => {
 	const upgradeStarted = Promise.withResolvers<void>()
@@ -250,14 +253,12 @@ test("does not start a turn when the handshake finishes after a cancel", async (
 		const input = sendInput(server.url.origin)
 		const sending = transport.sendMessage(input).catch((error: unknown) => error)
 		await upgradeStarted.promise
-		const cancelling = transport.cancelResponse(input)
-		await new Promise((resolve) => setTimeout(resolve, 5))
-		releaseUpgrade.resolve()
-		await cancelling
+		await transport.cancelResponse(input)
 
 		expect(frames).not.toContain("start")
 		expect(await sending).toMatchObject({ name: "ChatTransportError" })
 	} finally {
+		releaseUpgrade.resolve()
 		await server.stop(true)
 	}
 })
