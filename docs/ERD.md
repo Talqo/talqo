@@ -1,6 +1,6 @@
 # Conceptual Entity Relationship Diagram
 
-This diagram models the desired entities and relationships. Implementation schemas remain authoritative for columns and types.
+This diagram models the desired entities and relationships. Implementation schemas remain authoritative for columns and types. `AGENT_FILE` is the conceptual knowledge-source row for both an uploaded file and a crawled website; the physical tables retain the `agent_file` and `agent_file_chunk` names.
 
 ```mermaid
 erDiagram

@@ -17,7 +17,7 @@ import {
 } from "@/modules/conversation/conversation.routes.ts"
 import { embedConfigRoutes, embedRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
-import { agentFilesRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
+import { knowledgeBaseRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
 import { mcpServerRoutes } from "@/modules/mcp/mcp.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
 import { statsRoutes } from "@/modules/stats/stats.routes.ts"
@@ -81,7 +81,7 @@ api.route("/embeds", embedRoutes)
 api.route("/embed-config", embedConfigRoutes)
 api.route("/chat", createConversationRoutes())
 api.route("/stats", statsRoutes)
-api.route("/agents", agentFilesRoutes)
+api.route("/agents", knowledgeBaseRoutes)
 api.route("/agents", mcpServerRoutes)
 api.route("/conversations", conversationOperatorRoutes)
 app.route(API_PREFIX, api)

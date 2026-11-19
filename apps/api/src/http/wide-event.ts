@@ -23,6 +23,7 @@ export type WideEvent = {
 	"agent.id"?: string
 	"embed.id"?: string
 	"role.id"?: string
+	"website.id"?: string
 	"error.code"?: ProblemCode
 	// Exception class only; messages may carry user data.
 	"error.type"?: string
@@ -80,6 +81,7 @@ const ROUTE_ID_FIELDS = {
 	roleId: "role.id",
 	serverId: "mcp.server.id",
 	userId: "target.user.id",
+	websiteId: "website.id",
 } as const satisfies Record<string, keyof Annotation>
 // IDs are UUIDs. Path params reach the logger before auth, so anything else is caller-controlled content.
 const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

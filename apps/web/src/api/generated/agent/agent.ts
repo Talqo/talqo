@@ -24,6 +24,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AddAgentWebsite201
+} from '../models/agent/addAgentWebsite201.zod';
+
+import type {
+  AddAgentWebsiteBody
+} from '../models/agent/addAgentWebsiteBody.zod';
+
+import type {
   CreateAgent201
 } from '../models/agent/createAgent201.zod';
 
@@ -38,6 +46,10 @@ import type {
 import type {
   ListAgentFiles200
 } from '../models/agent/listAgentFiles200.zod';
+
+import type {
+  ListAgentWebsites200
+} from '../models/agent/listAgentWebsites200.zod';
 
 import type {
   ListAgents200
@@ -1561,4 +1573,506 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
         TContext
       > => {
       return useMutation(getRetryAgentFileMutationOptions(options), queryClient);
+    }
+    export type listAgentWebsitesResponse200 = {
+  data: ListAgentWebsites200
+  status: 200
+}
+
+export type listAgentWebsitesResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type listAgentWebsitesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listAgentWebsitesResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type listAgentWebsitesResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type listAgentWebsitesResponseSuccess = (listAgentWebsitesResponse200) & {
+  headers: Headers;
+};
+export type listAgentWebsitesResponseError = (listAgentWebsitesResponse401 | listAgentWebsitesResponse403 | listAgentWebsitesResponse404 | listAgentWebsitesResponse500) & {
+  headers: Headers;
+};
+
+export const getListAgentWebsitesUrl = (agentId: string,) => {
+
+
+
+
+  return `/api/agents/${agentId}/websites`
+}
+
+export const listAgentWebsites = async (agentId: string, options?: RequestInit): Promise<listAgentWebsitesResponseSuccess> => {
+
+  const res = await fetch(getListAgentWebsitesUrl(agentId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: listAgentWebsitesResponseError['data'], status?: number} = new globalThis.Error();
+    const data : listAgentWebsitesResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: listAgentWebsitesResponseSuccess['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as listAgentWebsitesResponseSuccess
+}
+
+
+
+
+
+export const getListAgentWebsitesQueryKey = (agentId: string,) => {
+    return [
+    `/api/agents/${agentId}/websites`
+    ] as const;
+    }
+
+
+export const getListAgentWebsitesQueryOptions = <TData = Awaited<ReturnType<typeof listAgentWebsites>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentWebsites>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAgentWebsitesQueryKey(agentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgentWebsites>>> = ({ signal }) => listAgentWebsites(agentId, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: agentId !== null && agentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAgentWebsites>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAgentWebsitesQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentWebsites>>>
+export type ListAgentWebsitesQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
+
+
+export function useListAgentWebsites<TData = Awaited<ReturnType<typeof listAgentWebsites>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+ agentId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentWebsites>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAgentWebsites>>,
+          TError,
+          Awaited<ReturnType<typeof listAgentWebsites>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAgentWebsites<TData = Awaited<ReturnType<typeof listAgentWebsites>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+ agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentWebsites>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAgentWebsites>>,
+          TError,
+          Awaited<ReturnType<typeof listAgentWebsites>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAgentWebsites<TData = Awaited<ReturnType<typeof listAgentWebsites>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+ agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentWebsites>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAgentWebsites<TData = Awaited<ReturnType<typeof listAgentWebsites>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+ agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentWebsites>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListAgentWebsitesQueryOptions(agentId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type addAgentWebsiteResponse201 = {
+  data: AddAgentWebsite201
+  status: 201
+}
+
+export type addAgentWebsiteResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type addAgentWebsiteResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type addAgentWebsiteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addAgentWebsiteResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type addAgentWebsiteResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type addAgentWebsiteResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type addAgentWebsiteResponseSuccess = (addAgentWebsiteResponse201) & {
+  headers: Headers;
+};
+export type addAgentWebsiteResponseError = (addAgentWebsiteResponse400 | addAgentWebsiteResponse401 | addAgentWebsiteResponse403 | addAgentWebsiteResponse404 | addAgentWebsiteResponse409 | addAgentWebsiteResponse500) & {
+  headers: Headers;
+};
+
+export const getAddAgentWebsiteUrl = (agentId: string,) => {
+
+
+
+
+  return `/api/agents/${agentId}/websites`
+}
+
+export const addAgentWebsite = async (agentId: string,
+    addAgentWebsiteBody: AddAgentWebsiteBody, options?: RequestInit): Promise<addAgentWebsiteResponseSuccess> => {
+
+  const res = await fetch(getAddAgentWebsiteUrl(agentId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(addAgentWebsiteBody)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: addAgentWebsiteResponseError['data'], status?: number} = new globalThis.Error();
+    const data : addAgentWebsiteResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: addAgentWebsiteResponseSuccess['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as addAgentWebsiteResponseSuccess
+}
+
+
+
+
+
+export const getAddAgentWebsiteMutationKey = () => ['addAgentWebsite'] as const;
+
+export const getAddAgentWebsiteMutationOptions = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addAgentWebsite>>, TError,AddAgentWebsiteMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof addAgentWebsite>>, TError,AddAgentWebsiteMutationVariables, TContext> => {
+
+const mutationKey = getAddAgentWebsiteMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addAgentWebsite>>, AddAgentWebsiteMutationVariables> = (props) => {
+          const {agentId,data} = props ?? {};
+
+          return  addAgentWebsite(agentId,data,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddAgentWebsiteMutationResult = NonNullable<Awaited<ReturnType<typeof addAgentWebsite>>>
+    export type AddAgentWebsiteMutationBody = AddAgentWebsiteBody
+    export type AddAgentWebsiteMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+    export type AddAgentWebsiteMutationVariables = {agentId: string;data: AddAgentWebsiteBody}
+
+    export const useAddAgentWebsite = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addAgentWebsite>>, TError,AddAgentWebsiteMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof addAgentWebsite>>,
+        TError,
+        AddAgentWebsiteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAddAgentWebsiteMutationOptions(options), queryClient);
+    }
+    export type refreshAgentWebsiteResponse204 = {
+  data: void
+  status: 204
+}
+
+export type refreshAgentWebsiteResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type refreshAgentWebsiteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type refreshAgentWebsiteResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type refreshAgentWebsiteResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type refreshAgentWebsiteResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type refreshAgentWebsiteResponseSuccess = (refreshAgentWebsiteResponse204) & {
+  headers: Headers;
+};
+export type refreshAgentWebsiteResponseError = (refreshAgentWebsiteResponse401 | refreshAgentWebsiteResponse403 | refreshAgentWebsiteResponse404 | refreshAgentWebsiteResponse409 | refreshAgentWebsiteResponse500) & {
+  headers: Headers;
+};
+
+export const getRefreshAgentWebsiteUrl = (agentId: string,
+    websiteId: string,) => {
+
+
+
+
+  return `/api/agents/${agentId}/websites/${websiteId}/refresh`
+}
+
+export const refreshAgentWebsite = async (agentId: string,
+    websiteId: string, options?: RequestInit): Promise<refreshAgentWebsiteResponseSuccess> => {
+
+  const res = await fetch(getRefreshAgentWebsiteUrl(agentId,websiteId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: refreshAgentWebsiteResponseError['data'], status?: number} = new globalThis.Error();
+    const data : refreshAgentWebsiteResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: refreshAgentWebsiteResponseSuccess['data'] = body ? JSON.parse(body) : undefined
+  return { data, status: res.status, headers: res.headers } as refreshAgentWebsiteResponseSuccess
+}
+
+
+
+
+
+export const getRefreshAgentWebsiteMutationKey = () => ['refreshAgentWebsite'] as const;
+
+export const getRefreshAgentWebsiteMutationOptions = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshAgentWebsite>>, TError,RefreshAgentWebsiteMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshAgentWebsite>>, TError,RefreshAgentWebsiteMutationVariables, TContext> => {
+
+const mutationKey = getRefreshAgentWebsiteMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshAgentWebsite>>, RefreshAgentWebsiteMutationVariables> = (props) => {
+          const {agentId,websiteId} = props ?? {};
+
+          return  refreshAgentWebsite(agentId,websiteId,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshAgentWebsiteMutationResult = NonNullable<Awaited<ReturnType<typeof refreshAgentWebsite>>>
+
+    export type RefreshAgentWebsiteMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+    export type RefreshAgentWebsiteMutationVariables = {agentId: string;websiteId: string}
+
+    export const useRefreshAgentWebsite = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshAgentWebsite>>, TError,RefreshAgentWebsiteMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof refreshAgentWebsite>>,
+        TError,
+        RefreshAgentWebsiteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRefreshAgentWebsiteMutationOptions(options), queryClient);
+    }
+    export type deleteAgentWebsiteResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteAgentWebsiteResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type deleteAgentWebsiteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteAgentWebsiteResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type deleteAgentWebsiteResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type deleteAgentWebsiteResponseSuccess = (deleteAgentWebsiteResponse204) & {
+  headers: Headers;
+};
+export type deleteAgentWebsiteResponseError = (deleteAgentWebsiteResponse401 | deleteAgentWebsiteResponse403 | deleteAgentWebsiteResponse404 | deleteAgentWebsiteResponse500) & {
+  headers: Headers;
+};
+
+export const getDeleteAgentWebsiteUrl = (agentId: string,
+    websiteId: string,) => {
+
+
+
+
+  return `/api/agents/${agentId}/websites/${websiteId}`
+}
+
+export const deleteAgentWebsite = async (agentId: string,
+    websiteId: string, options?: RequestInit): Promise<deleteAgentWebsiteResponseSuccess> => {
+
+  const res = await fetch(getDeleteAgentWebsiteUrl(agentId,websiteId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'DELETE'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: deleteAgentWebsiteResponseError['data'], status?: number} = new globalThis.Error();
+    const data : deleteAgentWebsiteResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: deleteAgentWebsiteResponseSuccess['data'] = body ? JSON.parse(body) : undefined
+  return { data, status: res.status, headers: res.headers } as deleteAgentWebsiteResponseSuccess
+}
+
+
+
+
+
+export const getDeleteAgentWebsiteMutationKey = () => ['deleteAgentWebsite'] as const;
+
+export const getDeleteAgentWebsiteMutationOptions = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAgentWebsite>>, TError,DeleteAgentWebsiteMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAgentWebsite>>, TError,DeleteAgentWebsiteMutationVariables, TContext> => {
+
+const mutationKey = getDeleteAgentWebsiteMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAgentWebsite>>, DeleteAgentWebsiteMutationVariables> = (props) => {
+          const {agentId,websiteId} = props ?? {};
+
+          return  deleteAgentWebsite(agentId,websiteId,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAgentWebsiteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAgentWebsite>>>
+
+    export type DeleteAgentWebsiteMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+    export type DeleteAgentWebsiteMutationVariables = {agentId: string;websiteId: string}
+
+    export const useDeleteAgentWebsite = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAgentWebsite>>, TError,DeleteAgentWebsiteMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAgentWebsite>>,
+        TError,
+        DeleteAgentWebsiteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteAgentWebsiteMutationOptions(options), queryClient);
     }

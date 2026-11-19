@@ -130,7 +130,7 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-2.14 | Operator can upload files (documents) to build a knowledge base that the agent references when responding | High | Done |
 | FR-2.15 | Operator can delete files from the knowledge base | Medium | Done |
-| FR-2.16 | Operator can run a crawler to gather site content into the knowledge base | High | Not started |
+| FR-2.16 | Operator can run a crawler to gather site content into the knowledge base | High | Done |
 | FR-2.17 | Operator can explicitly configure the provider and embedding model identifier used to index knowledge base content | Medium | Done |
 | FR-2.18 | Operator can connect their own MCP server to give the agent access to structured data | High | Done |
 | FR-2.19 | Saving an MCP server connects to it and fetches its tool list for the operator to select from; saving again is the retry | Medium | Done |
@@ -198,7 +198,7 @@ Talqo is related to these repos:
 | NFR-3.1 | The operator's AI provider credentials must be stored encrypted at rest and never exposed to the frontend | | High | Done |
 | NFR-3.2 | API endpoints require authentication, except health/infrastructure endpoints (e.g. `/health`) needed for uptime checks | | High | Done |
 | NFR-3.3 | SDK and widget endpoints authenticate using an embed's public token | Related to FR-3.4 | High | Done |
-| NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High | Not started |
+| NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High | Done |
 | NFR-3.5 | The API enforces a daily question allowance per agent and client network, reset at UTC midnight, plus a per-network concurrency cap | | High | Done |
 | NFR-3.6 | The API enforces a limit on the size of assembled model input, default 400,000 Unicode code points; there is no separate per-message limit | | High | Done |
 | NFR-3.7 | End-user conversations and usage are retained until the operator deletes the agent (FR-2.13a); there is no per-conversation deletion or export | | Medium | Done |

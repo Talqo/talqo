@@ -11,6 +11,8 @@ import { join } from "node:path"
 
 import * as repository from "./knowledge-base.repository.ts"
 import {
+	addWebsite as addWebsiteSource,
+	deleteWebsite as deleteWebsiteSource,
 	MAX_FILE_SIZE_BYTES,
 	reconcileDanglingRows,
 	runIngestion,
@@ -46,6 +48,21 @@ function upload(cookie: string, agentId: string, name = "a.md", contents = "hell
 	const form = new FormData()
 	form.append("file", new File([contents], name, { type: "text/markdown" }))
 	return app.request(`/api/agents/${agentId}/files`, { method: "POST", headers: { Cookie: cookie }, body: form })
+}
+
+function addWebsite(cookie: string, agentId: string, url: string) {
+	return app.request(`/api/agents/${agentId}/websites`, {
+		method: "POST",
+		headers: { Cookie: cookie, "Content-Type": "application/json" },
+		body: JSON.stringify({ url }),
+	})
+}
+
+function websiteOperation(cookie: string, agentId: string, websiteId: string, method: "DELETE" | "POST", suffix = "") {
+	return app.request(`/api/agents/${agentId}/websites/${websiteId}${suffix}`, {
+		method,
+		headers: { Cookie: cookie },
+	})
 }
 
 async function expectProblem(response: Response, status: number, code: string) {
@@ -358,10 +375,10 @@ describe("agent knowledge files", () => {
 		expect(renamed.status).toBe(200)
 		expect(((await renamed.json()) as { file: { name: string } }).file.name).toBe("renamed.md")
 		expect(
-			((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId}`) as { name: string }[]).map(
-				({ name }) => name,
+			(await sql<{ name: string; kind: string }[]>`SELECT name, kind FROM agent_file WHERE agent_id = ${agentId}`).map(
+				({ name, kind }) => ({ name, kind }),
 			),
-		).toEqual(["renamed.md"])
+		).toEqual([{ name: "renamed.md", kind: "file" }])
 
 		const removed = await app.request(`/api/agents/${agentId}/files/renamed.md`, {
 			method: "DELETE",
@@ -582,5 +599,157 @@ describe("agent knowledge files", () => {
 		const deleted = await app.request(`/api/agents/${agentId}`, { method: "DELETE", headers: { Cookie: cookie } })
 		expect(deleted.status).toBe(204)
 		await expect(readdir(join(UPLOAD_ROOT, agentId))).rejects.toMatchObject({ code: "ENOENT" })
+	})
+})
+
+describe("agent knowledge websites", () => {
+	it("adds, normalizes, lists, and deduplicates websites with safe validation and permissions", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Websites")
+		const created = await addWebsite(cookie, agentId, " HTTPS://Example.COM:443/docs/../guide/#start ")
+		expect(created.status).toBe(201)
+		const { website } = (await created.json()) as {
+			website: { id: string; url: string; embeddingStatus: string; embeddingError: string | null }
+		}
+		expect(website).toMatchObject({
+			url: "https://example.com/guide/",
+			embeddingStatus: "pending",
+			embeddingError: null,
+		})
+
+		const listed = await app.request(`/api/agents/${agentId}/websites`, { headers: { Cookie: cookie } })
+		expect(listed.status).toBe(200)
+		const listBody = (await listed.json()) as {
+			websites: { id: string; url: string }[]
+			maxPages: number
+		}
+		expect(listBody.maxPages).toBe(50)
+		expect(listBody.websites).toMatchObject([{ id: website.id, url: "https://example.com/guide/" }])
+		await expectProblem(
+			await addWebsite(cookie, agentId, "https://example.com/guide/#again"),
+			409,
+			"agent-website-duplicate",
+		)
+		await expectProblem(await addWebsite(cookie, agentId, "ftp://example.com/guide"), 400, "agent-website-invalid")
+		await expectProblem(await addWebsite(cookie, crypto.randomUUID(), "https://example.com/"), 404, "agent-not-found")
+		const missing = crypto.randomUUID()
+		await expectProblem(
+			await websiteOperation(cookie, agentId, missing, "POST", "/refresh"),
+			404,
+			"agent-website-not-found",
+		)
+		await expectProblem(await websiteOperation(cookie, agentId, missing, "DELETE"), 404, "agent-website-not-found")
+
+		const reader = await createReaderSession()
+		expect((await app.request(`/api/agents/${agentId}/websites`, { headers: { Cookie: reader } })).status).toBe(200)
+		await expectProblem(await addWebsite(reader, agentId, "https://example.com/other"), 403, "permission-denied")
+		await expectProblem(
+			await websiteOperation(reader, agentId, website.id, "POST", "/refresh"),
+			403,
+			"permission-denied",
+		)
+		await expectProblem(await websiteOperation(reader, agentId, website.id, "DELETE"), 403, "permission-denied")
+	})
+
+	it("carries website kind through retry and ready refresh with generation fencing and delete cascade", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Website refresh")
+		const created = await addWebsite(cookie, agentId, "https://example.com/docs/")
+		const { website } = (await created.json()) as { website: { id: string } }
+		await expectProblem(
+			await websiteOperation(cookie, agentId, website.id, "POST", "/refresh"),
+			409,
+			"agent-website-not-refreshable",
+		)
+
+		const first = await repository.claim("website-key")
+		expect(first?.kind).toBe("website")
+		if (!first) throw new Error("Expected a website job")
+		await repository.fail(first, "website-unreachable")
+		expect((await repository.findWebsite(agentId, website.id))?.error).toBe("website-unreachable")
+
+		expect((await websiteOperation(cookie, agentId, website.id, "POST", "/refresh")).status).toBe(204)
+		const retried = await repository.claim("website-key")
+		if (!retried) throw new Error("Expected a retried website job")
+		expect(retried.kind).toBe("website")
+		expect(retried.generation).toBeGreaterThan(first.generation)
+		await repository.complete(retried, "website-key", [{ text: "first website text", embedding: [1, 0, 0] }])
+
+		expect((await websiteOperation(cookie, agentId, website.id, "POST", "/refresh")).status).toBe(204)
+		await repository.complete(retried, "website-key", [{ text: "stale website text", embedding: [1, 0, 0] }])
+		expect((await repository.findWebsite(agentId, website.id))?.status).toBe("pending")
+		const refreshed = await repository.claim("website-key")
+		if (!refreshed) throw new Error("Expected a refreshed website job")
+		expect(refreshed.generation).toBeGreaterThan(retried.generation)
+		await repository.complete(refreshed, "website-key", [{ text: "refreshed website text", embedding: [1, 0, 0] }])
+		expect(await repository.search(agentId, [1, 0, 0], "website-key", 5)).toEqual(["refreshed website text"])
+
+		expect((await websiteOperation(cookie, agentId, website.id, "DELETE")).status).toBe(204)
+		expect(await repository.findWebsite(agentId, website.id)).toBeUndefined()
+		expect((await sql`SELECT file_id FROM agent_file_chunk WHERE file_id = ${website.id}`).length).toBe(0)
+	})
+
+	it("keeps website rows during disk reconciliation while removing missing files", async () => {
+		const owner = await createOwner("Website recovery")
+		try {
+			await uploadFile(owner.id, "missing.md", new TextEncoder().encode("content").buffer)
+			const website = await addWebsiteSource(owner.id, "https://example.com/guide/")
+			await rm(join(UPLOAD_ROOT, owner.id, "missing.md"))
+
+			await reconcileDanglingRows()
+
+			expect(await repository.listWebsites(owner.id)).toMatchObject([
+				{ id: website.id, name: "https://example.com/guide/" },
+			])
+			expect(await repository.statuses(owner.id)).toEqual(new Map())
+			expect((await sql`SELECT id FROM agent_file WHERE agent_id = ${owner.id} AND kind = 'file'`).length).toBe(0)
+		} finally {
+			await agent.deleteAgent(owner.id)
+		}
+	})
+
+	it("searches website chunks by agent and model, reindexes them, and removes them on delete", async () => {
+		const owner = await createOwner("Website search")
+		const other = await createOwner("Website search")
+		const key = "website-search-a"
+		const nextKey = "website-search-b"
+		const prepare = spyOn(aiProvider, "prepareEmbeddingOperation")
+		try {
+			const website = await repository.insertWebsite(owner.id, "https://example.com/guide/")
+			await repository.insertWebsite(other.id, "https://example.com/other/")
+			const job = await repository.claim(key)
+			const otherJob = await repository.claim(key)
+			if (!job || !otherJob) throw new Error("Expected website jobs")
+			expect(job.kind).toBe("website")
+			await repository.complete(job, key, [{ text: "website answer", embedding: [1, 0, 0] }])
+			await repository.complete(otherJob, key, [{ text: "other website answer", embedding: [1, 0, 0] }])
+			prepare.mockResolvedValue({
+				key,
+				embed: async () => [1, 0, 0],
+			})
+
+			expect(await searchKnowledge(owner.id, "question")).toEqual(["website answer"])
+			expect(await repository.search(owner.id, [1, 0, 0], "other-key", 5)).toEqual([])
+
+			await repository.reindexChanged(nextKey)
+			expect(await repository.search(owner.id, [1, 0, 0], key, 5)).toEqual([])
+			const changed = await repository.claim(nextKey)
+			if (!changed) throw new Error("Expected a website model-change job")
+			expect(changed.kind).toBe("website")
+			prepare.mockResolvedValue({
+				key: nextKey,
+				embed: async () => [1, 0, 0],
+			})
+			await repository.complete(changed, nextKey, [{ text: "reindexed website answer", embedding: [1, 0, 0] }])
+			expect(await searchKnowledge(owner.id, "question")).toEqual(["reindexed website answer"])
+
+			await deleteWebsiteSource(owner.id, website.id)
+			expect(await searchKnowledge(owner.id, "question")).toEqual([])
+			expect((await sql`SELECT file_id FROM agent_file_chunk WHERE file_id = ${website.id}`).length).toBe(0)
+		} finally {
+			prepare.mockRestore()
+			await agent.deleteAgent(owner.id)
+			await agent.deleteAgent(other.id)
+		}
 	})
 })

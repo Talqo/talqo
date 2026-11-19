@@ -13,7 +13,8 @@ type FetchDocling = (url: URL, init: RequestInit) => Promise<Response>
 
 async function submitFile(name: string, data: Uint8Array, baseUrl: string, fetcher: FetchDocling): Promise<string> {
 	const form = new FormData()
-	form.append("files", new File([new Uint8Array(data)], name, { type: "application/octet-stream" }))
+	const contentType = name.toLowerCase().endsWith(".html") ? "text/html" : "application/octet-stream"
+	form.append("files", new File([new Uint8Array(data)], name, { type: contentType }))
 	form.append("chunking_max_tokens", String(CHUNK_TOKENS))
 	const submit = await fetcher(new URL("/v1/chunk/hybrid/file/async", baseUrl), {
 		method: "POST",

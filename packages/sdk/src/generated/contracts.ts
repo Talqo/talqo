@@ -64,6 +64,18 @@ export type ProblemDetails = {
   code: 'agent-file-not-retryable';
   type: 'https://docs.talqo.chat/problems#agent-file-not-retryable';
 } | {
+  code: 'agent-website-duplicate';
+  type: 'https://docs.talqo.chat/problems#agent-website-duplicate';
+} | {
+  code: 'agent-website-invalid';
+  type: 'https://docs.talqo.chat/problems#agent-website-invalid';
+} | {
+  code: 'agent-website-not-found';
+  type: 'https://docs.talqo.chat/problems#agent-website-not-found';
+} | {
+  code: 'agent-website-not-refreshable';
+  type: 'https://docs.talqo.chat/problems#agent-website-not-refreshable';
+} | {
   code: 'agent-invalid';
   type: 'https://docs.talqo.chat/problems#agent-invalid';
 } | {

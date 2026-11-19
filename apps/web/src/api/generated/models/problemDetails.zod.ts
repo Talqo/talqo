@@ -25,6 +25,18 @@ export const ProblemDetails = zod.union([zod.object({
   "code": zod.enum(['agent-file-not-retryable']),
   "type": zod.enum(['https://docs.talqo.chat/problems#agent-file-not-retryable'])
 }),zod.object({
+  "code": zod.enum(['agent-website-duplicate']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-website-duplicate'])
+}),zod.object({
+  "code": zod.enum(['agent-website-invalid']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-website-invalid'])
+}),zod.object({
+  "code": zod.enum(['agent-website-not-found']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-website-not-found'])
+}),zod.object({
+  "code": zod.enum(['agent-website-not-refreshable']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-website-not-refreshable'])
+}),zod.object({
   "code": zod.enum(['agent-invalid']),
   "type": zod.enum(['https://docs.talqo.chat/problems#agent-invalid'])
 }),zod.object({

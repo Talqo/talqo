@@ -12,6 +12,7 @@ import {
 } from "@/api/generated/agent/agent.ts"
 import { ProblemAlert } from "@/components/problem-alert"
 import { formatBytes, splitExtension } from "@/features/context/format"
+import { hasActiveIngestion, INGESTION_REFRESH_MS, IngestionStatusLine } from "@/features/context/ingestion-status"
 import { formatDateTime } from "@/lib/format-date"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
@@ -33,9 +34,6 @@ import { Skeleton } from "@talqo/ui/components/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@talqo/ui/components/tooltip"
 import { useQueryClient } from "@tanstack/react-query"
 import {
-	CircleAlertIcon,
-	CircleCheckIcon,
-	ClockIcon,
 	Download,
 	FileText,
 	LoaderCircleIcon,
@@ -49,7 +47,6 @@ import { useTranslation } from "react-i18next"
 
 // eslint-disable-next-line no-magic-numbers
 const BYTES_PER_MB = 1024 * 1024
-const EMBEDDING_REFRESH_MS = 3_000
 
 // The generated client interpolates path params unencoded; names may legally contain "#", "?", or "%".
 function pathName(name: string): string {
@@ -70,37 +67,10 @@ const embeddingErrorMessages = {
 	unknown: "agentFiles.error.unknown",
 } as const satisfies Record<NonNullable<AgentFile["embeddingError"]>, string>
 
-type EmbeddingStatusStyle = {
-	Icon: typeof ClockIcon
-	className: string
-	spin?: boolean
-}
-
-const embeddingStatusStyles: Record<AgentFile["embeddingStatus"], EmbeddingStatusStyle> = {
-	pending: { Icon: ClockIcon, className: "text-muted-foreground" },
-	processing: { Icon: LoaderCircleIcon, className: "text-amber-600 dark:text-amber-500", spin: true },
-	ready: { Icon: CircleCheckIcon, className: "text-green-600 dark:text-green-500" },
-	failed: { Icon: CircleAlertIcon, className: "text-destructive" },
-}
-
-function EmbeddingStatusLine({ file, t }: { file: AgentFile; t: (key: string) => string }) {
-	const style = embeddingStatusStyles[file.embeddingStatus]
-	const { Icon } = style
-	return (
-		<output className={`flex items-center gap-1.5 text-xs ${style.className}`}>
-			<Icon aria-hidden className={style.spin ? "size-3.5 animate-spin" : "size-3.5"} />
-			<span>
-				{t(embeddingStatusMessages[file.embeddingStatus])}
-				{file.embeddingStatus === "failed" && file.embeddingError
-					? ` · ${t(embeddingErrorMessages[file.embeddingError])}`
-					: ""}
-			</span>
-		</output>
-	)
-}
-
-function hasUnfinishedFiles(files: AgentFile[] | undefined): boolean {
-	return files?.some((file) => file.embeddingStatus === "pending" || file.embeddingStatus === "processing") ?? false
+function fileErrorLabel(file: AgentFile, t: (key: string) => string): string | undefined {
+	return file.embeddingStatus === "failed" && file.embeddingError
+		? t(embeddingErrorMessages[file.embeddingError])
+		: undefined
 }
 
 function useAgentFilesQuery(agentId: string) {
@@ -108,7 +78,7 @@ function useAgentFilesQuery(agentId: string) {
 	const filesQuery = useListAgentFiles(agentId, {
 		query: {
 			...getListAgentFilesQueryOptions(agentId),
-			refetchInterval: (query) => (hasUnfinishedFiles(query.state.data?.data.files) ? EMBEDDING_REFRESH_MS : false),
+			refetchInterval: (query) => (hasActiveIngestion(query.state.data?.data.files) ? INGESTION_REFRESH_MS : false),
 		},
 	})
 	function refresh() {
@@ -483,7 +453,11 @@ function AgentFileRow(props: {
 				<p className="text-muted-foreground text-xs">
 					{formatBytes(props.file.sizeBytes)} · {formatDateTime(props.file.createdAt, language)}
 				</p>
-				<EmbeddingStatusLine file={props.file} t={t} />
+				<IngestionStatusLine
+					status={props.file.embeddingStatus}
+					label={t(embeddingStatusMessages[props.file.embeddingStatus])}
+					errorLabel={fileErrorLabel(props.file, t)}
+				/>
 			</div>
 			<FileRowActions
 				file={props.file}
