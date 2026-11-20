@@ -144,6 +144,7 @@ test("observes the page and reports private controls without exposing them", asy
 		<section data-payment><div><input id="wrapped" name="number"></div></section>
 		<div id="payment"><input id="payment-number" name="number"></div>
 		<div data-testid="payment"><input id="payment-expiry" name="expiry"></div>
+		<input id="marked" data-payment>
 		<input name="quantity">
 		<button id="buy">Buy</button>
 	</main>`
@@ -156,6 +157,7 @@ test("observes the page and reports private controls without exposing them", asy
 			"wrapped",
 			"payment-number",
 			"payment-expiry",
+			"marked",
 		])
 	}
 	controllerState.element = document.querySelector("#buy") as HTMLElement
@@ -328,6 +330,29 @@ test("fills and selects through the controller", async () => {
 		}),
 	).toMatchObject({ status: "dispatched" })
 	page.dispose()
+})
+
+test("rejects a private payment control returned by the controller", async () => {
+	document.body.innerHTML = '<main><div id="payment"><input name="number"></div></main>'
+	const input = document.querySelector("input")!
+	setRect(input, 20, 40)
+	document.elementFromPoint = () => input
+	controllerState.element = input
+	const page = newPage()
+	const tools = toolsFor(page)
+	try {
+		expect(
+			await execute(tools, {
+				action: "fill",
+				snapshot: await observeSnapshot(tools),
+				index: 0,
+				description: "Filling the field",
+				text: "example",
+			}),
+		).toMatchObject({ status: "failed", message: "Target is outside the permitted page." })
+	} finally {
+		page.dispose()
+	}
 })
 
 test("stops the task from the panel when the agent cannot be reached", async () => {
