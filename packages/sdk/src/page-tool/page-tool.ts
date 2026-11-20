@@ -92,7 +92,11 @@ function fieldMetadata(element: Element): string {
 }
 
 function isPaymentContainer(element: Element | null | undefined): boolean {
-	return !!element && /payment/i.test(fieldMetadata(element))
+	return (
+		!!element &&
+		(element.hasAttribute("data-payment") ||
+			(element.matches("form, fieldset") && /payment/i.test(fieldMetadata(element))))
+	)
 }
 
 function isInsidePaymentContainer(element: Element): boolean {

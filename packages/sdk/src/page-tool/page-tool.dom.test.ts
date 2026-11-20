@@ -136,7 +136,7 @@ function shadowButtons(): NodeListOf<HTMLButtonElement> {
 }
 
 test("observes the page and reports private controls without exposing them", async () => {
-	document.body.innerHTML = `<main>
+	document.body.innerHTML = `<main aria-label="Payments">
 		<input id="password" type="password">
 		<input id="number" type="tel" name="credit-card" aria-label="Card number">
 		<select id="saved" data-card-number><option>Saved card</option></select>
