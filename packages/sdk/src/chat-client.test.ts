@@ -1914,11 +1914,6 @@ describe("createChatClient", () => {
 					await cancellationFailed.promise
 					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
 				},
-				// Loud if a future path reaches the session. The storage assertion below proves
-				// `rejectPendingSend` ran, which clears the credential before the poll's timer fires.
-				loadSession: async () => {
-					throw new Error("A rejected send is not recoverable")
-				},
 			}),
 			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 			recoveryDelays: [0],
@@ -1929,7 +1924,8 @@ describe("createChatClient", () => {
 		const cancelling = client.cancelResponse()
 		cancellationFailed.resolve()
 		await cancelling
-		// Read before `sendRejected.resolve()`: afterwards the client is already idle.
+		// Read before `sendRejected.resolve()`: afterwards the client is idle, and recovery polling
+		// never reaches `loadSession`.
 		expect(client.getSnapshot()).toMatchObject({
 			activity: "recovering",
 			error: { code: "chat-session-unauthorized", status: 401 },
