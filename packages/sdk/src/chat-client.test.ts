@@ -1872,6 +1872,7 @@ describe("createChatClient", () => {
 					await sending
 					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
 				},
+				// Keeps recovery from settling through a success path before the assertions run.
 				loadSession: async () => {
 					throw new Error("A rejected send is not recoverable")
 				},
