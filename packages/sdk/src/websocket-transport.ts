@@ -105,6 +105,7 @@ export function createWebSocketChatTransport(
 				input.signal.removeEventListener("abort", close)
 				activeSends.delete(input.credential)
 				recordStopFailure()
+				// Settle the send before the cancel wait so the client observes the rejection first.
 				rejectAcceptance()
 				wake?.()
 				settled.resolve()
