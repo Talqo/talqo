@@ -13,7 +13,7 @@ const { act, useEffect } = await import("react")
 
 const RESIZE_QUERY = "(min-width: 640px) and (pointer: fine)"
 const RECT = { left: 500, right: 820, top: 116, bottom: 500, width: 320, height: 384 } as DOMRect
-const SIZE_KEY = "widget-test:size"
+const OPEN_STATE_KEY = "widget-test"
 
 type MediaListener = (event: { matches: boolean }) => void
 let mediaListeners: Array<{ query: string; type: string; listener: MediaListener }> = []
@@ -46,8 +46,8 @@ let panelRef: RefObject<HTMLElement | null>
 let host: HTMLDivElement
 let root: Root | undefined
 
-function Probe({ position, sizeKey }: { position?: WidgetPosition; sizeKey?: string }) {
-	const value = useResizablePanel(position, panelRef, sizeKey)
+function Probe({ position, openStateKey }: { position?: WidgetPosition; openStateKey?: string }) {
+	const value = useResizablePanel(position, panelRef, openStateKey)
 	useEffect(() => {
 		apiHolder.current = value
 	})
@@ -66,7 +66,7 @@ async function unmount() {
 	root = undefined
 }
 
-async function render(position?: WidgetPosition, sizeKey?: string) {
+async function render(position?: WidgetPosition, openStateKey?: string) {
 	await unmount()
 	panel = document.createElement("div")
 	panel.getBoundingClientRect = () => RECT
@@ -75,7 +75,7 @@ async function render(position?: WidgetPosition, sizeKey?: string) {
 	host = document.createElement("div")
 	document.body.append(host)
 	root = createRoot(host)
-	await act(async () => root?.render(<Probe position={position} sizeKey={sizeKey} />))
+	await act(async () => root?.render(<Probe position={position} openStateKey={openStateKey} />))
 }
 
 async function changeMedia(matches: boolean) {
@@ -108,7 +108,7 @@ async function endDrag(type: "pointerup" | "pointercancel", pointerId = 7) {
 afterEach(async () => {
 	await unmount()
 	window.matchMedia = originalMatchMedia
-	sessionStorage.removeItem(SIZE_KEY)
+	sessionStorage.removeItem(`${OPEN_STATE_KEY}:size`)
 })
 
 describe("useResizablePanel", () => {
@@ -131,37 +131,37 @@ describe("useResizablePanel", () => {
 
 	test("restores a finished drag on the next page and clears it when reset", async () => {
 		stubMatchMedia(true)
-		await render("bottom-right", SIZE_KEY)
+		await render("bottom-right", OPEN_STATE_KEY)
 		await startResize()
 		await moveTo(400, 60)
 		await endDrag("pointerup")
 		expect(api().size).toEqual({ width: 420, height: 440 })
 
 		stubMatchMedia(false)
-		await render("bottom-right", SIZE_KEY)
+		await render("bottom-right", OPEN_STATE_KEY)
 		expect(api().size).toBeNull()
 		await changeMedia(true)
 		expect(api().size).toEqual({ width: 420, height: 440 })
 
 		await act(async () => api().toggleExpanded())
 		stubMatchMedia(true)
-		await render("bottom-right", SIZE_KEY)
+		await render("bottom-right", OPEN_STATE_KEY)
 		expect(api().size).toBeNull()
 	})
 
 	test("fits the saved size to a smaller viewport without forgetting it", async () => {
 		stubMatchMedia(true)
-		await render("bottom-right", SIZE_KEY)
+		await render("bottom-right", OPEN_STATE_KEY)
 		await act(async () => api().toggleExpanded())
 		const originalHeight = window.innerHeight
 		try {
 			Object.defineProperty(window, "innerHeight", { configurable: true, value: 480 })
-			await render("bottom-right", SIZE_KEY)
+			await render("bottom-right", OPEN_STATE_KEY)
 			expect(api().size).toEqual({ width: 448, height: 388 })
 		} finally {
 			Object.defineProperty(window, "innerHeight", { configurable: true, value: originalHeight })
 		}
-		await render("bottom-right", SIZE_KEY)
+		await render("bottom-right", OPEN_STATE_KEY)
 		expect(api().size).toEqual({ width: 448, height: 560 })
 	})
 
