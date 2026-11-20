@@ -1914,8 +1914,8 @@ describe("createChatClient", () => {
 					await cancellationFailed.promise
 					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
 				},
-				// Loud if a future path reaches the session. That the deferred poll skips it today rests on
-				// the credential clear in `rejectPendingSend`, not on an assertion here.
+				// Loud if a future path reaches the session. The storage assertion below proves
+				// `rejectPendingSend` ran, which clears the credential before the poll's timer fires.
 				loadSession: async () => {
 					throw new Error("A rejected send is not recoverable")
 				},
@@ -1929,7 +1929,7 @@ describe("createChatClient", () => {
 		const cancelling = client.cancelResponse()
 		cancellationFailed.resolve()
 		await cancelling
-		// Pins that the observation path was entered, not that the credential was cleared before the poll.
+		// Read before `sendRejected.resolve()`: afterwards the client is already idle.
 		expect(client.getSnapshot()).toMatchObject({
 			activity: "recovering",
 			error: { code: "chat-session-unauthorized", status: 401 },
