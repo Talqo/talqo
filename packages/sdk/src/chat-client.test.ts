@@ -1924,6 +1924,11 @@ describe("createChatClient", () => {
 		const cancelling = client.cancelResponse()
 		cancellationFailed.resolve()
 		await cancelling
+		// The cancellation failure observed the turn before the send rejection lands.
+		expect(client.getSnapshot()).toMatchObject({
+			activity: "recovering",
+			error: { code: "chat-session-unauthorized", status: 401 },
+		})
 		sendRejected.resolve()
 		await sending
 
