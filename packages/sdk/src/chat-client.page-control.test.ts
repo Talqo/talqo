@@ -1,6 +1,6 @@
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
 import { tool } from "ai"
-import { afterAll, afterEach, beforeAll, expect, test } from "bun:test"
+import { afterAll, afterEach, beforeAll, expect, spyOn, test } from "bun:test"
 import { z } from "zod"
 
 import { ChatClientFrameV1 } from "./generated/models/chatClientFrameV1.zod"
@@ -116,6 +116,44 @@ test("keeps chat available with eight registered tools", async () => {
 	await full.initialize()
 	expect(full.getSnapshot().activity).toBe("idle")
 	full.dispose()
+})
+
+test("restores a session on retry without reporting the page tool as a custom slot", async () => {
+	let sessionRequests = 0
+	globalThis.fetch = (async (input: string) => {
+		if (!input.endsWith("/session")) return Response.json(configuration)
+		sessionRequests++
+		if (sessionRequests === 1) throw new Error("Session temporarily unavailable")
+		return Response.json({ messages: [] })
+	}) as unknown as typeof fetch
+	const apiUrl = "http://api.test"
+	const embedToken = "embed"
+	const storage = createMemoryStorage()
+	await storage.setItem(
+		createChatStorageKey(apiUrl, embedToken),
+		JSON.stringify({ version: 1, credential: crypto.randomUUID() }),
+	)
+	const root = document.createElement("main")
+	document.body.append(root)
+	const client = createChatClient({
+		apiUrl,
+		embedToken,
+		storage,
+		pageControl: { exclude: [root] },
+		tools: Object.fromEntries(Array.from({ length: 7 }, (_, index) => [`tool${index}`, customTool(index)])),
+	})
+	const warning = spyOn(console, "warn").mockImplementation(() => {})
+	try {
+		await expect(client.initialize()).rejects.toThrow("Session temporarily unavailable")
+		await client.initialize()
+		expect(client.getSnapshot().activity).toBe("idle")
+		expect(warning).not.toHaveBeenCalledWith(
+			"TalqoSDK: website actions unavailable because all 8 client tool slots are in use",
+		)
+	} finally {
+		warning.mockRestore()
+		client.dispose()
+	}
 })
 
 test("resumes into one assistant message and executes the next page tool call", async () => {
