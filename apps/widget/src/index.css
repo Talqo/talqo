@@ -66,6 +66,14 @@
 	display: none;
 }
 
+.talqo-widget .talqo-tool-chevron {
+	rotate: -90deg;
+}
+
+.talqo-widget details[open] > summary > .talqo-tool-chevron {
+	rotate: 0deg;
+}
+
 .talqo-widget .talqo-scrollbar {
 	scrollbar-color: color-mix(in srgb, var(--talqo-muted-foreground) 55%, transparent) transparent;
 	scrollbar-width: thin;
