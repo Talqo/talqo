@@ -1285,6 +1285,10 @@
               },
               "tools": {
                 "$ref": "#/components/schemas/ClientToolManifest"
+              },
+              "pageSession": {
+                "type": "string",
+                "format": "uuid"
               }
             },
             "required": [
@@ -1294,6 +1298,38 @@
               "requestId",
               "text",
               "tools"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "resume"
+                ]
+              },
+              "credential": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "pageSession": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "credential",
+              "pageSession"
             ],
             "additionalProperties": false
           },
@@ -1347,7 +1383,7 @@
               },
               "error": {
                 "type": "string",
-                "maxLength": 1000
+                "maxLength": 4096
               }
             },
             "required": [
@@ -2051,6 +2087,23 @@
           "systemPrompt": {
             "type": "string"
           },
+          "pageControl": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "approvalInstructions": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "enabled",
+              "approvalInstructions"
+            ]
+          },
           "wordBlacklist": {
             "type": "array",
             "items": {
@@ -2070,6 +2123,7 @@
           "id",
           "name",
           "systemPrompt",
+          "pageControl",
           "wordBlacklist",
           "createdAt",
           "updatedAt"
@@ -2192,13 +2246,29 @@
           },
           "isAvailable": {
             "type": "boolean"
+          },
+          "pageControl": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "approvalInstructions": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled",
+              "approvalInstructions"
+            ]
           }
         },
         "required": [
           "version",
           "name",
           "appearance",
-          "isAvailable"
+          "isAvailable",
+          "pageControl"
         ]
       },
       "AgentFile": {
@@ -5942,6 +6012,23 @@
                     "minLength": 1,
                     "maxLength": 20000
                   },
+                  "pageControl": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "approvalInstructions": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "enabled",
+                      "approvalInstructions"
+                    ]
+                  },
                   "wordBlacklist": {
                     "type": "array",
                     "items": {
@@ -6161,6 +6248,23 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 20000
+                  },
+                  "pageControl": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "approvalInstructions": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "enabled",
+                      "approvalInstructions"
+                    ]
                   },
                   "wordBlacklist": {
                     "type": "array",

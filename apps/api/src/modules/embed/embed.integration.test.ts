@@ -12,6 +12,7 @@ import {
 	testAdminId,
 	uniqueUsername,
 } from "@/test-helpers.ts"
+import { DEFAULT_APPROVAL_INSTRUCTIONS } from "@talqo/shared/page-control"
 import { DEFAULT_WIDGET_APPEARANCE, WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 
@@ -44,6 +45,39 @@ beforeEach(async () => {
 })
 
 describe("embed lifecycle", () => {
+	it("publishes agent website-action settings consistently across its embeds", async () => {
+		const owner = await agent.getAgent(await createAgent())
+		const first = await createEmbed(owner.id)
+		const second = await createEmbed(owner.id, { name: "Second site" })
+		const unrelated = await createEmbed(await createAgent("Other agent"))
+		expect((await service.getConfigByToken(first.embedToken)).pageControl).toEqual(owner.pageControl)
+		const before = await app.request(`/api/embed-config/${first.embedToken}`)
+		await agent.updateAgent(owner.id, {
+			...owner,
+			pageControl: { enabled: true, approvalInstructions: "Always ask before submitting forms." },
+		})
+		const instructionsChanged = await app.request(`/api/embed-config/${first.embedToken}`, {
+			headers: { "If-None-Match": before.headers.get("etag") ?? "" },
+		})
+		expect(instructionsChanged.status).toBe(200)
+		expect(instructionsChanged.headers.get("etag")).not.toBe(before.headers.get("etag"))
+		await agent.updateAgent(owner.id, {
+			...owner,
+			pageControl: { enabled: false, approvalInstructions: "Always ask before submitting forms." },
+		})
+		const configs = await Promise.all(
+			[first, second].map((installed) => service.getConfigByToken(installed.embedToken)),
+		)
+		expect(configs.map((config) => config.pageControl)).toEqual([
+			{ enabled: false, approvalInstructions: "Always ask before submitting forms." },
+			{ enabled: false, approvalInstructions: "Always ask before submitting forms." },
+		])
+		expect((await service.getConfigByToken(unrelated.embedToken)).pageControl).toEqual(owner.pageControl)
+		const refreshed = await app.request(`/api/embed-config/${first.embedToken}`, {
+			headers: { "If-None-Match": before.headers.get("etag") ?? "" },
+		})
+		expect(refreshed.status).toBe(200)
+	})
 	it("conceals hidden embeds with the same problem as missing embeds", async () => {
 		const visible = await createAgent("Visible")
 		const hidden = await createEmbed(await createAgent("Hidden"))
@@ -282,6 +316,7 @@ describe("public config lookup", () => {
 			name: "Marketing site",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
 			isAvailable: false,
+			pageControl: { enabled: true, approvalInstructions: DEFAULT_APPROVAL_INSTRUCTIONS },
 		})
 	})
 

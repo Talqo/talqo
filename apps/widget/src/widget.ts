@@ -16,7 +16,9 @@ import { launcherText } from "./lib/launcher-text"
 import "./launcher.css"
 
 export type MountTarget = string | HTMLElement
-export type ChatClientFactory = (options: Pick<ChatClientOptions, "apiUrl" | "embedToken" | "tools">) => ChatClient
+export type ChatClientFactory = (
+	options: Pick<ChatClientOptions, "apiUrl" | "embedToken" | "tools" | "pageControl">,
+) => ChatClient
 export type MountOptions = { createClient?: ChatClientFactory; tools?: ChatClientOptions["tools"] }
 
 const DEFAULT_TARGET = "#talqo-widget"
@@ -39,6 +41,7 @@ let launcher: HTMLButtonElement | null = null
 let chatModule: ChatModule | null = null
 let chatPromise: Promise<ChatModule> | null = null
 let chatBoot: ChatBoot | null = null
+let openStateKey: string | undefined
 let appearanceOverrides: WidgetAppearanceInput = {}
 let datasetTitle: string | undefined
 let mediaQuery: MediaQueryList | null = null
@@ -167,7 +170,7 @@ function syncLauncher() {
 	lastLauncherKey = key
 	const button = ensureLauncher()
 	applyLauncher(button, appearance, scheme)
-	chatBoot = { mode: "connected", client, appearance, title: datasetTitle }
+	chatBoot = { mode: "connected", client, appearance, title: datasetTitle, openStateKey }
 }
 
 function chatScriptUrl(): string | undefined {
@@ -281,6 +284,14 @@ function mountPreview(target: HTMLElement, dataset: DOMStringMap): void {
 		.catch((cause: unknown) => console.warn("TalqoWidget: failed to load chat", cause))
 }
 
+function wasChatOpen(key: string): boolean {
+	try {
+		return localStorage.getItem(key) === "true"
+	} catch {
+		return false
+	}
+}
+
 function mountConnected(target: HTMLElement, dataset: DOMStringMap | undefined, options: MountOptions): void {
 	const embedToken = dataset?.talqoEmbedToken
 	const origin = apiOrigin(embedScript)
@@ -293,11 +304,24 @@ function mountConnected(target: HTMLElement, dataset: DOMStringMap | undefined, 
 
 	appearanceOverrides = appearanceFromDataset(dataset)
 	datasetTitle = dataset?.talqoTitle
-	client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken, tools: options.tools })
+	openStateKey = `talqo:widget-open:${encodeURIComponent(origin)}:${encodeURIComponent(embedToken)}`
+	client = (options.createClient ?? createChatClient)({
+		apiUrl: origin,
+		embedToken,
+		tools: options.tools,
+		pageControl: { exclude: [target], themeRoot: () => target.querySelector(".talqo-widget") },
+	})
 	unsubscribe = client.subscribe(syncLauncher)
 	attachMediaListener()
 	syncLauncher()
-	void client.initialize().catch((cause: unknown) => console.warn("TalqoWidget: initialization failed", cause))
+	const mountedClient = client
+	const visibilityKey = openStateKey
+	void mountedClient
+		.initialize()
+		.then(() => {
+			if (client === mountedClient && wasChatOpen(visibilityKey)) void openChat()
+		})
+		.catch((cause: unknown) => console.warn("TalqoWidget: initialization failed", cause))
 }
 
 export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOptions = {}) {

@@ -10,6 +10,7 @@ import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.
 import * as mcp from "@/modules/mcp/mcp.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
+import { PAGE_TOOL_NAME } from "@talqo/shared/page-control"
 import { asSchema, convertToModelMessages, type ModelMessage, type UIMessage } from "ai"
 import { z } from "zod"
 
@@ -127,6 +128,20 @@ type SendInput = {
 function requireUuid(value: string, error: Error): string {
 	if (!UUID_SCHEMA.safeParse(value).success) throw error
 	return value
+}
+
+function validateMessage(input: SendInput): void {
+	if (!input.text) throw new InvalidChatInputError("Message text is required")
+	requireUuid(input.requestId, new InvalidChatInputError("Request ID is invalid"))
+}
+
+function removeDisabledPageTool(clientTools: SendInput["clientTools"], pageControl: { enabled: boolean }): void {
+	for (const [name, identity] of clientTools?.binding.names ?? []) {
+		if (identity.toolName === PAGE_TOOL_NAME && !pageControl.enabled) {
+			clientTools?.binding.names.delete(name)
+			delete clientTools?.binding.tools[name]
+		}
+	}
 }
 
 function isActiveStatus(
@@ -920,11 +935,12 @@ export function createConversationService(dependencies: Dependencies) {
 	return {
 		async send(input: SendInput, emit: (event: ChatEvent) => void = () => {}, annotate: Annotate = () => {}) {
 			await recoverUsage()
-			if (!input.text) throw new InvalidChatInputError("Message text is required")
-			requireUuid(input.requestId, new InvalidChatInputError("Request ID is invalid"))
+			validateMessage(input)
 			annotate({ "chat.request_id": input.requestId })
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
 			if (currentEmbed.isDisabled) throw new EmbedDisabledError()
+			const agent = await agentService.getAgent(currentEmbed.agentId)
+			removeDisabledPageTool(input.clientTools, agent.pageControl)
 			if (Array.from(input.text).length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 			const conversationId = requireUuid(
 				input.credential,
@@ -934,7 +950,6 @@ export function createConversationService(dependencies: Dependencies) {
 			annotate({ "chat.new_conversation": !session })
 			const agentId = currentEmbed.agentId
 			annotate({ "agent.id": agentId, "embed.id": currentEmbed.id })
-			const agent = await agentService.getAgent(agentId)
 			async function preparePrompt() {
 				const history = session
 					? await repository.getHistorySnapshot(session.conversationId)
@@ -1029,6 +1044,15 @@ export function createConversationService(dependencies: Dependencies) {
 				messages: (await repository.listMessages(session.conversationId)).map(publicMessage),
 				activeGeneration: await repository.getActiveGenerationAttempt(session.conversationId),
 			}
+		},
+
+		async authorizePageResume(credential: string, embedToken: string): Promise<void> {
+			const session = await authenticate(credential)
+			const currentEmbed = await embedService.getEmbedByToken(embedToken)
+			if (session.embedId !== currentEmbed.id)
+				throw new SessionUnauthorizedError("Session does not belong to this embed")
+			const agent = await agentService.getAgent(currentEmbed.agentId)
+			if (currentEmbed.isDisabled || !agent.pageControl.enabled) throw new EmbedDisabledError()
 		},
 
 		async cancel(credential: string, generationId?: string): Promise<void> {

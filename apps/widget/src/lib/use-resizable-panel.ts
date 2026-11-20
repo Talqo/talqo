@@ -11,7 +11,30 @@ const RESIZE_HEIGHT_MARGIN = 92
 const EXPANDED_WIDTH = 448
 const EXPANDED_HEIGHT = 560
 
-function clampPanelSize(width: number, height: number): { width: number; height: number } {
+type PanelSize = { width: number; height: number }
+
+function readPanelSize(key: string | undefined): PanelSize | null {
+	if (!key) return null
+	try {
+		const [width, height] = (sessionStorage.getItem(key) ?? "").split(",")
+		const size = { width: Number(width), height: Number(height) }
+		if (Number.isFinite(size.width) && Number.isFinite(size.height)) return size
+	} catch {
+		// Storage is optional; the resize controls still work without it.
+	}
+	return null
+}
+
+function savePanelSize(key: string, size: PanelSize | null): void {
+	try {
+		if (size) sessionStorage.setItem(key, `${size.width},${size.height}`)
+		else sessionStorage.removeItem(key)
+	} catch {
+		// Keep the in-memory size when tab storage is blocked.
+	}
+}
+
+function clampPanelSize(width: number, height: number): PanelSize {
 	return {
 		width: Math.round(Math.min(Math.max(width, MIN_WIDTH), Math.max(MIN_WIDTH, window.innerWidth - RESIZE_MARGIN))),
 		height: Math.round(
@@ -20,8 +43,13 @@ function clampPanelSize(width: number, height: number): { width: number; height:
 	}
 }
 
-export function useResizablePanel(position: WidgetPosition | undefined, panelRef: RefObject<HTMLElement | null>) {
-	const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+export function useResizablePanel(
+	position: WidgetPosition | undefined,
+	panelRef: RefObject<HTMLElement | null>,
+	openStateKey?: string,
+) {
+	const sizeKey = openStateKey && `${openStateKey}:size`
+	const [preferredSize, setSize] = useState(() => readPanelSize(sizeKey))
 	const [resizable, setResizable] = useState(
 		() => typeof window !== "undefined" && window.matchMedia("(min-width: 640px) and (pointer: fine)").matches,
 	)
@@ -31,11 +59,16 @@ export function useResizablePanel(position: WidgetPosition | undefined, panelRef
 		const query = window.matchMedia("(min-width: 640px) and (pointer: fine)")
 		const onChange = (event: MediaQueryListEvent) => {
 			setResizable(event.matches)
-			if (!event.matches) setSize(null)
 		}
 		query.addEventListener("change", onChange)
 		return () => query.removeEventListener("change", onChange)
 	}, [])
+
+	useEffect(() => {
+		if (sizeKey && !resizing) savePanelSize(sizeKey, preferredSize)
+	}, [sizeKey, preferredSize, resizing])
+
+	const size = resizable && preferredSize ? clampPanelSize(preferredSize.width, preferredSize.height) : null
 
 	function toggleExpanded() {
 		setSize((current) => (current ? null : clampPanelSize(EXPANDED_WIDTH, EXPANDED_HEIGHT)))
@@ -45,7 +78,7 @@ export function useResizablePanel(position: WidgetPosition | undefined, panelRef
 		const rect = panelRef.current?.getBoundingClientRect()
 		if (!rect) return
 		setSize((current) => {
-			const base = current ?? { width: rect.width, height: rect.height }
+			const base = current ? clampPanelSize(current.width, current.height) : rect
 			return clampPanelSize(base.width + widthDelta, base.height + heightDelta)
 		})
 	}

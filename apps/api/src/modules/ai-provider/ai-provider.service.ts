@@ -4,7 +4,7 @@ import type { createCredentialVault, CredentialEnvelope } from "@/lib/credential
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { APICallError, type EmbeddingModelV4, type LanguageModelV4 } from "@ai-sdk/provider"
-import { embed as aiEmbed, isStepCount, type ModelMessage, streamText as aiStreamText, type ToolSet } from "ai"
+import { embed as aiEmbed, type ModelMessage, streamText as aiStreamText, type ToolSet } from "ai"
 
 import type { DiscoverModelsInput, SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration, StoredEmbeddingConfiguration, StoredTextConfiguration } from "./ai-provider.types.ts"
@@ -23,6 +23,7 @@ const CONFIG_ID = "singleton"
  * `streamText` defaults to one step, which drops tool results. Each step is billed, so the bound caps cost.
  */
 const MAX_TOOL_STEPS = 5
+const MAX_PAGE_TOOL_STEPS = 64
 
 /** How a resolved tool identifies itself to a caller. Carried opaquely; no MCP types cross over. */
 export type ToolIdentity = { serverName: string; toolName: string; source?: "client" | "mcp" }
@@ -222,7 +223,15 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 			maxRetries: input.maxRetries,
 			abortSignal: input.signal,
 			timeout: input.timeoutMs,
-			stopWhen: isStepCount(MAX_TOOL_STEPS),
+			stopWhen: ({ steps }) => {
+				const usedPage = steps.some((step) =>
+					step.toolCalls.some((call) => {
+						const entry = input.toolNames?.get(call.toolName)
+						return entry?.source === "client" && entry.toolName === "talqo_page"
+					}),
+				)
+				return steps.length >= (usedPage ? MAX_PAGE_TOOL_STEPS : MAX_TOOL_STEPS)
+			},
 			onError: () => undefined,
 			...(input.tools ? { tools: input.tools } : {}),
 			onAbort: abort,

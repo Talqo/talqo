@@ -574,6 +574,14 @@
 		"dashboard": "Přehled",
 		"team": "Tým"
 	},
+	"pageControl": {
+		"connectedTools": "Připojené nástroje",
+		"description": "Umožněte agentovi procházet stránky, vyplňovat formuláře a plnit úkoly na vašem webu.",
+		"instructions": "Kdy požádat o schválení",
+		"instructionsRequired": "Zadejte pokyny ke schvalování, nejvýše {{max}} znaků.",
+		"restoreDefaults": "Obnovit výchozí",
+		"title": "Akce na webu"
+	},
 	"permissions": {
 		"accessDeniedBody": "Pokud tuto stránku potřebujete, požádejte správce o přístup.",
 		"accessDeniedDescription": "K zobrazení této stránky nemáte oprávnění.",

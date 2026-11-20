@@ -50,15 +50,33 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
-function embedConfiguration(value: unknown): EmbedConfig | undefined {
-	if (
-		!isRecord(value) ||
-		typeof value.name !== "string" ||
-		typeof value.isAvailable !== "boolean" ||
-		!isRecord(value.appearance)
+function isApprovalInstructions(value: unknown): boolean {
+	return value === undefined || typeof value === "string"
+}
+
+function isPageControlRecord(value: Record<string, unknown>): boolean {
+	return typeof value.enabled === "boolean" && isApprovalInstructions(value.approvalInstructions)
+}
+
+function isPageControl(value: unknown): boolean {
+	if (value === undefined) return true
+	if (!isRecord(value)) return false
+	return isPageControlRecord(value)
+}
+
+function isEmbedConfiguration(value: unknown): boolean {
+	return (
+		isRecord(value) &&
+		typeof value.name === "string" &&
+		typeof value.isAvailable === "boolean" &&
+		isRecord(value.appearance) &&
+		isPageControl(value.pageControl)
 	)
-		return undefined
-	return value as unknown as EmbedConfig
+}
+
+function embedConfiguration(value: unknown): EmbedConfig | undefined {
+	if (!isEmbedConfiguration(value)) return undefined
+	return value as EmbedConfig
 }
 
 function retryAt(response: Response, now: () => Date): string | undefined {
@@ -110,6 +128,7 @@ export function createChatHttpClient(
 				title: configuration.name,
 				appearance: configuration.appearance as unknown as Readonly<Record<string, unknown>>,
 				isAvailable: configuration.isAvailable,
+				pageControl: configuration.pageControl,
 			}
 		},
 		async loadSession(input) {

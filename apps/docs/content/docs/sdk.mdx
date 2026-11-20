@@ -57,7 +57,15 @@ The embed token is public. Provider API keys and operator credentials must stay 
 
 ## Browser tools
 
-Pass ordinary AI SDK function tools when creating the client. Talqo includes no built-in browser tools.
+The agent's website-action setting enables the SDK's page tool, which observes and operates website controls. The SDK reads approval instructions from embed configuration and includes them in the tool description. It owns the on-page action feedback, approval buttons, and Stop control. Custom interfaces do not render approval state.
+
+Custom interfaces opt in by passing their chat's root element through `pageControl: { exclude: [chatElement] }` in `createChatClient()`. The tool cannot read or operate those roots. Without this option, ordinary chat and custom tools are unchanged. The pre-built widget supplies its root automatically. If browser tab storage is unavailable, website actions are disabled but chat remains usable.
+
+To match the page controls to a custom UI, supply `pageControl.themeRoot: () => themedElement`. The controls follow that element's `--talqo-primary-input`, `--talqo-text-on-primary-input`, `--talqo-background-input`, `--talqo-surface-input`, and `--talqo-text-input` CSS properties, including style and class changes. The pre-built widget supplies its active palette automatically and remembers its open/closed state per embed across page loads when local storage is available.
+
+The page tool continues across same-origin page loads in the same tab. Talqo must be installed on each destination page, and browser tab storage must be available. Reconnect within 20 seconds and before the original reply deadline; approval waits do not extend either limit. An API restart interrupts the task. Other origins, new tabs, and visitor-only payment steps require visitor participation. An interrupted action is inspected, never automatically repeated.
+
+You can also pass ordinary AI SDK function tools when creating the client:
 
 ```ts
 import { createChatClient } from "@talqo/sdk"
@@ -81,11 +89,13 @@ const chat = createChatClient({
 
 Install `ai` and your schema library alongside the SDK. Tools support `type: "function"`, a static `description`, `inputSchema`, `outputSchema`, `strict`, static `inputExamples`, and `execute`.
 
-Talqo rejects other Tool API features, including approval, provider-defined tools, callbacks, custom context, and streaming outputs. `execute` receives the AI SDK call ID, public conversation messages, and abort signal. Its `messages` exclude private instructions and retrieved knowledge-base context.
+Talqo rejects other Tool API features, including AI SDK approval fields, provider-defined tools, callbacks, custom context, and streaming outputs. `execute` receives the AI SDK call ID, public conversation messages, and abort signal. Its `messages` exclude private instructions and retrieved knowledge-base context.
 
-Register at most 8 tools. Each turn allows 16 browser-tool calls, including failures. Inputs and outputs must be JSON values of at most 256 KiB each. The tool manifest is limited to 128 KiB. The SDK validates inputs and declared outputs locally.
+Register at most 8 tools in total. The page tool takes one slot when enabled. If all 8 slots are in use, chat keeps the registered tools and skips website actions. `talqo_page` is reserved for the page tool. Turns with the page tool allow 64 browser-tool calls; other turns allow 16, including failures. Provider steps retain the ordinary limit until the model actually calls the page tool. Inputs and outputs must be JSON values of at most 256 KiB each. The tool manifest is limited to 128 KiB. The SDK validates inputs and declared outputs locally.
 
 Talqo stores browser and MCP tool results in conversation history and sends them to the model on later completed turns. Do not return secrets or unnecessary personal data.
+
+Website observations include visible page text and ordinary form values. They are sent to the configured AI provider and retained in conversation history, where operators can review them. The tool excludes password fields and uses field attributes to identify other sensitive controls. It cannot detect every sensitive value. Exclude sensitive page sections through `pageControl.exclude`, even if the fields look like ordinary inputs. Reported page URLs omit query strings and fragments. Approval summaries are model-written proposals, not verified transaction receipts; the website remains the source of order details.
 
 Browser tools run with your page's permissions. Register only actions you intend the agent to perform, validate application permissions inside `execute`, and honor its abort signal. Stopping or disconnecting cannot undo an action already performed. Interrupted calls are never replayed automatically. When `website-action-uncertain` is reported, tell the visitor to check the page before repeating an instruction.
 

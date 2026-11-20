@@ -2,7 +2,13 @@ import type { ChatClient } from "@talqo/sdk"
 import type { WidgetAppearance } from "@talqo/shared/widget-appearance"
 
 export type ChatBoot =
-	| { mode: "connected"; client: ChatClient; appearance: WidgetAppearance; title?: string }
+	| {
+			mode: "connected"
+			client: ChatClient
+			appearance: WidgetAppearance
+			title?: string
+			openStateKey?: string
+	  }
 	| { mode: "preview"; parentOrigin?: string }
 
 export type ChatModule = {

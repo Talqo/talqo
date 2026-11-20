@@ -3,6 +3,7 @@ import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/h
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
+import { APPROVAL_INSTRUCTIONS_MAX_LENGTH } from "@talqo/shared/page-control"
 
 import {
 	AGENT_NAME_MAX_LENGTH,
@@ -11,11 +12,17 @@ import {
 	SYSTEM_PROMPT_MAX_LENGTH,
 } from "./agent.service.ts"
 
+const pageControlSchema = z.object({
+	enabled: z.boolean(),
+	approvalInstructions: z.string().trim().min(1).max(APPROVAL_INSTRUCTIONS_MAX_LENGTH),
+})
+
 const agentResponseSchema = z
 	.object({
 		id: z.string(),
 		name: z.string(),
 		systemPrompt: z.string(),
+		pageControl: pageControlSchema,
 		wordBlacklist: z.array(z.string()),
 		createdAt: z.iso.datetime(),
 		updatedAt: z.iso.datetime(),
@@ -25,6 +32,7 @@ const agentResponseSchema = z
 const agentInputSchema = z.object({
 	name: z.string().min(1).max(AGENT_NAME_MAX_LENGTH),
 	systemPrompt: z.string().min(1).max(SYSTEM_PROMPT_MAX_LENGTH),
+	pageControl: pageControlSchema.optional(),
 	wordBlacklist: z.array(z.string().min(1).max(BLACKLIST_WORD_MAX_LENGTH)).max(BLACKLIST_MAX_WORDS),
 })
 
