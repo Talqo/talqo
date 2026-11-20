@@ -44,6 +44,7 @@ type ActiveSend = {
 	dispatched: boolean
 	newSession: boolean
 	persisted: Promise<void>
+	rejected: boolean
 }
 
 type SendState = {
@@ -557,6 +558,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			dispatched: false,
 			newSession,
 			persisted: Promise.resolve().then(() => persist(record)),
+			rejected: false,
 		}
 		activeSend = send
 		publish()
@@ -729,8 +731,10 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			})
 			await consumeSendEvents(state, events)
 		} catch (cause) {
-			if (sendWasDefinitelyRejected(state, cause)) await rejectPendingSend(state, cause)
-			else handleStreamFailure(state, cause)
+			if (sendWasDefinitelyRejected(state, cause)) {
+				state.send.rejected = true
+				await rejectPendingSend(state, cause)
+			} else handleStreamFailure(state, cause)
 			publish()
 			throw cause
 		} finally {
@@ -781,7 +785,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 
 	async function handleCancellationFailure(state: CancellationState, cause: unknown): Promise<void> {
 		if (state.preAcceptance) {
-			await recoverCancelledPending(cause)
+			// A rejected send already removed its pending message, so there is nothing left to observe.
+			if (!state.send?.rejected) await recoverCancelledPending(cause)
 		} else if (generation === "cancelling") {
 			// No concurrent transition settled: restore the pre-cancel state.
 			generation = state.previousGeneration
