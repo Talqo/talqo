@@ -153,6 +153,21 @@ describe("widget loader", () => {
 		expect(calls.unmounts).toBe(2)
 	})
 
+	test("loads the chat without a click when it was left open", async () => {
+		const key = "talqo:widget-open:https%3A%2F%2Fapi.example.com:token"
+		localStorage.setItem(key, "true")
+		try {
+			const calls = { mounts: 0, unmounts: 0 }
+			boot()
+			await flush()
+			resolveChat(fakeChat(calls))
+			await flush()
+			expect(calls.mounts).toBe(1)
+		} finally {
+			localStorage.removeItem(key)
+		}
+	})
+
 	test("retries the chat bundle after a failed load", async () => {
 		const calls = { mounts: 0, unmounts: 0 }
 		const chat = fakeChat(calls)

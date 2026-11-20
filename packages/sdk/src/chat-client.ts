@@ -1,4 +1,3 @@
-import type { ClientToolRegistry } from "./client-tools.ts"
 import type {
 	ChatClient,
 	ChatClientOptions,
@@ -7,7 +6,6 @@ import type {
 	ChatEvent,
 	ChatMessage,
 	ChatSnapshot,
-	ChatTransport,
 	SessionState,
 } from "./types.ts"
 
@@ -195,19 +193,6 @@ function cloneCustomTools(tools: ChatClientOptions["tools"]): NonNullable<ChatCl
 	return Object.fromEntries(Object.entries(tools ?? {}).map(([name, definition]) => [name, { ...definition }]))
 }
 
-function createTransport(options: ChatClientOptions, tools: ClientToolRegistry): ChatTransport {
-	return (
-		options.transport ??
-		createWebSocketChatTransport({
-			get size() {
-				return tools.size
-			},
-			manifest: () => tools.manifest(),
-			execute: (request, signal) => tools.execute(request, signal),
-		})
-	)
-}
-
 export function createChatClient(options: ChatClientOptions): ChatClient {
 	let configuration: ChatConfiguration | undefined
 	let messages: ReadonlyArray<ChatMessage> = []
@@ -235,7 +220,12 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	let pageTool: ReturnType<typeof createPageTool> | undefined
 	let pageStorageUnavailable = false
 	if (options.transport && tools.size) throw new Error("Client tools require the WebSocket transport")
-	const transport = createTransport(options, tools)
+	const transport =
+		options.transport ??
+		createWebSocketChatTransport({
+			manifest: () => tools.manifest(),
+			execute: (request, signal) => tools.execute(request, signal),
+		})
 
 	const storage = createResilientStorage(
 		options.storage ?? {
@@ -526,27 +516,26 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	}
 
 	function pageExclude(): readonly Element[] {
-		return options.pageControl?.exclude ?? []
+		const exclude = options.pageControl?.exclude
+		if (!exclude?.length) throw new Error("Page control requires the chat root in pageControl.exclude")
+		return exclude
 	}
 
-	function requirePageToolSlot(): void {
+	function hasPageToolSlot(): boolean {
 		if (Object.hasOwn(customTools, PAGE_TOOL_NAME)) throw new Error("Reserved client tool name: talqo_page")
-		if (tools.size === CLIENT_TOOL_LIMIT)
-			throw new Error(
-				"Page control uses one of 8 client tools. Disable page control or register at most 7 custom tools.",
-			)
+		if (tools.size < CLIENT_TOOL_LIMIT) return true
+		console.warn("TalqoSDK: website actions unavailable because all 8 client tool slots are in use")
+		return false
 	}
 
 	function installPageTool(loaded: ChatConfiguration): void {
 		if (!pageControlRequested(loaded)) return
 		pageStorageUnavailable = !canStorePageContinuation()
 		if (pageStorageUnavailable) return
-		const exclude = pageExclude()
-		if (!exclude.length) throw new Error("Page control requires the chat root in pageControl.exclude")
-		requirePageToolSlot()
+		if (!hasPageToolSlot()) return
 		pageTool = createPageTool({
 			approvalInstructions: loaded.pageControl?.approvalInstructions,
-			exclude,
+			exclude: pageExclude(),
 			themeRoot: options.pageControl?.themeRoot,
 			language: pageLanguage(loaded),
 			stop: cancelResponse,
@@ -677,23 +666,22 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		state.accepted = true
 		acceptedMessageId = event.userMessage.id
 		activeGenerationId = event.generationId
-		messages = messages.map((message) =>
-			message.id === state.localUserId
-				? { ...message, id: event.userMessage.id, createdAt: event.userMessage.createdAt, outcome: "completed" }
-				: message,
-		)
-		state.assistantId = event.assistantMessage.id
-		messages = [
-			...messages,
-			{
-				id: state.assistantId,
-				role: "assistant",
-				text: "",
-				parts: [],
-				createdAt: event.assistantMessage.createdAt,
-				outcome: "streaming",
-			},
-		]
+		const assistant: ChatMessage = {
+			id: event.assistantMessage.id,
+			role: "assistant",
+			text: "",
+			parts: [],
+			createdAt: event.assistantMessage.createdAt,
+			outcome: "streaming",
+		}
+		const replaying = messages.some((message) => message.id === assistant.id)
+		messages = messages.map((message) => {
+			if (message.id === state.localUserId)
+				return { ...message, id: event.userMessage.id, createdAt: event.userMessage.createdAt, outcome: "completed" }
+			return message.id === assistant.id ? assistant : message
+		})
+		state.assistantId = assistant.id
+		if (!replaying) messages = [...messages, assistant]
 		generation = "streaming"
 		pendingMessage = undefined
 		await persist({ version: CHAT_STORAGE_VERSION, credential: state.credential })

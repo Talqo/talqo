@@ -136,8 +136,22 @@ function shadowButtons(): NodeListOf<HTMLButtonElement> {
 }
 
 test("observes the page and reports private controls without exposing them", async () => {
-	document.body.innerHTML =
-		'<main><input type="password" name="secret"><form><button id="buy">Buy</button></form></main>'
+	document.body.innerHTML = `<main>
+		<input id="password" type="password">
+		<input id="number" type="tel" name="credit-card" aria-label="Card number">
+		<select id="saved" data-card-number><option>Saved card</option></select>
+		<form data-payment><input id="code" name="code"></form>
+		<input name="quantity">
+		<button id="buy">Buy</button>
+	</main>`
+	controllerState.onState = () => {
+		expect([...document.querySelectorAll("main [data-page-agent-ignore]")].map((element) => element.id)).toEqual([
+			"password",
+			"number",
+			"saved",
+			"code",
+		])
+	}
 	controllerState.element = document.querySelector("#buy") as HTMLElement
 	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
 	const result = (await execute(toolsFor(page), { action: "observe" })) as Record<string, unknown>
@@ -191,6 +205,22 @@ test("aborts while waiting for approval", async () => {
 	await Bun.sleep(10)
 	controller.abort(new Error("Visitor cancelled"))
 	await expect(pending).rejects.toThrow("Visitor cancelled")
+})
+
+test("does not open approval when Stop lands during page revalidation", async () => {
+	buttonFixture()
+	const page = newPage()
+	const tools = toolsFor(page)
+	const controller = new AbortController()
+	const snapshot = await observeSnapshot(tools)
+	controllerState.onState = () => controller.abort(new Error("Visitor stopped"))
+	await expect(
+		execute(
+			tools,
+			{ action: "click", snapshot, index: 0, description: "Buy", approval: "Buy for $25" },
+			controller.signal,
+		),
+	).rejects.toThrow("Visitor stopped")
 })
 
 test("reports a stale snapshot and a changed page", async () => {

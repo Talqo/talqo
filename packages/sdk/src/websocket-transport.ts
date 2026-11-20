@@ -86,7 +86,7 @@ type WebSocketTransportOptions = ChatHttpOptions & {
 }
 
 export function createWebSocketChatTransport(
-	tools: ClientToolRegistry,
+	tools: Pick<ClientToolRegistry, "manifest" | "execute">,
 	options: WebSocketTransportOptions = {},
 ): ChatTransport {
 	const http = createChatHttpClient(options)

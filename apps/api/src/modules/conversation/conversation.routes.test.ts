@@ -153,6 +153,25 @@ function connect(origin: string, frame: unknown, onAccepted?: (socket: WebSocket
 }
 
 describe("public conversation routes", () => {
+	it("finishes the resumed socket's wide event without waiting for the turn", async () => {
+		const { app, calls, loggedEvent, logged, release } = routes("late-error")
+		const server = serve(app)
+		const pageSession = crypto.randomUUID()
+		try {
+			await startPageTurn(server.url.origin, pageSession)
+			const resumed = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
+			await resumed.accepted
+			resumed.socket.close()
+			await resumed.closed
+			await loggedEvent
+			expect(logged).toHaveLength(1)
+			expect(calls[0]).toHaveProperty("clientTools.interrupted", false)
+		} finally {
+			release()
+			await server.stop(true)
+		}
+	})
+
 	it("finishes the wide event when a resume socket closes during authorization", async () => {
 		const authorizing = Promise.withResolvers<void>()
 		const authorized = Promise.withResolvers<void>()

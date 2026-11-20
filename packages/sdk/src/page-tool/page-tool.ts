@@ -80,11 +80,30 @@ const labels = {
 	},
 }
 
+const PAYMENT_FIELD = /\bcc[-_]|\bpan\b|card.?number|credit.?card|debit.?card|cvv|cvc|security.?code/i
+const PRIVATE_FIELD = /password|hidden|secret|token|one-time-code/i
+const FIELD_ATTRIBUTES = ["type", "name", "id", "autocomplete", "aria-label", "placeholder"]
+
+function fieldMetadata(element: Element): string {
+	return [
+		...FIELD_ATTRIBUTES.map((name) => element.getAttribute(name)),
+		...element.getAttributeNames().filter((name) => name.startsWith("data-")),
+	].join(" ")
+}
+
+function isPaymentContainer(element: Element | null | undefined): boolean {
+	return !!element && /payment/i.test(fieldMetadata(element))
+}
+
+function isPrivateControl(element: Element): boolean {
+	const metadata = fieldMetadata(element)
+	if (PRIVATE_FIELD.test(metadata) || PAYMENT_FIELD.test(metadata)) return true
+	const form = element instanceof HTMLElement ? formControl(element)?.form : undefined
+	return isPaymentContainer(element.closest("fieldset")) || isPaymentContainer(form)
+}
+
 function privateControls(root: Document | ShadowRoot): Element[] {
-	const controls = [...root.querySelectorAll("input, textarea")].filter((element) => {
-		const fields = ["type", "name", "id", "autocomplete"].map((name) => element.getAttribute(name) ?? "").join(" ")
-		return /password|hidden|secret|token|cc-|card.?number|cvv|cvc|one-time-code/i.test(fields)
-	})
+	const controls = [...root.querySelectorAll("input, textarea, select")].filter(isPrivateControl)
 	for (const element of root.querySelectorAll("*"))
 		if (element.shadowRoot) controls.push(...privateControls(element.shadowRoot))
 	return controls
@@ -275,7 +294,10 @@ export function createPageTool(options: {
 
 	function validate(element: HTMLElement): void {
 		assertTargetUsable(element)
-		if (isTargetOutsidePage(element, panel, highlight, options.exclude))
+		if (
+			isTargetOutsidePage(element, panel, highlight, options.exclude) ||
+			(element.matches("input, textarea, select") && isPrivateControl(element))
+		)
 			throw new Error("Target is outside the permitted page.")
 		assertTargetVisible(element)
 		const baseTarget = pageBaseTarget()
@@ -464,6 +486,7 @@ export function createPageTool(options: {
 
 	function approve(summary: string, element: HTMLElement, signal: AbortSignal): Promise<boolean> {
 		return new Promise((resolve, reject) => {
+			signal.throwIfAborted()
 			if (!buttons || !status || !panel || !highlight) throw new Error("Page controls are unavailable")
 			status.textContent = summary
 			const focus = focusedElement()
