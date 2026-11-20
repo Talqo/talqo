@@ -239,6 +239,31 @@ afterEach(async () => {
 })
 
 describe("ConnectedEmbeddedWidget", () => {
+	test("restores each embed's panel size when its key changes", async () => {
+		const first = "widget-test:first"
+		const second = "widget-test:second"
+		sessionStorage.setItem(`${second}:size`, "360,400")
+		const originalMatchMedia = window.matchMedia.bind(window)
+		const media = spyOn(window, "matchMedia").mockImplementation((query) => {
+			const result = originalMatchMedia(query)
+			if (query.includes("(pointer: fine)")) Object.defineProperty(result, "matches", { value: true })
+			return result
+		})
+		const store = fakeClient()
+		try {
+			await render(<ConnectedEmbeddedWidget client={store.client} defaultOpen openStateKey={first} />)
+			expect(host.querySelector("dialog")?.style.width).toBe("")
+			await render(<ConnectedEmbeddedWidget client={store.client} defaultOpen openStateKey={second} />)
+			expect(host.querySelector("dialog")?.style.width).toBe("360px")
+			expect(sessionStorage.getItem(`${second}:size`)).toBe("360,400")
+		} finally {
+			media.mockRestore()
+			sessionStorage.removeItem(`${second}:size`)
+			localStorage.removeItem(first)
+			localStorage.removeItem(second)
+		}
+	})
+
 	for (const [status, label] of [
 		["running", "Running"],
 		["completed", "Completed"],
