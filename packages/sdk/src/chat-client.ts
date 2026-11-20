@@ -568,8 +568,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			storage.getItem(storageKey),
 		])
 		configuration = loadedConfiguration
-		installPageTool(loadedConfiguration)
 		if (loadedConfiguration.isAvailable) await restoreStoredSession(serialized, controller.signal)
+		installPageTool(loadedConfiguration)
 		initialization = "ready"
 		publish()
 		if (resumePageTurn()) return
@@ -675,6 +675,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			outcome: "streaming",
 		}
 		const replaying = messages.some((message) => message.id === assistant.id)
+		// Resume replays every part and delta from the start of the turn.
 		messages = messages.map((message) => {
 			if (message.id === state.localUserId)
 				return { ...message, id: event.userMessage.id, createdAt: event.userMessage.createdAt, outcome: "completed" }
