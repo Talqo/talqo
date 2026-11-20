@@ -88,6 +88,12 @@ export function createWebSocketChatTransport(
 			const listeners = new AbortController()
 			const acceptance = Promise.withResolvers<void>()
 			const settled = Promise.withResolvers<void>()
+			function recordStopFailure(): void {
+				if (stopRequested && !terminal) failure ??= new ChatTransportError({ code: "cancel-failed" })
+			}
+			function rejectAcceptance(): void {
+				if (!accepted) acceptance.reject(failure ?? new ChatTransportError({ code: "transport-error" }))
+			}
 			function close() {
 				if (closed) return
 				closed = true
@@ -96,8 +102,8 @@ export function createWebSocketChatTransport(
 				ws.close()
 				input.signal.removeEventListener("abort", close)
 				activeSends.delete(input.credential)
-				if (stopRequested && !terminal) failure ??= new ChatTransportError({ code: "cancel-failed" })
-				if (!accepted) acceptance.reject(failure ?? new ChatTransportError({ code: "transport-error" }))
+				recordStopFailure()
+				rejectAcceptance()
 				wake?.()
 				settled.resolve()
 			}
@@ -111,7 +117,7 @@ export function createWebSocketChatTransport(
 				}
 				close()
 				// Surface the specific rejection or transport error; a generic cancel-failed is only the fallback.
-				if (stopRequested && failure) throw failure
+				if (stopRequested && !terminal && failure) throw failure
 			})
 			ws.addEventListener(
 				"open",
