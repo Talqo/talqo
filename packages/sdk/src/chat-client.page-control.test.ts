@@ -15,7 +15,6 @@ const configuration = {
 }
 
 const originalFetch = globalThis.fetch
-let storageFails = false
 
 beforeAll(() => {
 	GlobalRegistrator.register({ url: "http://localhost/shop" })
@@ -27,7 +26,6 @@ afterAll(() => {
 
 afterEach(() => {
 	globalThis.fetch = originalFetch
-	storageFails = false
 })
 
 function stubFetch() {
@@ -63,26 +61,35 @@ test("installs website actions when the embed enables them", async () => {
 	client.dispose()
 })
 
-test("skips website actions when tab storage is unavailable", async () => {
-	stubFetch()
+test("reports blocked tab storage even when restoring the chat fails", async () => {
+	globalThis.fetch = (async (input: string) => {
+		if (input.endsWith("/session")) throw new Error("Session temporarily unavailable")
+		return Response.json(configuration)
+	}) as unknown as typeof fetch
 	const root = document.createElement("main")
 	document.body.append(root)
+	const apiUrl = "http://api.test"
+	const embedToken = "embed"
+	const chatStorage = createMemoryStorage()
+	await chatStorage.setItem(
+		createChatStorageKey(apiUrl, embedToken),
+		JSON.stringify({ version: 1, credential: crypto.randomUUID() }),
+	)
 	const storage = globalThis.sessionStorage
 	Object.defineProperty(globalThis, "sessionStorage", {
 		configurable: true,
 		value: {
 			getItem: () => null,
 			setItem: () => {
-				storageFails = true
 				throw new Error("blocked")
 			},
 			removeItem: () => {},
 		},
 	})
 	try {
-		const client = clientWith({ exclude: [root] })
-		await client.initialize()
-		expect(storageFails).toBe(true)
+		const client = createChatClient({ apiUrl, embedToken, storage: chatStorage, pageControl: { exclude: [root] } })
+		await expect(client.initialize()).rejects.toThrow("Session temporarily unavailable")
+		expect(client.getSnapshot().notices).toContain("storage-unavailable")
 		client.dispose()
 	} finally {
 		Object.defineProperty(globalThis, "sessionStorage", { configurable: true, value: storage })

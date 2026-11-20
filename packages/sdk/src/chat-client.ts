@@ -529,10 +529,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	}
 
 	function installPageTool(loaded: ChatConfiguration): void {
-		if (!pageControlRequested(loaded)) return
-		pageStorageUnavailable = !canStorePageContinuation()
-		if (pageStorageUnavailable) return
-		if (!hasPageToolSlot()) return
+		if (pageStorageUnavailable || !hasPageToolSlot()) return
 		pageTool = createPageTool({
 			approvalInstructions: loaded.pageControl?.approvalInstructions,
 			exclude: pageExclude(),
@@ -568,8 +565,10 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			storage.getItem(storageKey),
 		])
 		configuration = loadedConfiguration
+		const wantsPageTool = pageControlRequested(loadedConfiguration)
+		pageStorageUnavailable = wantsPageTool && !canStorePageContinuation()
 		if (loadedConfiguration.isAvailable) await restoreStoredSession(serialized, controller.signal)
-		installPageTool(loadedConfiguration)
+		if (wantsPageTool) installPageTool(loadedConfiguration)
 		initialization = "ready"
 		publish()
 		if (resumePageTurn()) return
