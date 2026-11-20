@@ -275,7 +275,7 @@ function WidgetChat({
 	const chat = chatView(snapshot, i18n.language)
 	const { open: chatOpen, toggle, close, launcherRef, panelRef, inputRef } = useChatDialog(defaultOpen, openStateKey)
 	const scheme = useChatScheme(appearance, forcedScheme)
-	const panel = useResizablePanel(appearance.position, panelRef)
+	const panel = useResizablePanel(appearance.position, panelRef, openStateKey && `${openStateKey}:size`)
 	const panelStyle: CSSProperties = panel.size ? { width: panel.size.width, height: panel.size.height } : {}
 	const { announcement, clearAnnouncement } = useOutcomeAnnouncement(chat.messages, chatOpen, t)
 	const transcript = useStickyTranscript(chatOpen)
