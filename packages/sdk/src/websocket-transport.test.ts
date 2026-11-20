@@ -58,6 +58,14 @@ function sendInput(apiUrl: string) {
 	}
 }
 
+async function startedTurn(apiUrl: string) {
+	const transport = createWebSocketChatTransport(captureClientTools(), { cancelTimeoutMs: 50 })
+	const input = sendInput(apiUrl)
+	const events = (await transport.sendMessage(input))[Symbol.asyncIterator]()
+	expect(await events.next()).toMatchObject({ value: { type: "accepted" }, done: false })
+	return { transport, input, events }
+}
+
 test("rejects unknown error codes after validating the frame", async () => {
 	const server = Bun.serve({
 		port: 0,
@@ -217,10 +225,7 @@ for (const disconnect of ["closes", "stays open"] as const) {
 			if (frame.type === "cancel" && disconnect === "closes") ws.close()
 		})
 		try {
-			const transport = createWebSocketChatTransport(captureClientTools(), { cancelTimeoutMs: 50 })
-			const input = sendInput(server.url.origin)
-			const events = (await transport.sendMessage(input))[Symbol.asyncIterator]()
-			expect(await events.next()).toMatchObject({ value: { type: "accepted" }, done: false })
+			const { transport, input, events } = await startedTurn(server.url.origin)
 
 			await expect(transport.cancelResponse(input)).rejects.toThrow("cancel-failed")
 			await expect(events.next()).rejects.toThrow("cancel-failed")
@@ -230,6 +235,33 @@ for (const disconnect of ["closes", "stays open"] as const) {
 		}
 	})
 }
+
+test("keeps the server rejection when a cancel is refused", async () => {
+	const { server } = recordingChatServer((ws, frame) => {
+		if (frame.type === "start") ws.send(JSON.stringify(accepted))
+		if (frame.type === "cancel")
+			ws.send(
+				JSON.stringify({
+					version: 1,
+					type: "rejected",
+					code: "chat-session-unauthorized",
+					status: 401,
+				}),
+			)
+	})
+	try {
+		const { transport, input, events } = await startedTurn(server.url.origin)
+
+		await expect(transport.cancelResponse(input)).rejects.toMatchObject({
+			detail: { code: "chat-session-unauthorized", status: 401 },
+		})
+		await expect(events.next()).rejects.toMatchObject({
+			detail: { code: "chat-session-unauthorized", status: 401 },
+		})
+	} finally {
+		await server.stop(true)
+	}
+})
 
 test("does not start a turn when the handshake finishes after a cancel", async () => {
 	const upgradeStarted = Promise.withResolvers<void>()
@@ -253,7 +285,11 @@ test("does not start a turn when the handshake finishes after a cancel", async (
 		const input = sendInput(server.url.origin)
 		const sending = transport.sendMessage(input).catch((error: unknown) => error)
 		await upgradeStarted.promise
-		await transport.cancelResponse(input)
+		const cancelling = transport.cancelResponse(input)
+		await new Promise((resolve) => setTimeout(resolve, 5))
+		releaseUpgrade.resolve()
+		await cancelling
+		await new Promise((resolve) => setTimeout(resolve, 5))
 
 		expect(frames).not.toContain("start")
 		expect(await sending).toMatchObject({ name: "ChatTransportError" })
