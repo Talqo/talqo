@@ -96,7 +96,7 @@ export function createWebSocketChatTransport(
 				ws.close()
 				input.signal.removeEventListener("abort", close)
 				activeSends.delete(input.credential)
-				if (stopRequested && !terminal) failure = new ChatTransportError({ code: "cancel-failed" })
+				if (stopRequested && !terminal) failure ??= new ChatTransportError({ code: "cancel-failed" })
 				if (!accepted) acceptance.reject(failure ?? new ChatTransportError({ code: "transport-error" }))
 				wake?.()
 				settled.resolve()
@@ -110,7 +110,8 @@ export function createWebSocketChatTransport(
 					await settlesWithin(settled.promise, cancelTimeoutMs)
 				}
 				close()
-				if (failure?.detail.code === "cancel-failed") throw failure
+				// Surface the specific rejection or transport error; a generic cancel-failed is only the fallback.
+				if (stopRequested && failure) throw failure
 			})
 			ws.addEventListener(
 				"open",
