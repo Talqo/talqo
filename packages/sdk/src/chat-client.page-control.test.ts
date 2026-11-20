@@ -51,14 +51,90 @@ function customTool(index: number) {
 	})
 }
 
-test("installs website actions when the embed enables them", async () => {
-	stubFetch()
+function blockTabStorage() {
+	const storage = globalThis.sessionStorage
+	Object.defineProperty(globalThis, "sessionStorage", {
+		configurable: true,
+		value: {
+			getItem: () => null,
+			setItem: () => {
+				throw new Error("blocked")
+			},
+			removeItem: () => {},
+		},
+	})
+	return () => Object.defineProperty(globalThis, "sessionStorage", { configurable: true, value: storage })
+}
+
+function chatServer(handleFrame: (frame: z.output<typeof ChatClientFrameV1>, send: (message: object) => void) => void) {
+	return Bun.serve({
+		port: 0,
+		fetch(request, host) {
+			return host.upgrade(request) ? undefined : new Response(null, { status: 400 })
+		},
+		websocket: {
+			message(ws, data) {
+				const frame = ChatClientFrameV1.parse(JSON.parse(String(data)))
+				handleFrame(frame, (message) => ws.send(JSON.stringify({ version: 1, ...message })))
+			},
+		},
+	})
+}
+
+async function expectAdvertisedTools(
+	{ enabled, blocked = false }: { enabled: boolean; blocked?: boolean },
+	expected: string[],
+) {
+	globalThis.fetch = Object.assign(
+		async () => Response.json({ ...configuration, pageControl: { ...configuration.pageControl, enabled } }),
+		{ preconnect: originalFetch.preconnect },
+	)
+	const received: string[][] = []
+	const server = chatServer((frame, send) => {
+		if (frame.type !== "start") return
+		received.push(frame.tools?.map(({ name }) => name) ?? [])
+		const createdAt = "2026-11-20T00:00:00.000Z"
+		send({
+			type: "accepted",
+			requestId: frame.requestId,
+			generationId: "generation",
+			userMessage: { id: "user", createdAt },
+			assistantMessage: { id: "assistant", createdAt },
+		})
+		send({ type: "terminal", outcome: "completed" })
+	})
+	const restoreStorage = blocked ? blockTabStorage() : undefined
 	const root = document.createElement("main")
-	document.body.append(root)
-	const client = clientWith({ exclude: [root] })
-	await client.initialize()
-	expect(client.getSnapshot().configuration?.pageControl).toMatchObject({ enabled: true })
-	client.dispose()
+	document.body.replaceChildren(root)
+	const client = createChatClient({
+		apiUrl: server.url.origin,
+		embedToken: "embed",
+		storage: createMemoryStorage(),
+		pageControl: { exclude: [root] },
+		tools: { lookup: customTool(0) },
+	})
+	try {
+		await client.initialize()
+		await client.sendMessage("Hello")
+		expect(received).toEqual([expected])
+		expect(client.getSnapshot().messages.at(-1)?.outcome).toBe("completed")
+	} finally {
+		client.dispose()
+		restoreStorage?.()
+		await server.stop(true)
+	}
+}
+
+test("advertises website actions when the embed enables them", async () => {
+	await expectAdvertisedTools({ enabled: true }, ["lookup", "talqo_page"])
+})
+
+test("keeps the page tool out when the embed disables it", async () => {
+	await expectAdvertisedTools({ enabled: false }, ["lookup"])
+})
+
+test("keeps chat and custom tools available without tab storage", async () => {
+	await expectAdvertisedTools({ enabled: true, blocked: true }, ["lookup"])
 })
 
 test("reports blocked tab storage even when restoring the chat fails", async () => {
@@ -75,24 +151,14 @@ test("reports blocked tab storage even when restoring the chat fails", async () 
 		createChatStorageKey(apiUrl, embedToken),
 		JSON.stringify({ version: 1, credential: crypto.randomUUID() }),
 	)
-	const storage = globalThis.sessionStorage
-	Object.defineProperty(globalThis, "sessionStorage", {
-		configurable: true,
-		value: {
-			getItem: () => null,
-			setItem: () => {
-				throw new Error("blocked")
-			},
-			removeItem: () => {},
-		},
-	})
+	const restoreStorage = blockTabStorage()
 	try {
 		const client = createChatClient({ apiUrl, embedToken, storage: chatStorage, pageControl: { exclude: [root] } })
 		await expect(client.initialize()).rejects.toThrow("Session temporarily unavailable")
 		expect(client.getSnapshot().notices).toContain("storage-unavailable")
 		client.dispose()
 	} finally {
-		Object.defineProperty(globalThis, "sessionStorage", { configurable: true, value: storage })
+		restoreStorage()
 	}
 })
 
@@ -189,33 +255,23 @@ test("resumes into one assistant message and executes the next page tool call", 
 			],
 		})
 	}) as unknown as typeof fetch
-	const server = Bun.serve({
-		port: 0,
-		fetch(request, host) {
-			return host.upgrade(request) ? undefined : new Response(null, { status: 400 })
-		},
-		websocket: {
-			message(ws, data) {
-				const frame = ChatClientFrameV1.parse(JSON.parse(String(data)))
-				const send = (message: Record<string, unknown>) => ws.send(JSON.stringify({ version: 1, ...message }))
-				if (frame.type === "resume") {
-					send({ type: "accepted", requestId, generationId, userMessage, assistantMessage })
-					const target = { assistantMessageId: assistantMessage.id, index: 0 }
-					send({ ...target, type: "part", part: { type: "text", text: "Already " } })
-					send({ ...target, type: "delta", text: "stored" })
-					send({
-						type: "tool-call",
-						toolCallId: "observe",
-						toolName: "talqo_page",
-						input: { action: "observe" },
-						messages: [],
-					})
-				} else if (frame.type === "tool-result" || frame.type === "tool-error") {
-					toolReply.resolve(frame)
-					send({ type: "terminal", outcome: "completed" })
-				}
-			},
-		},
+	const server = chatServer((frame, send) => {
+		if (frame.type === "resume") {
+			send({ type: "accepted", requestId, generationId, userMessage, assistantMessage })
+			const target = { assistantMessageId: assistantMessage.id, index: 0 }
+			send({ ...target, type: "part", part: { type: "text", text: "Already " } })
+			send({ ...target, type: "delta", text: "stored" })
+			send({
+				type: "tool-call",
+				toolCallId: "observe",
+				toolName: "talqo_page",
+				input: { action: "observe" },
+				messages: [],
+			})
+		} else if (frame.type === "tool-result" || frame.type === "tool-error") {
+			toolReply.resolve(frame)
+			send({ type: "terminal", outcome: "completed" })
+		}
 	})
 	const apiUrl = server.url.origin
 	const embedToken = "embed"
@@ -251,17 +307,4 @@ test("resumes into one assistant message and executes the next page tool call", 
 		sessionStorage.removeItem(continuationKey)
 		await server.stop(true)
 	}
-})
-
-test("keeps the page tool out when the embed disables it", async () => {
-	globalThis.fetch = (async () =>
-		new Response(JSON.stringify({ ...configuration, pageControl: { enabled: false, approvalInstructions: "x" } }), {
-			status: 200,
-		})) as unknown as typeof fetch
-	const root = document.createElement("main")
-	document.body.append(root)
-	const client = clientWith({ exclude: [root] })
-	await client.initialize()
-	expect(client.getSnapshot().configuration?.pageControl).toMatchObject({ enabled: false })
-	client.dispose()
 })
