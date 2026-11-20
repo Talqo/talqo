@@ -95,11 +95,18 @@ function isPaymentContainer(element: Element | null | undefined): boolean {
 	return !!element && /payment/i.test(fieldMetadata(element))
 }
 
+function isInsidePaymentContainer(element: Element): boolean {
+	for (let node = element.parentNode; node; node = node instanceof ShadowRoot ? node.host : node.parentNode) {
+		if (node instanceof Element && isPaymentContainer(node)) return true
+	}
+	return false
+}
+
 function isPrivateControl(element: Element): boolean {
 	const metadata = fieldMetadata(element)
 	if (PRIVATE_FIELD.test(metadata) || PAYMENT_FIELD.test(metadata)) return true
 	const form = element instanceof HTMLElement ? formControl(element)?.form : undefined
-	return isPaymentContainer(element.closest("fieldset")) || isPaymentContainer(form)
+	return isPaymentContainer(form) || isInsidePaymentContainer(element)
 }
 
 function privateControls(root: Document | ShadowRoot): Element[] {
