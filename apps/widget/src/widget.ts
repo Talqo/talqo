@@ -284,6 +284,14 @@ function mountPreview(target: HTMLElement, dataset: DOMStringMap): void {
 		.catch((cause: unknown) => console.warn("TalqoWidget: failed to load chat", cause))
 }
 
+function wasChatOpen(key: string): boolean {
+	try {
+		return localStorage.getItem(key) === "true"
+	} catch {
+		return false
+	}
+}
+
 function mountConnected(target: HTMLElement, dataset: DOMStringMap | undefined, options: MountOptions): void {
 	const embedToken = dataset?.talqoEmbedToken
 	const origin = apiOrigin(embedScript)
@@ -306,7 +314,14 @@ function mountConnected(target: HTMLElement, dataset: DOMStringMap | undefined, 
 	unsubscribe = client.subscribe(syncLauncher)
 	attachMediaListener()
 	syncLauncher()
-	void client.initialize().catch((cause: unknown) => console.warn("TalqoWidget: initialization failed", cause))
+	const mountedClient = client
+	const visibilityKey = openStateKey
+	void mountedClient
+		.initialize()
+		.then(() => {
+			if (client === mountedClient && wasChatOpen(visibilityKey)) void openChat()
+		})
+		.catch((cause: unknown) => console.warn("TalqoWidget: initialization failed", cause))
 }
 
 export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOptions = {}) {

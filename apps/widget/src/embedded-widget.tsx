@@ -111,16 +111,7 @@ function chatView(snapshot: ChatSnapshot | undefined, language: string): ChatVie
 }
 
 function useChatDialog(defaultOpen: boolean | undefined, openStateKey: string | undefined) {
-	const [open, setOpen] = useState(() => {
-		if (openStateKey) {
-			try {
-				return localStorage.getItem(openStateKey) === "true"
-			} catch {
-				console.warn("TalqoWidget: visibility storage unavailable; using page-local state")
-			}
-		}
-		return defaultOpen ?? false
-	})
+	const [open, setOpen] = useState(defaultOpen ?? false)
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDialogElement>(null)
 	const inputRef = useRef<HTMLInputElement>(null)

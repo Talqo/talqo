@@ -145,6 +145,7 @@ export function createConversationRoutes(
 		let resuming = false
 		let resumeCancellationRequested = false
 		let started = false
+		let ownsTurn = false
 		let closed = false
 		const cancellation = new AbortController()
 		let terminal = false
@@ -259,6 +260,7 @@ export function createConversationRoutes(
 				return
 			}
 			started = true
+			ownsTurn = true
 			clearTimeout(deadline)
 			registerPageSession(frame, ws)
 			createTurnChannel(frame, ws)
@@ -392,7 +394,7 @@ export function createConversationRoutes(
 					clearTimeout(timeout)
 					channel?.interrupt()
 				}
-				if (!started || resuming) completion.resolve()
+				if (!ownsTurn) completion.resolve()
 			},
 			onError() {
 				if (!detachPageSocket()) channel?.interrupt()

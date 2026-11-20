@@ -35,6 +35,8 @@ test("page observations reflect live controls and reject disabled or detached ta
 <button id="target">Place order</button>
 <label>Password <input type="password" value="password-secret"></label>
 <label>Card <input autocomplete="cc-number" value="4111111111111111"></label>
+<input type="tel" name="credit-card" aria-label="Card number" value="card-field-secret">
+<fieldset data-payment><input name="code" value="payment-form-secret"></fieldset>
 <form id="unsafe-form" action="https://elsewhere.example/"><input id="unsafe-input"></form>
 <button id="outside-submit" form="unsafe-form">External submission</button>
 <form><button id="override" formaction="https://elsewhere.example/">Override</button>
@@ -126,7 +128,9 @@ test("page observations reflect live controls and reject disabled or detached ta
 		}
 	})
 	expect(result.before.content).not.toContain("Private chat control")
-	expect(JSON.stringify(result.before)).not.toMatch(/password-secret|4111111111111111|url-secret|fragment-secret/)
+	expect(JSON.stringify(result.before)).not.toMatch(
+		/password-secret|4111111111111111|card-field-secret|payment-form-secret|url-secret|fragment-secret/,
+	)
 	expect(result.before.content).toContain("Save product")
 	expect(result.filled).toMatchObject({ status: "dispatched" })
 	expect(result.filled.page.content).toContain("new@example.com")
@@ -206,6 +210,8 @@ test("widget visibility survives reloads and closing is remembered", async ({ pa
 	await page.reload()
 	await expect(page.getByRole("button", { name: widget("openChat") })).toBeVisible()
 	await expect(page.getByRole("dialog")).toHaveCount(0)
+	await page.getByRole("button", { name: widget("openChat") }).click()
+	await expect(page.getByRole("dialog")).toBeVisible()
 })
 
 test("widget remains usable when visibility storage is blocked", async ({ page, chatEmbed }) => {
