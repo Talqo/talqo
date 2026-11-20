@@ -44,6 +44,8 @@ type ActiveSend = {
 	dispatched: boolean
 	newSession: boolean
 	persisted: Promise<void>
+	// Set by the send's catch as soon as it settles as a definite rejection, which the transport
+	// resolves before the cancellation failure. Read by the cancel path to skip recovery.
 	rejected: boolean
 }
 
