@@ -1914,6 +1914,9 @@ describe("createChatClient", () => {
 					await cancellationFailed.promise
 					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
 				},
+				loadSession: async () => {
+					throw new Error("A rejected send is not recoverable")
+				},
 			}),
 			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 			recoveryDelays: [0],
@@ -1924,7 +1927,8 @@ describe("createChatClient", () => {
 		const cancelling = client.cancelResponse()
 		cancellationFailed.resolve()
 		await cancelling
-		// The cancellation failure observed the turn before the send rejection lands.
+		// Pins that the observation path was entered. The send rejection clears the credential before
+		// the deferred poll can reach `loadSession`, which is why the final snapshot cannot show it.
 		expect(client.getSnapshot()).toMatchObject({
 			activity: "recovering",
 			error: { code: "chat-session-unauthorized", status: 401 },
