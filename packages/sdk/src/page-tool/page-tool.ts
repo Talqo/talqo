@@ -99,18 +99,19 @@ function isPaymentContainer(element: Element | null | undefined): boolean {
 	)
 }
 
-function hasPaymentContext(element: Element): boolean {
-	for (let node: Node | null = element; node; node = node instanceof ShadowRoot ? node.host : node.parentNode) {
+function isInsidePaymentContainer(element: Element): boolean {
+	for (let node = element.parentNode; node; node = node instanceof ShadowRoot ? node.host : node.parentNode) {
 		if (node instanceof Element && isPaymentContainer(node)) return true
 	}
 	return false
 }
 
 function isPrivateControl(element: Element): boolean {
+	if (element.hasAttribute("data-payment")) return true
 	const metadata = fieldMetadata(element)
 	if (PRIVATE_FIELD.test(metadata) || PAYMENT_FIELD.test(metadata)) return true
 	const form = element instanceof HTMLElement ? formControl(element)?.form : undefined
-	return isPaymentContainer(form) || hasPaymentContext(element)
+	return isPaymentContainer(form) || isInsidePaymentContainer(element)
 }
 
 function privateControls(root: Document | ShadowRoot): Element[] {

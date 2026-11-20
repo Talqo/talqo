@@ -299,11 +299,12 @@ test("rejects unavailable and covered targets", async () => {
 	page.dispose()
 })
 
-test("fills and selects through the controller", async () => {
-	document.body.innerHTML = '<main><input id="name"><select id="size"><option>M</option></select></main>'
+test("fills and selects ordinary controls even when their ID or test ID is payment", async () => {
+	document.body.innerHTML =
+		'<main><input data-testid="payment"><select id="payment"><option>Pay on delivery</option></select></main>'
 	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
 	const tools = toolsFor(page)
-	const input = document.querySelector("#name") as HTMLElement
+	const input = document.querySelector("input")!
 	setRect(input, 20, 40)
 	document.elementFromPoint = () => input
 	controllerState.element = input
@@ -316,7 +317,7 @@ test("fills and selects through the controller", async () => {
 			text: "Ada",
 		}),
 	).toMatchObject({ status: "dispatched" })
-	const select = document.querySelector("#size") as HTMLElement
+	const select = document.querySelector("select")!
 	setRect(select, 20, 40)
 	document.elementFromPoint = () => select
 	controllerState.element = select
@@ -325,8 +326,8 @@ test("fills and selects through the controller", async () => {
 			action: "select",
 			snapshot: await observeSnapshot(tools),
 			index: 0,
-			description: "Choosing a size",
-			option: "M",
+			description: "Choosing a payment method",
+			option: "Pay on delivery",
 		}),
 	).toMatchObject({ status: "dispatched" })
 	page.dispose()
