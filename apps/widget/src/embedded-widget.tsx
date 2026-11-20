@@ -1,4 +1,4 @@
-import type { ActiveTool, ChatClient, ChatMessage, ChatSnapshot } from "@talqo/sdk"
+import type { ChatClient, ChatMessage, ChatSnapshot } from "@talqo/sdk"
 import type { WidgetAppearance, WidgetAppearanceInput, WidgetPosition } from "@talqo/shared/widget-appearance"
 
 import logoUrl from "@talqo/ui/assets/logo.svg"
@@ -87,7 +87,6 @@ function closeOnBackdropPointerDown(event: ReactPointerEvent<HTMLDialogElement>,
 }
 
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
-const EMPTY_TOOLS: readonly ActiveTool[] = []
 const EMPTY_NOTICES: ChatSnapshot["notices"] = []
 const EMPTY_ACTIONS: ChatSnapshot["actions"] = []
 
@@ -97,7 +96,6 @@ function chatView(snapshot: ChatSnapshot | undefined, language: string): ChatVie
 	const error = snapshot?.error
 	return {
 		messages: snapshot?.messages ?? EMPTY_MESSAGES,
-		activeTools: snapshot?.activeTools ?? EMPTY_TOOLS,
 		notices: snapshot?.notices ?? EMPTY_NOTICES,
 		activity,
 		error,

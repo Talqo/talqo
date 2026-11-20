@@ -91,7 +91,19 @@ function fakeClient(initial: ChatSnapshot = READY_SNAPSHOT) {
 }
 
 function message(id: string, role: ChatMessage["role"], text: string, outcome: ChatMessage["outcome"]): ChatMessage {
-	return { id, role, text, outcome, createdAt: "2026-09-12T00:00:00Z" }
+	return { id, role, text, parts: text ? [{ type: "text", text }] : [], outcome, createdAt: "2026-09-12T00:00:00Z" }
+}
+
+function toolPart(id: string): ChatMessage["parts"][number] {
+	return {
+		type: "dynamic-tool",
+		toolName: "lookup",
+		toolCallId: id,
+		input: {},
+		toolMetadata: { source: "mcp", displayName: "lookup", outcome: "completed" },
+		state: "output-available",
+		output: {},
+	}
 }
 
 function error(code: ChatErrorCode, overrides: Partial<ChatError> = {}): ChatError {
@@ -227,6 +239,75 @@ afterEach(async () => {
 })
 
 describe("ConnectedEmbeddedWidget", () => {
+	for (const [status, label] of [
+		["running", "Running"],
+		["completed", "Completed"],
+		["failed", "Failed"],
+		["cancelled", "Cancelled"],
+		["interrupted", "Interrupted"],
+	] as const) {
+		test(`shows general tool labels with accessible ${status} status instead of internal names`, async () => {
+			const parts: ChatMessage["parts"][number][] = []
+			for (const source of ["client", "mcp"] as const) {
+				parts.push({
+					type: "dynamic-tool",
+					toolName: "internal_tool_name",
+					toolCallId: source,
+					input: {},
+					toolMetadata: {
+						source,
+						displayName: "internal_tool_name",
+						serverName: "Internal server",
+						...(status === "running" ? {} : { outcome: status }),
+					},
+					...(status === "running"
+						? { state: "input-available" }
+						: status === "completed"
+							? { state: "output-available", output: {} }
+							: { state: "output-error", errorText: "Tool did not finish" }),
+				})
+			}
+			const assistant: ChatMessage = { ...message("a1", "assistant", "", "completed"), parts }
+			const store = fakeClient({ ...READY_SNAPSHOT, messages: [assistant] })
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const rows = [...transcript().querySelectorAll("output")]
+			expect(rows).toHaveLength(2)
+			expect(rows.map((row) => row.title)).toEqual([label, label])
+			expect(
+				rows.map((row) =>
+					[...row.childNodes]
+						.filter((node) => node.nodeType === Node.TEXT_NODE)
+						.map((node) => node.textContent)
+						.join(""),
+				),
+			).toEqual(["Website tool", "Backend tool"])
+			for (const row of rows) {
+				expect(row.querySelector(".tw\\:sr-only")?.textContent).toBe(` ${row.title}`)
+				expect(row.textContent).not.toContain("internal_tool_name")
+				expect(row.textContent).not.toContain("Internal server")
+			}
+		})
+	}
+
+	test("groups consecutive tool calls into one collapsed summary", async () => {
+		const assistant: ChatMessage = {
+			...message("a1", "assistant", "", "completed"),
+			parts: [toolPart("first"), { type: "text", text: "Answer" }, toolPart("second"), toolPart("third")],
+		}
+		const store = fakeClient({ ...READY_SNAPSHOT, messages: [assistant] })
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		const details = [...transcript().querySelectorAll("details")]
+		expect(details).toHaveLength(1)
+		expect(details[0]?.open).toBe(false)
+		expect(details[0]?.querySelector("summary")?.textContent).toBe("2 tools called")
+		expect(details[0]?.querySelectorAll("output")).toHaveLength(2)
+		expect([...transcript().querySelectorAll("output")]).toHaveLength(3)
+	})
+
 	test("initializes the semantic client and uses SDK configuration with host overrides", async () => {
 		const store = fakeClient()
 		await render(
@@ -745,12 +826,33 @@ describe("ConnectedEmbeddedWidget", () => {
 		const store = fakeClient()
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
-		expect(host.textContent).not.toContain("Using a tool")
+		expect(host.textContent).not.toContain("Backend tool")
 
 		await act(async () =>
-			store.setSnapshot({ ...READY_SNAPSHOT, activeTools: [{ serverName: "shop", toolName: "search" }] }),
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: [
+					{
+						id: "a1",
+						role: "assistant",
+						text: "",
+						parts: [
+							{
+								type: "dynamic-tool",
+								toolName: "shop_search",
+								toolCallId: "call-1",
+								input: {},
+								state: "input-available",
+								toolMetadata: { source: "mcp", serverName: "shop", displayName: "search" },
+							},
+						],
+						createdAt: "2026-09-11T00:00:00.000Z",
+						outcome: "streaming",
+					},
+				],
+			}),
 		)
-		expect(host.textContent).toContain("Using a tool")
+		expect(host.textContent).toContain("Backend tool")
 	})
 
 	test("shows new chat only after a conversation exists and only when the SDK allows it", async () => {

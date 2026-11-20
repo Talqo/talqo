@@ -316,6 +316,7 @@
 	},
 	"conversations": {
 		"agent": "Agent",
+		"backendTool": "Backendový nástroj",
 		"backToConversations": "Zpět na konverzace",
 		"emptyDescription": "Zobrazí se zde poté, co si návštěvníci popovídají s agentem.",
 		"emptyFilteredDescription": "Zkuste jiný filtr agentů.",
@@ -344,12 +345,22 @@
 		"pagination": "Stránky",
 		"previousPage": "Předchozí",
 		"startedAt": "Zahájeno {{date}}, agent {{agent}}",
+		"toolCancelled": "Zrušeno",
+		"toolCompleted": "Dokončeno",
+		"toolFailed": "Selhalo",
+		"toolInterrupted": "Přerušeno",
+		"toolRunning": "Probíhá",
+		"toolsCalled_one": "{{count}} volání nástroje",
+		"toolsCalled_few": "{{count}} volání nástrojů",
+		"toolsCalled_many": "{{count}} volání nástrojů",
+		"toolsCalled_other": "{{count}} volání nástrojů",
 		"total_one": "{{count}} konverzace",
 		"total_few": "{{count}} konverzace",
 		"total_many": "{{count}} konverzace",
 		"total_other": "{{count}} konverzací",
 		"unknownAgent": "Smazaný agent",
-		"visitor": "Návštěvník"
+		"visitor": "Návštěvník",
+		"websiteTool": "Nástroj webu"
 	},
 	"dashboard": {
 		"activeConversations": "Aktivní konverzace",

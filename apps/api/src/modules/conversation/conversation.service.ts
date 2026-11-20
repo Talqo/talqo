@@ -10,9 +10,14 @@ import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.
 import * as mcp from "@/modules/mcp/mcp.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
+import { asSchema, convertToModelMessages, type ModelMessage, type UIMessage } from "ai"
 import { z } from "zod"
 
+import type { ClientToolChannel } from "./conversation.client-tools.ts"
+import type { MessagePart } from "./conversation.messages.ts"
+
 import { createBlacklistFilter } from "./blacklist.ts"
+import { TOOL_PAYLOAD_BYTES } from "./conversation.client-tools.ts"
 import {
 	ConversationNotFoundError,
 	ConversationTooLongError,
@@ -22,7 +27,8 @@ import {
 	SessionBusyError,
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
-import { createGenerationPoller } from "./conversation.poller.ts"
+import { finalizePart } from "./conversation.messages.ts"
+import { CANCELLATION_REASON, createGenerationPoller } from "./conversation.poller.ts"
 import * as repository from "./conversation.repository.ts"
 import {
 	GENERATION_ATTEMPT_ACTIVE_STATUSES,
@@ -46,6 +52,7 @@ const UUID_SCHEMA = z.uuid({ version: "v4" })
 type GenerationEvent =
 	| { model: string; provider: aiProvider.AiProviderId; type: "start" }
 	| { text: string; type: "text" }
+	| { type: "step-start" }
 	| {
 			model: string
 			outcome: "cancelled" | "completed" | "failed" | "interrupted"
@@ -58,7 +65,7 @@ type PreparedOperation = {
 	invoke(
 		signal: AbortSignal,
 		tools?: aiProvider.ToolBinding,
-		onToolEvent?: (event: aiProvider.ToolEvent) => void,
+		onToolEvent?: (event: aiProvider.ToolEvent) => void | Promise<void>,
 	): AsyncIterable<GenerationEvent>
 	model: string
 	provider: aiProvider.AiProviderId
@@ -68,22 +75,20 @@ type Dependencies = {
 	beforeAccept?: (attempt: number) => Promise<void>
 	concurrencyLimit: number
 	dailyLimit: number
-	prepare(input: {
-		maxOutputTokens: number
-		messages: aiProvider.TextMessage[]
-		timeoutMs: number
-	}): Promise<PreparedOperation>
+	prepare(input: { maxOutputTokens: number; messages: ModelMessage[]; timeoutMs: number }): Promise<PreparedOperation>
 	maxInputCharacters: number
 	maxOutputTokens: number
 	timeoutMs: number
 }
 
 type ChatMessage = {
+	requestId?: string
 	createdAt: string
 	id: string
 	outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted" | "streaming"
 	role: "assistant" | "user"
 	text: string
+	parts: MessagePart[]
 }
 
 export type ChatEvent =
@@ -92,19 +97,13 @@ export type ChatEvent =
 			assistantMessage: { createdAt: string; id: string }
 			generationId: string
 			requestId: string
+			duplicate?: boolean
 			type: "accepted"
 			userMessage: { createdAt: string; id: string }
 	  }
-	| { version: 1; assistantMessageId: string; text: string; type: "delta" }
+	| { version: 1; assistantMessageId: string; index: number; text: string; type: "delta" }
+	| { version: 1; assistantMessageId: string; index: number; part: MessagePart; type: "part" }
 	| { version: 1; outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted"; type: "terminal" }
-	| { version: 1; serverName: string; toolName: string; type: "tool-start" }
-	| {
-			version: 1
-			outcome: "cancelled" | "completed" | "failed"
-			serverName: string
-			toolName: string
-			type: "tool-end"
-	  }
 	| {
 			version: 1
 			error: { code: ChatErrorCode; newChatAvailable: boolean; retriable: boolean }
@@ -115,6 +114,9 @@ export type ChatEvent =
 type ChatErrorCode = "chat-context-limit" | "chat-input-incompatible" | "provider-error"
 
 type SendInput = {
+	cancellationSignal?: AbortSignal
+	clientTools?: ClientToolChannel
+	clientManifestFingerprint?: string
 	credential: string
 	embedToken: string
 	networkHash: string
@@ -138,8 +140,10 @@ type StoredMessage = Awaited<ReturnType<typeof repository.listMessages>>[number]
 function publicMessage(message: StoredMessage): ChatMessage {
 	return {
 		id: message.id,
+		requestId: message.requestId,
 		role: message.role,
 		text: message.text,
+		parts: message.parts,
 		outcome: message.outcome,
 		createdAt: message.createdAt.toISOString(),
 	}
@@ -149,106 +153,39 @@ function isCompletedExchange(user: StoredMessage, assistant: StoredMessage): boo
 	return user.outcome === "completed" && assistant.outcome === "completed"
 }
 
-function completedPrompt(systemPrompt: string, messages: StoredMessage[], text: string) {
-	const prompt: aiProvider.TextMessage[] = [{ role: "system", content: systemPrompt }]
+async function completedPrompt(
+	systemPrompt: string,
+	messages: Awaited<ReturnType<typeof repository.listMessages>>,
+	text: string,
+) {
+	const history: UIMessage[] = []
 	for (let index = 0; index < messages.length - 1; index += COMPLETED_PAIR_WIDTH) {
 		const user = messages[index]
 		const assistant = messages[index + 1]
 		if (user?.role === "user" && assistant?.role === "assistant" && isCompletedExchange(user, assistant)) {
-			prompt.push({ role: "user", content: user.text }, { role: "assistant", content: assistant.text })
+			history.push(
+				{ id: user.id, role: "user", parts: user.parts },
+				{ id: assistant.id, role: "assistant", parts: assistant.parts },
+			)
 		}
 	}
-	prompt.push({ role: "user", content: text })
-	return prompt
+	return [
+		{ role: "system" as const, content: systemPrompt },
+		...(await convertToModelMessages(history)),
+		{ role: "user" as const, content: text },
+	]
 }
 
-function promptText(messages: aiProvider.TextMessage[]): string {
-	return messages.map((message) => message.content).join("\n")
+function promptText(messages: ModelMessage[]): string {
+	return messages
+		.map((message) => (typeof message.content === "string" ? message.content : JSON.stringify(message.content)))
+		.join("\n")
 }
 
 const DEFAULT_PUBLIC_ERROR: { code: ChatErrorCode; newChatAvailable: boolean; retriable: boolean } = {
 	code: "provider-error",
 	retriable: true,
 	newChatAvailable: false,
-}
-
-type OutputStream = {
-	readonly failed: boolean
-	flush(): Promise<void>
-	queue(text: string): Promise<void>
-	stop(): void
-}
-
-function createOutputStream(input: {
-	assistantMessageId: string
-	controller: AbortController
-	emit: (event: ChatEvent) => void
-	generationAttemptId: string
-	leaseToken: string
-}): OutputStream {
-	let buffered = ""
-	let timer: ReturnType<typeof setTimeout> | undefined
-	let flushing: Promise<void> | undefined
-	let failed = false
-
-	async function flush(): Promise<void> {
-		if (flushing) {
-			await flushing
-			if (!buffered) return
-		}
-		clearTimeout(timer)
-		timer = undefined
-		if (!buffered || failed) return
-		const text = buffered
-		buffered = ""
-		flushing = (async () => {
-			if (!(await repository.appendOutput(input.generationAttemptId, input.leaseToken, text))) {
-				failed = true
-				input.controller.abort()
-				return
-			}
-			input.emit({ version: 1, type: "delta", assistantMessageId: input.assistantMessageId, text })
-		})()
-		try {
-			await flushing
-		} finally {
-			flushing = undefined
-		}
-	}
-
-	function schedule(): void {
-		if (failed || !buffered || timer) return
-		timer = setTimeout(() => {
-			void flush().catch(() => {
-				failed = true
-				input.controller.abort()
-			})
-		}, OUTPUT_FLUSH_MS)
-	}
-
-	async function queue(text: string): Promise<void> {
-		if (!text || failed) return
-		let offset = 0
-		// Provider text order must survive batching.
-		while (offset < text.length && !failed) {
-			const length = Math.min(OUTPUT_BATCH_SIZE - buffered.length, text.length - offset)
-			buffered += text.slice(offset, offset + length)
-			offset += length
-			if (buffered.length >= OUTPUT_BATCH_SIZE) await flush()
-		}
-		schedule()
-	}
-
-	return {
-		flush,
-		queue,
-		stop(): void {
-			clearTimeout(timer)
-		},
-		get failed(): boolean {
-			return failed
-		},
-	}
 }
 
 async function retrieveContext(input: {
@@ -276,7 +213,7 @@ async function retrieveContext(input: {
 
 async function applyRetrievedContext(input: {
 	annotate: Annotate
-	baseMessages: aiProvider.TextMessage[]
+	baseMessages: ModelMessage[]
 	chunks: string[]
 	initialOperation: PreparedOperation
 	maxInputCharacters: number
@@ -284,7 +221,7 @@ async function applyRetrievedContext(input: {
 	prepare: Dependencies["prepare"]
 	question: string
 	timeoutMs: number
-}): Promise<{ messages: aiProvider.TextMessage[]; prepared: PreparedOperation }> {
+}): Promise<{ messages: ModelMessage[]; prepared: PreparedOperation }> {
 	if (input.chunks.length === 0) return { messages: input.baseMessages, prepared: input.initialOperation }
 	const question = `Use the context below only if relevant to the question, otherwise ignore it.\n${input.chunks.join("\n---\n")}\n\nQuestion: ${input.question}`
 	const messages = [...input.baseMessages.slice(0, -1), { role: "user" as const, content: question }]
@@ -316,6 +253,90 @@ async function openGenerationTools(
 	}
 }
 
+function completedToolPart(
+	part: Extract<MessagePart, { type: "dynamic-tool"; state: "input-available" }>,
+	toolEvent: Extract<aiProvider.ToolEvent, { type: "tool-end" }>,
+): MessagePart {
+	return toolEvent.output !== undefined
+		? {
+				...part,
+				state: "output-available",
+				output: toolEvent.output,
+				toolMetadata: { ...part.toolMetadata, outcome: toolEvent.outcome },
+			}
+		: {
+				...part,
+				state: "output-error",
+				errorText: toolEvent.errorText ?? "Tool execution failed",
+				toolMetadata: { ...part.toolMetadata, outcome: "failed" },
+			}
+}
+
+function mergeClientTools(
+	tools: aiProvider.ToolBinding,
+	clientTools: ClientToolChannel,
+	publicMessages: ModelMessage[],
+): void {
+	for (const [name, identity] of clientTools.binding.names) {
+		if (tools.names.has(name)) throw new InvalidChatInputError("Tool name collision")
+		tools.names.set(name, identity)
+		const definition = clientTools.binding.tools[name]
+		if (!definition?.execute) throw new Error("Client tool definition missing")
+		const execute = definition.execute
+		// Browser tools receive the public transcript, not the enriched provider prompt.
+		tools.tools[name] = {
+			...definition,
+			execute: async (toolInput, options): Promise<unknown> => {
+				const output: unknown = await execute(toolInput, { ...options, messages: publicMessages })
+				return output
+			},
+		}
+	}
+}
+
+async function createGenerationTools(input: {
+	clientTools: ClientToolChannel | undefined
+	connection: mcp.OpenTools | undefined
+	publicMessages: ModelMessage[]
+}): Promise<{ toolDefinitions: string; tools: aiProvider.ToolBinding }> {
+	const tools: aiProvider.ToolBinding = input.connection
+		? { names: new Map(input.connection.names), tools: { ...input.connection.tools } }
+		: { names: new Map(), tools: {} }
+	if (input.clientTools) mergeClientTools(tools, input.clientTools, input.publicMessages)
+	if (Object.keys(tools.tools).length === 0) return { tools, toolDefinitions: "" }
+	const toolDefinitions = JSON.stringify(
+		await Promise.all(
+			Object.entries(tools.tools).map(async ([name, definition]) => {
+				const inputSchema: unknown = await asSchema(definition.inputSchema).jsonSchema
+				return { name, description: definition.description, inputSchema, inputExamples: definition.inputExamples }
+			}),
+		),
+	)
+	return { tools, toolDefinitions }
+}
+
+function combineAbortSignals(
+	controller: AbortController,
+	clientTools: ClientToolChannel | undefined,
+	cancellationSignal: AbortSignal | undefined,
+): AbortSignal {
+	const signals = [controller.signal]
+	if (clientTools) signals.push(clientTools.signal)
+	if (cancellationSignal) signals.push(cancellationSignal)
+	return AbortSignal.any(signals)
+}
+
+function applyConnectionOutcome(
+	stream: StreamedGeneration,
+	clientTools: ClientToolChannel | undefined,
+	isCancelled: () => boolean,
+	publicError: { retriable: boolean },
+): void {
+	stream.outcome = outputFailureOutcome(stream.outcome, stream.outputFailed)
+	if (clientTools?.interrupted && !isCancelled()) stream.outcome = "interrupted"
+	if (clientTools?.dispatched) publicError.retriable = false
+}
+
 function finalizeStreamOutcome(
 	outcome: GenerationAttemptOutcome,
 	aborted: boolean,
@@ -342,7 +363,7 @@ function publicFailure(
 	error: unknown,
 	messageCount: number,
 ): { code: ChatErrorCode; newChatAvailable: boolean; retriable: boolean } {
-	if (!(error instanceof aiProvider.ProviderContextLimitError)) return DEFAULT_PUBLIC_ERROR
+	if (!(error instanceof aiProvider.ProviderContextLimitError)) return { ...DEFAULT_PUBLIC_ERROR }
 	if (messageCount > FRESH_PROMPT_MESSAGE_COUNT) {
 		return { code: "chat-context-limit", retriable: false, newChatAvailable: true }
 	}
@@ -352,6 +373,7 @@ function publicFailure(
 type StreamedGeneration = {
 	model: string
 	outcome: GenerationAttemptOutcome
+	outputFailed: boolean
 	outputText: string
 	provider: aiProvider.AiProviderId
 	terminalObserved: boolean
@@ -360,64 +382,245 @@ type StreamedGeneration = {
 
 async function streamGeneration(input: {
 	accepted: repository.AcceptedGenerationAttempt
-	connection: mcp.OpenTools | undefined
+	annotate: Annotate
+	assistantMessageId: string
+	clientTools: ClientToolChannel | undefined
 	controller: AbortController
 	emit: (event: ChatEvent) => void
 	filter: ReturnType<typeof createBlacklistFilter>
-	output: OutputStream
+	parts: MessagePart[]
 	prepared: PreparedOperation
+	signal: AbortSignal
 	state: StreamedGeneration
+	tools: aiProvider.ToolBinding
 }): Promise<void> {
-	const state = input.state
-	const inFlight = new Map<string, { serverName: string; toolName: string }>()
-	try {
-		for await (const event of input.prepared.invoke(input.controller.signal, input.connection, (toolEvent) => {
-			// Parallel calls to the same tool share a name; only the call id tells them apart.
-			const key = toolEvent.toolCallId
-			if (toolEvent.type === "tool-start") {
-				inFlight.set(key, toolEvent.identity)
-				input.emit({ version: 1, type: "tool-start", ...toolEvent.identity })
-			} else {
-				inFlight.delete(key)
-				input.emit({ version: 1, type: "tool-end", ...toolEvent.identity, outcome: toolEvent.outcome })
-			}
-		})) {
-			if (event.type === "start") {
-				state.provider = event.provider
-				state.model = event.model
-				await repository.setAttribution(
+	const { state } = input
+	let toolCalls = 0
+	let toolFailures = 0
+	let bufferedOutput = ""
+	let bufferedIndex: number | undefined
+	let activeTextIndex: number | undefined
+	// Blacklist look-behind can release text after a tool call. Keep each span's original part.
+	const textOrigins: { index: number; remaining: number }[] = []
+	let flushTimer: ReturnType<typeof setTimeout> | undefined
+	let flushing: Promise<void> | undefined
+	let mutations = Promise.resolve()
+	function isCancelled(): boolean {
+		return input.controller.signal.reason === CANCELLATION_REASON
+	}
+	function serialize(write: () => Promise<void>): Promise<void> {
+		const next = mutations.then(write)
+		mutations = next.catch(() => {
+			state.outputFailed = true
+			input.controller.abort()
+		})
+		return next
+	}
+	async function persistPart(part: MessagePart, position?: number): Promise<void> {
+		await serialize(async () => {
+			const index = position ?? input.parts.length
+			if (
+				!(await repository.putPart(
 					input.accepted.generationAttempt.id,
 					input.accepted.generationAttempt.leaseToken,
-					state.provider,
-					state.model,
-				)
-			} else if (event.type === "text") {
-				state.outputText += event.text
-				const result = input.filter.push(event.text)
-				if (result.blocked) {
-					state.outcome = "blocked"
-					input.controller.abort()
-					break
-				}
-				await input.output.queue(result.text)
-			} else {
-				const abortPrecededTerminal = input.controller.signal.aborted
-				state.provider = event.provider
-				state.model = event.model
-				state.usage = event.usage
-				state.outcome = abortPrecededTerminal ? "cancelled" : event.outcome
-				state.terminalObserved = true
-				break
+					index,
+					part,
+				))
+			)
+				throw new Error("Generation lease lost")
+			input.parts[index] = part
+			input.emit({ version: 1, type: "part", assistantMessageId: input.assistantMessageId, index, part })
+		})
+	}
+	async function flushOutput(): Promise<void> {
+		if (flushing) {
+			await flushing
+			if (!bufferedOutput) return
+		}
+		clearTimeout(flushTimer)
+		flushTimer = undefined
+		if (!bufferedOutput || state.outputFailed) return
+		const text = bufferedOutput
+		const index = bufferedIndex
+		if (index === undefined) throw new Error("Text output has no part")
+		bufferedOutput = ""
+		flushing = serialize(async () => {
+			if (
+				!(await repository.appendOutput(
+					input.accepted.generationAttempt.id,
+					input.accepted.generationAttempt.leaseToken,
+					text,
+					index,
+				))
+			) {
+				state.outputFailed = true
+				input.controller.abort()
+				return
 			}
+			const part = input.parts[index]
+			if (part?.type !== "text") throw new Error("Text output targets a non-text part")
+			input.parts[index] = { ...part, text: part.text + text }
+			input.emit({ version: 1, type: "delta", assistantMessageId: input.assistantMessageId, index, text })
+		})
+		try {
+			await flushing
+		} finally {
+			flushing = undefined
+		}
+	}
+	function scheduleOutputFlush(): void {
+		if (!bufferedOutput || flushTimer) return
+		flushTimer = setTimeout(() => {
+			void flushOutput().catch(() => {
+				state.outputFailed = true
+				input.controller.abort()
+			})
+		}, OUTPUT_FLUSH_MS)
+	}
+
+	async function queueChunk(text: string, offset: number): Promise<number> {
+		const origin = textOrigins[0]
+		if (!origin) throw new Error("Filtered output has no source part")
+		if (bufferedIndex !== origin.index) await flushOutput()
+		bufferedIndex = origin.index
+		const length = Math.min(OUTPUT_BATCH_SIZE - bufferedOutput.length, text.length - offset, origin.remaining)
+		bufferedOutput += text.slice(offset, offset + length)
+		origin.remaining -= length
+		if (origin.remaining === 0) textOrigins.shift()
+		if (bufferedOutput.length >= OUTPUT_BATCH_SIZE) await flushOutput()
+		return offset + length
+	}
+
+	async function queueOutput(text: string): Promise<void> {
+		if (!text || state.outputFailed) return
+		for (let offset = 0; offset < text.length;) {
+			offset = await queueChunk(text, offset)
+			if (state.outputFailed) return
+		}
+		scheduleOutputFlush()
+	}
+
+	async function startTool(toolEvent: Extract<aiProvider.ToolEvent, { type: "tool-start" }>): Promise<void> {
+		if (
+			toolEvent.identity.source === "client" &&
+			Buffer.byteLength(JSON.stringify(toolEvent.input)) > TOOL_PAYLOAD_BYTES
+		)
+			throw new Error("Client tool input exceeds the payload limit")
+		activeTextIndex = undefined
+		state.outputText += JSON.stringify(toolEvent.input)
+		await persistPart({
+			type: "dynamic-tool",
+			toolName: toolEvent.toolName,
+			toolCallId: toolEvent.toolCallId,
+			input: toolEvent.input,
+			state: "input-available",
+			toolMetadata: {
+				source: toolEvent.identity.source ?? "mcp",
+				displayName: toolEvent.identity.toolName,
+				serverName: toolEvent.identity.serverName,
+			},
+		})
+		input.annotate({ "chat.tool_calls": ++toolCalls })
+	}
+
+	function interruptedStatus(): "cancelled" | "interrupted" {
+		return input.clientTools?.interrupted === true && !isCancelled() ? "interrupted" : "cancelled"
+	}
+
+	async function endTool(toolEvent: Extract<aiProvider.ToolEvent, { type: "tool-end" }>): Promise<void> {
+		state.outputText += JSON.stringify(toolEvent.output ?? toolEvent.errorText)
+		const index = input.parts.findIndex(
+			(part) => part.type === "dynamic-tool" && part.toolCallId === toolEvent.toolCallId,
+		)
+		const part = input.parts[index]
+		if (part?.type !== "dynamic-tool" || part.state !== "input-available")
+			throw new Error("Tool result without pending invocation")
+		if (input.signal.aborted) {
+			await persistPart(finalizePart(part, interruptedStatus()), index)
+			return
+		}
+		await persistPart(completedToolPart(part, toolEvent), index)
+		if (toolEvent.outcome === "failed") input.annotate({ "chat.tool_failures": ++toolFailures })
+	}
+
+	async function handleToolEvent(toolEvent: aiProvider.ToolEvent): Promise<void> {
+		await flushOutput()
+		// Parallel calls to the same tool share a name; only the call id tells them apart.
+		if (toolEvent.type === "tool-start") await startTool(toolEvent)
+		else await endTool(toolEvent)
+	}
+
+	async function handleTextEvent(event: Extract<GenerationEvent, { type: "text" }>): Promise<boolean> {
+		state.outputText += event.text
+		if (!event.text) return false
+		if (activeTextIndex === undefined) {
+			await flushOutput()
+			activeTextIndex = input.parts.length
+			await persistPart({ type: "text", text: "" })
+		}
+		const previousOrigin = textOrigins.at(-1)
+		if (previousOrigin?.index === activeTextIndex) previousOrigin.remaining += event.text.length
+		else textOrigins.push({ index: activeTextIndex, remaining: event.text.length })
+		const result = input.filter.push(event.text)
+		if (result.blocked) {
+			state.outcome = "blocked"
+			input.controller.abort()
+			return true
+		}
+		await queueOutput(result.text)
+		return false
+	}
+
+	async function handleStepStartEvent(): Promise<void> {
+		await flushOutput()
+		activeTextIndex = undefined
+		await persistPart({ type: "step-start" })
+	}
+
+	function applyFinishEvent(event: Extract<GenerationEvent, { type: "finish" }>): void {
+		const abortPrecededTerminal = input.signal.aborted
+		state.provider = event.provider
+		state.model = event.model
+		state.usage = event.usage
+		state.outcome = abortPrecededTerminal ? "cancelled" : event.outcome
+		state.terminalObserved = true
+	}
+
+	async function handleGenerationEvent(event: GenerationEvent): Promise<boolean> {
+		if (event.type === "start") {
+			state.provider = event.provider
+			state.model = event.model
+			await repository.setAttribution(
+				input.accepted.generationAttempt.id,
+				input.accepted.generationAttempt.leaseToken,
+				state.provider,
+				state.model,
+			)
+			return false
+		}
+		if (event.type === "text") return handleTextEvent(event)
+		if (event.type === "step-start") {
+			await handleStepStartEvent()
+			return false
+		}
+		applyFinishEvent(event)
+		return true
+	}
+
+	try {
+		for await (const event of input.prepared.invoke(input.signal, input.tools, handleToolEvent)) {
+			if (await handleGenerationEvent(event)) break
 		}
 	} finally {
-		// An abort never reaches the provider's own callback, so unresolved calls close here.
-		for (const identity of inFlight.values()) {
-			input.emit({ version: 1, type: "tool-end", ...identity, outcome: "cancelled" })
+		clearTimeout(flushTimer)
+		try {
+			if (state.outcome !== "blocked") await queueOutput(input.filter.finish())
+			await flushOutput()
+			await mutations
+		} finally {
+			state.outcome = finalizeStreamOutcome(state.outcome, input.signal.aborted, state.terminalObserved)
 		}
-		inFlight.clear()
 	}
-	state.outcome = finalizeStreamOutcome(state.outcome, input.controller.signal.aborted, state.terminalObserved)
 }
 
 async function recordFinalizedUsage(generationAttemptId: string): Promise<void> {
@@ -437,19 +640,22 @@ function emitCompletion(
 async function finalizeGeneration(input: {
 	accepted: repository.AcceptedGenerationAttempt
 	annotate: Annotate
+	assistantMessageId: string
 	emit: (event: ChatEvent) => void
-	messages: aiProvider.TextMessage[]
+	messages: ModelMessage[]
 	model: string
 	outcome: GenerationAttemptOutcome
 	outputText: string
+	parts: MessagePart[]
 	provider: aiProvider.AiProviderId
 	providerInvoked: boolean
 	providerUsage: usageService.ProviderUsage | undefined
 	publicError: { code: ChatErrorCode; newChatAvailable: boolean; retriable: boolean }
+	toolDefinitions: string
 }): Promise<void> {
 	const normalized = input.providerInvoked
 		? usageService.normalizeUsage({
-				inputText: promptText(input.messages),
+				inputText: promptText(input.messages) + input.toolDefinitions,
 				outputText: input.outputText,
 				usage: input.providerUsage,
 			})
@@ -472,6 +678,11 @@ async function finalizeGeneration(input: {
 		if (!staged) {
 			input.annotate({ "chat.lease_lost": true })
 			return
+		}
+		for (const [index, part] of input.parts.entries()) {
+			const finalized = finalizePart(part, input.outcome)
+			if (finalized !== part)
+				input.emit({ version: 1, type: "part", assistantMessageId: input.assistantMessageId, index, part: finalized })
 		}
 		await recordFinalizedUsage(input.accepted.generationAttempt.id)
 		emitCompletion(input.emit, input.outcome, input.publicError)
@@ -566,10 +777,12 @@ export function createConversationService(dependencies: Dependencies) {
 	async function run(
 		accepted: repository.AcceptedGenerationAttempt,
 		agent: agentService.Agent,
-		baseMessages: aiProvider.TextMessage[],
+		baseMessages: ModelMessage[],
 		initialOperation: PreparedOperation,
 		emit: (event: ChatEvent) => void,
 		annotate: Annotate,
+		clientTools?: ClientToolChannel,
+		cancellationSignal?: AbortSignal,
 	): Promise<void> {
 		const { generationAttempt, assistantMessage } = accepted
 		if (!(await repository.markRunning(generationAttempt.id, generationAttempt.leaseToken))) {
@@ -577,39 +790,41 @@ export function createConversationService(dependencies: Dependencies) {
 			return
 		}
 		const controller = new AbortController()
+		const signal = combineAbortSignals(controller, clientTools, cancellationSignal)
+		function isCancelled(): boolean {
+			return cancellationSignal?.aborted === true || controller.signal.reason === CANCELLATION_REASON
+		}
 		poller.register(generationAttempt.id, generationAttempt.leaseToken, controller)
 		const filter = createBlacklistFilter(agent.wordBlacklist)
-		const output = createOutputStream({
-			assistantMessageId: assistantMessage.id,
-			controller,
-			emit,
-			generationAttemptId: generationAttempt.id,
-			leaseToken: generationAttempt.leaseToken,
-		})
 		let messages = baseMessages
 		let prepared = initialOperation
+		const parts: MessagePart[] = []
 		const stream: StreamedGeneration = {
 			outcome: "failed",
 			provider: prepared.provider,
 			model: prepared.model,
-			usage: undefined,
+			outputFailed: false,
 			outputText: "",
 			terminalObserved: false,
+			usage: undefined,
 		}
 		let providerInvoked = false
-		let publicError = DEFAULT_PUBLIC_ERROR
+		let publicError: { code: ChatErrorCode; newChatAvailable: boolean; retriable: boolean } = {
+			...DEFAULT_PUBLIC_ERROR,
+		}
 		// Resolves here because abort exists here. Prepare retries would orphan earlier spawns.
 		let connection: mcp.OpenTools | undefined
+		let toolDefinitions = ""
 		try {
-			controller.signal.throwIfAborted()
+			signal.throwIfAborted()
 			const chunks = await retrieveContext({
 				agentId: agent.id,
 				annotate,
 				question: accepted.userMessage.text,
-				signal: controller.signal,
+				signal,
 				timeoutMs: dependencies.timeoutMs,
 			})
-			controller.signal.throwIfAborted()
+			signal.throwIfAborted()
 			const applied = await applyRetrievedContext({
 				annotate,
 				baseMessages,
@@ -625,8 +840,14 @@ export function createConversationService(dependencies: Dependencies) {
 			prepared = applied.prepared
 			stream.provider = prepared.provider
 			stream.model = prepared.model
-			connection = await openGenerationTools(agent.id, controller.signal, annotate)
-			controller.signal.throwIfAborted()
+			connection = await openGenerationTools(agent.id, signal, annotate)
+			signal.throwIfAborted()
+			const publicMessages = baseMessages.filter((message) => message.role !== "system")
+			const generationTools = await createGenerationTools({ clientTools, connection, publicMessages })
+			toolDefinitions = generationTools.toolDefinitions
+			if (Array.from(promptText(messages) + toolDefinitions).length > dependencies.maxInputCharacters)
+				throw new aiProvider.ProviderContextLimitError("Tool definitions exceed the input limit")
+			signal.throwIfAborted()
 			if (
 				!(await repository.setAttribution(
 					generationAttempt.id,
@@ -634,7 +855,7 @@ export function createConversationService(dependencies: Dependencies) {
 					stream.provider,
 					stream.model,
 					true,
-					usageService.estimateTokens(promptText(messages)),
+					usageService.estimateTokens(promptText(messages) + toolDefinitions),
 				))
 			) {
 				annotate({ "chat.lease_lost": true })
@@ -643,52 +864,57 @@ export function createConversationService(dependencies: Dependencies) {
 			providerInvoked = true
 			await streamGeneration({
 				accepted,
-				connection,
+				annotate,
+				assistantMessageId: assistantMessage.id,
+				clientTools,
 				controller,
 				emit,
 				filter,
-				output,
+				parts,
 				prepared,
+				signal,
 				state: stream,
+				tools: generationTools.tools,
 			})
 		} catch (error) {
-			stream.outcome = failedOutcome(stream.outcome, controller.signal.aborted, stream.terminalObserved)
+			stream.outcome = failedOutcome(stream.outcome, signal.aborted, stream.terminalObserved)
 			publicError = publicFailure(error, messages.length)
 		} finally {
-			output.stop()
-			try {
-				if (stream.outcome !== "blocked") await output.queue(filter.finish())
-				await output.flush()
-			} finally {
-				poller.unregister(generationAttempt.id)
-				await connection?.close()
-			}
+			poller.unregister(generationAttempt.id)
+			await connection?.close()
 		}
-		stream.outcome = outputFailureOutcome(stream.outcome, output.failed)
+		applyConnectionOutcome(stream, clientTools, isCancelled, publicError)
 		await finalizeGeneration({
 			accepted,
 			annotate,
+			assistantMessageId: assistantMessage.id,
 			emit,
 			messages,
 			model: stream.model,
 			outcome: stream.outcome,
 			outputText: stream.outputText,
+			parts,
 			provider: stream.provider,
 			providerInvoked,
 			providerUsage: stream.usage,
 			publicError,
+			toolDefinitions,
 		})
 	}
 
 	function startGeneration(
 		accepted: repository.AcceptedGenerationAttempt,
 		agent: agentService.Agent,
-		messages: aiProvider.TextMessage[],
+		messages: ModelMessage[],
 		prepared: PreparedOperation,
 		emit: (event: ChatEvent) => void,
 		annotate: Annotate,
+		clientTools?: ClientToolChannel,
+		cancellationSignal?: AbortSignal,
 	): Promise<void> {
-		return accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit, annotate)
+		return accepted.duplicate
+			? Promise.resolve()
+			: run(accepted, agent, messages, prepared, emit, annotate, clientTools, cancellationSignal)
 	}
 
 	return {
@@ -714,7 +940,7 @@ export function createConversationService(dependencies: Dependencies) {
 					? await repository.getHistorySnapshot(session.conversationId)
 					: { messages: [], revision: 0, latestCompletedMessageId: null }
 				const systemPrompt = agentService.composeSystemPrompt(agent.systemPrompt)
-				const messages = completedPrompt(systemPrompt, history.messages, input.text)
+				const messages = await completedPrompt(systemPrompt, history.messages, input.text)
 				const promptContent = promptText(messages)
 				const promptCharacters = Array.from(promptContent).length
 				annotate({ "chat.prompt_characters": promptCharacters })
@@ -723,7 +949,7 @@ export function createConversationService(dependencies: Dependencies) {
 			}
 			async function prepareAndAccept(attempt: number): Promise<{
 				accepted: repository.AcceptedGenerationAttempt
-				messages: aiProvider.TextMessage[]
+				messages: ModelMessage[]
 				prepared: PreparedOperation
 			}> {
 				const { history, messages, promptContent } = await preparePrompt()
@@ -753,6 +979,7 @@ export function createConversationService(dependencies: Dependencies) {
 						networkHash: input.networkHash,
 						dailyLimit: dependencies.dailyLimit,
 						concurrencyLimit: dependencies.concurrencyLimit,
+						clientManifestFingerprint: input.clientManifestFingerprint,
 					})
 					return { accepted, messages, prepared }
 				} catch (error) {
@@ -768,6 +995,7 @@ export function createConversationService(dependencies: Dependencies) {
 				version: 1,
 				type: "accepted",
 				requestId: input.requestId,
+				duplicate: accepted.duplicate,
 				generationId: accepted.generationAttempt.id,
 				userMessage: { id: accepted.userMessage.id, createdAt: accepted.userMessage.createdAt.toISOString() },
 				assistantMessage: {
@@ -780,7 +1008,16 @@ export function createConversationService(dependencies: Dependencies) {
 			if (accepted.duplicate && !isActiveStatus(accepted.generationAttempt.status)) {
 				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
 			}
-			const done = startGeneration(accepted, agent, messages, prepared, emit, annotate)
+			const done = startGeneration(
+				accepted,
+				agent,
+				messages,
+				prepared,
+				emit,
+				annotate,
+				input.clientTools,
+				input.cancellationSignal,
+			)
 			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
 		},
 

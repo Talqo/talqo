@@ -1,6 +1,7 @@
 {
 	"agentLabel": "Agent",
 	"agentResponding": "Agent odpovídá",
+	"backendTool": "Backendový nástroj",
 	"chatUnavailable": "Chat teď není k dispozici.",
 	"closeChat": "Zavřít chat",
 	"defaultTitle": "AI chat",
@@ -50,7 +51,17 @@
 	"stopping": "Zastavování…",
 	"switchToDark": "Přepnout na tmavý motiv",
 	"switchToLight": "Přepnout na světlý motiv",
+	"toolCancelled": "Zrušeno",
+	"toolCompleted": "Dokončeno",
+	"toolFailed": "Selhalo",
+	"toolInterrupted": "Přerušeno",
+	"toolRunning": "Probíhá",
+	"toolsCalled_one": "{{count}} volání nástroje",
+	"toolsCalled_few": "{{count}} volání nástrojů",
+	"toolsCalled_many": "{{count}} volání nástrojů",
+	"toolsCalled_other": "{{count}} volání nástrojů",
 	"transcriptLabel": "Konverzace",
-	"usingTool": "Agent používá nástroj…",
+	"websiteActionUncertain": "Odpověď se zastavila po spuštění nástroje webu. Jeho akce už mohla proběhnout. Před dalším požadavkem zkontrolujte stránku.",
+	"websiteTool": "Nástroj webu",
 	"youLabel": "Vy"
 }

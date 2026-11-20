@@ -1,7 +1,20 @@
 import { agent } from "@/modules/agent/agent.schema.ts"
 import { embed } from "@/modules/embed/embed.schema.ts"
 import { sql } from "drizzle-orm"
-import { boolean, check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+import {
+	boolean,
+	check,
+	index,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+	uniqueIndex,
+} from "drizzle-orm/pg-core"
+
+import type { MessagePart } from "./conversation.messages.ts"
 
 export const GENERATION_ATTEMPT_ACTIVE_STATUSES = ["accepted", "running"] as const
 export const GENERATION_ATTEMPT_FINAL_OUTCOMES = ["completed", "failed", "cancelled", "blocked", "interrupted"] as const
@@ -52,6 +65,7 @@ export const generationAttempt = pgTable(
 			.notNull()
 			.references(() => conversation.id, { onDelete: "cascade" }),
 		requestId: text("request_id").notNull(),
+		clientManifestFingerprint: text("client_manifest_fingerprint"),
 		estimatedInputTokens: integer("estimated_input_tokens").notNull(),
 		status: generationAttemptStatus("status").notNull().default("accepted"),
 		networkHash: text("network_hash").notNull(),
@@ -94,7 +108,7 @@ export const message = pgTable(
 			.notNull()
 			.references(() => generationAttempt.id, { onDelete: "cascade" }),
 		role: messageRole("role").notNull(),
-		text: text("text").notNull(),
+		parts: jsonb("parts").$type<MessagePart[]>().notNull().default([]),
 		outcome: messageOutcome("outcome").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),

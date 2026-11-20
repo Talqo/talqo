@@ -1,5 +1,4 @@
 import type {
-	ActiveTool,
 	ChatClient,
 	ChatClientOptions,
 	ChatConfiguration,
@@ -10,7 +9,8 @@ import type {
 	SessionState,
 } from "./types.ts"
 
-import { ChatTransportError, createFetchChatTransport } from "./fetch-transport.ts"
+import { captureClientTools } from "./client-tools.ts"
+import { ChatTransportError } from "./http-client.ts"
 import {
 	CHAT_STORAGE_VERSION,
 	type ChatStorageRecord,
@@ -19,6 +19,7 @@ import {
 	createResilientStorage,
 	readChatStorageRecord,
 } from "./storage.ts"
+import { createWebSocketChatTransport } from "./websocket-transport.ts"
 
 const ONE_SECOND_MS = 1_000
 const TWO_SECONDS_MS = 2_000
@@ -43,6 +44,8 @@ type ActiveSend = {
 	dispatched: boolean
 	newSession: boolean
 	persisted: Promise<void>
+	// A definite send rejection settles before a cancellation failure is handled.
+	rejected: boolean
 }
 
 type SendState = {
@@ -134,6 +137,46 @@ function isUnauthorizedCancellation(state: CancellationState, cause: unknown): b
 	return state.preAcceptance && cause instanceof ChatTransportError && cause.detail.status === HTTP_UNAUTHORIZED
 }
 
+function hasClientToolAction(message: ChatMessage | undefined): boolean {
+	return message?.parts.some((part) => part.type === "dynamic-tool" && part.toolMetadata.source === "client") === true
+}
+
+function hasUncertainWebsiteAction(message: ChatMessage | undefined): boolean {
+	if (message?.role !== "assistant") return false
+	if (message.outcome === "completed" || message.outcome === "streaming") return false
+	return message.parts.some(
+		(part) =>
+			part.type === "dynamic-tool" &&
+			part.toolMetadata.source === "client" &&
+			(part.state === "input-available" ||
+				part.toolMetadata.outcome === "interrupted" ||
+				part.toolMetadata.outcome === "cancelled"),
+	)
+}
+
+function sendWasDefinitelyRejected(state: SendState, cause: unknown): boolean {
+	if (state.accepted) return false
+	return isDefiniteRejection(cause) || (!state.send.dispatched && !state.send.cancellationRequested)
+}
+
+function withOutcome(message: ChatMessage, outcome: ChatMessage["outcome"]): ChatMessage {
+	const toolOutcome = outcome === "cancelled" || outcome === "interrupted" ? outcome : "failed"
+	return {
+		...message,
+		outcome,
+		parts: message.parts.map((part) =>
+			part.type === "dynamic-tool" && part.state === "input-available"
+				? {
+						...part,
+						state: "output-error",
+						errorText: "Tool execution did not finish",
+						toolMetadata: { ...part.toolMetadata, outcome: toolOutcome },
+					}
+				: part,
+		),
+	}
+}
+
 export function createChatClient(options: ChatClientOptions): ChatClient {
 	let configuration: ChatConfiguration | undefined
 	let messages: readonly ChatMessage[] = []
@@ -145,7 +188,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	let credential: string | undefined
 	let pendingMessage: ChatStorageRecord["pending"]
 	let activeGenerationId: string | undefined
-	let activeTools: ActiveTool[] = []
 	let disposed = false
 	let initializePromise: Promise<void> | undefined
 	let activeSend: ActiveSend | undefined
@@ -157,7 +199,9 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	const storageKey = createChatStorageKey(options.apiUrl, options.embedToken)
 	const randomUUID = options.randomUUID ?? defaultRandomUUID
 	const now = options.now ?? (() => new Date())
-	const transport = options.transport ?? createFetchChatTransport()
+	const tools = captureClientTools(options.tools)
+	if (options.transport && tools.size) throw new Error("Client tools require the WebSocket transport")
+	const transport = options.transport ?? createWebSocketChatTransport(tools)
 
 	const storage = createResilientStorage(
 		options.storage ?? {
@@ -190,6 +234,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 
 	function canRetry(): boolean {
 		const lastMessage = messages.at(-1)
+		if (hasClientToolAction(lastMessage)) return false
 		return Boolean(error?.retriable && lastMessage?.role === "assistant" && lastMessage.outcome === "failed")
 	}
 
@@ -221,19 +266,41 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		return notices
 	}
 
+	function activeTools(): ChatSnapshot["activeTools"] {
+		// Only the newest answer can hold a running call, so avoid rescanning all history for every token.
+		const latest = messages.findLast((message) => message.role === "assistant")
+		if (latest === undefined) return []
+		return latest.parts.flatMap((part) =>
+			part.type === "dynamic-tool" && part.state === "input-available"
+				? [
+						{
+							toolCallId: part.toolCallId,
+							serverName: part.toolMetadata.serverName ?? "",
+							toolName: part.toolMetadata.displayName,
+							source: part.toolMetadata.source,
+						},
+					]
+				: [],
+		)
+	}
+
 	function createSnapshot(): ChatSnapshot {
 		const isAvailable = configuration?.isAvailable === true
 		const availableAfterError = newChatAvailable()
+		const latest = messages.at(-1)
+		const visibleError: ChatError | undefined = hasUncertainWebsiteAction(latest)
+			? { ...error, code: "website-action-uncertain", retriable: false }
+			: error
 		return {
 			isAvailable,
 			configuration,
-			activeTools,
+			activeTools: activeTools(),
 			messages,
 			activity: currentActivity(),
 			actions: snapshotActions(isAvailable, availableAfterError),
 			notices: snapshotNotices(),
 			acceptedMessageId,
-			error: error && { ...error, newChatAvailable: availableAfterError },
+			error: visibleError && { ...visibleError, newChatAvailable: availableAfterError },
 		}
 	}
 
@@ -278,6 +345,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			credential: attempt.credential,
 			requestId: attempt.requestId,
 			text: attempt.text,
+			tools: [],
 		})
 		// Obtaining a successful response proves the idempotent request was accepted.
 		const iterator = events[Symbol.asyncIterator]()
@@ -300,20 +368,55 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		publish()
 	}
 
+	function pendingReplayCandidate(sessionCredential: string): PendingRecoveryAttempt | undefined {
+		if (pendingMessage === undefined || pendingMessage.clientTools) return undefined
+		return { ...pendingMessage, credential: sessionCredential }
+	}
+
+	async function replayPendingIfPresent(
+		attempted: PendingRecoveryAttempt | undefined,
+		controller: AbortController,
+	): Promise<void> {
+		if (attempted === undefined) return
+		await replayPending(attempted, controller.signal)
+	}
+
+	function missingClientToolRequest(session: SessionState): boolean {
+		return (
+			pendingMessage?.clientTools === true &&
+			!session.messages.some((message) => message.requestId === pendingMessage?.requestId)
+		)
+	}
+
+	function clientToolRecoveryDenied(cause: unknown): boolean {
+		return (
+			pendingMessage?.clientTools === true &&
+			cause instanceof ChatTransportError &&
+			cause.detail.status === HTTP_UNAUTHORIZED
+		)
+	}
+
+	async function clearPendingMessage(sessionCredential: string): Promise<void> {
+		if (pendingMessage === undefined) return
+		pendingMessage = undefined
+		await persist({ version: CHAT_STORAGE_VERSION, credential: sessionCredential })
+	}
+
 	async function recoverSession(controller: AbortController, delay: number): Promise<boolean> {
 		let attempted: PendingRecoveryAttempt | undefined
 		try {
 			await wait(delay, controller.signal)
 			if (credential === undefined) return true
-			if (pendingMessage !== undefined) {
-				attempted = { ...pendingMessage, credential }
-				await replayPending(attempted, controller.signal)
-			}
+			attempted = pendingReplayCandidate(credential)
+			await replayPendingIfPresent(attempted, controller)
 			const session = await transport.loadSession({ ...context(controller.signal), credential })
+			if (missingClientToolRequest(session)) return false
 			applySession(session)
+			await clearPendingMessage(credential)
 			return session.activeGeneration === undefined
 		} catch (cause) {
 			if (controller.signal.aborted) return true
+			if (clientToolRecoveryDenied(cause)) return false
 			if (isDefiniteRejection(cause)) {
 				await rejectRecoveryAttempt(attempted, cause.detail)
 				return true
@@ -322,13 +425,20 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		}
 	}
 
-	function exhaustRecovery(): void {
-		if (!disposed && generation === "recovery") {
-			generation = "recovery-exhausted"
-			messages = messages.map((message) =>
-				message.outcome === "streaming" ? { ...message, outcome: "interrupted" as const } : message,
-			)
-			publish()
+	async function exhaustRecovery(): Promise<void> {
+		if (disposed || generation !== "recovery") return
+		generation = "recovery-exhausted"
+		messages = messages.map((message) =>
+			message.outcome === "streaming" ? withOutcome(message, "interrupted") : message,
+		)
+		publish()
+		// A client-tool send the server never recorded cannot be replayed, so stop restoring it on every reload.
+		if (pendingMessage?.clientTools === true && credential !== undefined) {
+			try {
+				await clearPendingMessage(credential)
+			} catch {
+				// The usable in-memory state is already published; a failed write must not undo it.
+			}
 		}
 	}
 
@@ -339,7 +449,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			const delay = delays[Math.min(poll, delays.length - 1)] ?? FIVE_SECONDS_MS
 			return (await recoverSession(controller, delay)) || attempt(poll + 1)
 		}
-		if (!(await attempt(0))) exhaustRecovery()
+		if (!(await attempt(0))) await exhaustRecovery()
 	}
 
 	function beginSessionRecoveryPolling(): void {
@@ -362,6 +472,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					id: `pending:${pendingMessage.requestId}`,
 					role: "user",
 					text: pendingMessage.text,
+					parts: [{ type: "text", text: pendingMessage.text }],
 					createdAt: now().toISOString(),
 					outcome: "interrupted",
 				},
@@ -434,7 +545,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		const sendCredential = credential
 		const requestId = randomUUID()
 		const controller = new AbortController()
-		pendingMessage = { requestId, text }
+		pendingMessage = { requestId, text, ...(tools.size ? { clientTools: true } : {}) }
 		generation = "sending"
 		const record: ChatStorageRecord = {
 			version: CHAT_STORAGE_VERSION,
@@ -448,6 +559,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			dispatched: false,
 			newSession,
 			persisted: Promise.resolve().then(() => persist(record)),
+			rejected: false,
 		}
 		activeSend = send
 		publish()
@@ -477,6 +589,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				id: state.assistantId,
 				role: "assistant",
 				text: "",
+				parts: [],
 				createdAt: event.assistantMessage.createdAt,
 				outcome: "streaming",
 			},
@@ -487,24 +600,10 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		publish()
 	}
 
-	function applyToolEvent(event: Extract<ChatEvent, { type: "tool-start" | "tool-end" }>): void {
-		if (event.type === "tool-start") {
-			const { serverName, toolName } = event
-			if (!activeTools.some((tool) => tool.toolName === toolName && tool.serverName === serverName)) {
-				activeTools.push({ serverName, toolName })
-			}
-		} else {
-			activeTools = activeTools.filter(
-				(tool) => tool.toolName !== event.toolName || tool.serverName !== event.serverName,
-			)
-		}
-		publish()
-	}
-
 	function completeSend(state: SendState, event: Extract<ChatEvent, { type: "terminal" | "error" }>): void {
 		state.terminalReceived = true
 		if (state.assistantId !== undefined) {
-			replaceMessage(state.assistantId, (message) => ({ ...message, outcome: event.outcome }))
+			replaceMessage(state.assistantId, (message) => withOutcome(message, event.outcome))
 		}
 		if (event.type === "error") error = event.error
 		generation = "idle"
@@ -517,12 +616,30 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		switch (event.type) {
 			case "delta":
 				state.assistantId = event.assistantMessageId
-				replaceMessage(state.assistantId, (message) => ({ ...message, text: message.text + event.text }))
+				replaceMessage(state.assistantId, (message) => {
+					const parts = [...message.parts]
+					const part = parts[event.index]
+					if (part?.type !== "text") throw new Error("Text delta targets a non-text part")
+					parts[event.index] = { ...part, text: part.text + event.text }
+					return {
+						...message,
+						text: parts
+							.filter((item) => item.type === "text")
+							.map((item) => item.text)
+							.join(""),
+						parts,
+					}
+				})
 				publish()
 				return
-			case "tool-start":
-			case "tool-end":
-				applyToolEvent(event)
+			case "part":
+				replaceMessage(event.assistantMessageId, (message) => {
+					if (event.index > message.parts.length) throw new Error("Out-of-order message part")
+					const parts = [...message.parts]
+					parts[event.index] = event.part
+					return { ...message, parts }
+				})
+				publish()
 				return
 			case "terminal":
 			case "error":
@@ -534,8 +651,14 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		for await (const event of events) {
 			if (disposed) return
 			requireEventOrder(state, event)
-			if (event.type === "accepted") await acceptSend(state, event)
-			else applyActiveSendEvent(state, event)
+			if (event.type === "accepted") {
+				if (event.duplicate) {
+					generation = "recovery"
+					beginSessionRecoveryPolling()
+					return
+				}
+				await acceptSend(state, event)
+			} else applyActiveSendEvent(state, event)
 		}
 		if (!state.terminalReceived) throw new Error("Chat stream closed without a terminal event")
 	}
@@ -560,7 +683,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	function recoverSend(state: SendState, cause: unknown): void {
 		if (!state.accepted) replaceMessage(state.localUserId, (message) => ({ ...message, outcome: "interrupted" }))
 		if (state.assistantId !== undefined) {
-			replaceMessage(state.assistantId, (message) => ({ ...message, outcome: "interrupted" }))
+			replaceMessage(state.assistantId, (message) => withOutcome(message, "interrupted"))
 		}
 		generation = "recovery"
 		error = transportError(cause)
@@ -570,7 +693,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	function handleStreamFailure(state: SendState, cause: unknown): void {
 		if (state.send.cancellationRequested) {
 			if (state.assistantId !== undefined) {
-				replaceMessage(state.assistantId, (message) => ({ ...message, outcome: "cancelled" }))
+				replaceMessage(state.assistantId, (message) => withOutcome(message, "cancelled"))
 			}
 		} else if (!(cause instanceof ChatClientError)) {
 			recoverSend(state, cause)
@@ -584,10 +707,18 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		const state = beginSend(text)
 		try {
 			await state.send.persisted
+			const manifest = await tools.manifest()
 			state.send.controller.signal.throwIfAborted()
 			messages = [
 				...messages,
-				{ id: state.localUserId, role: "user", text, createdAt: now().toISOString(), outcome: "pending" },
+				{
+					id: state.localUserId,
+					role: "user",
+					text,
+					parts: [{ type: "text", text }],
+					createdAt: now().toISOString(),
+					outcome: "pending",
+				},
 			]
 			error = undefined
 			publish()
@@ -597,11 +728,14 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				text,
 				requestId: state.requestId,
 				credential: state.credential,
+				tools: manifest,
 			})
 			await consumeSendEvents(state, events)
 		} catch (cause) {
-			if (!state.accepted && isDefiniteRejection(cause)) await rejectPendingSend(state, cause)
-			else handleStreamFailure(state, cause)
+			if (sendWasDefinitelyRejected(state, cause)) {
+				state.send.rejected = true
+				await rejectPendingSend(state, cause)
+			} else handleStreamFailure(state, cause)
 			publish()
 			throw cause
 		} finally {
@@ -652,7 +786,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 
 	async function handleCancellationFailure(state: CancellationState, cause: unknown): Promise<void> {
 		if (state.preAcceptance) {
-			await recoverCancelledPending(cause)
+			// A rejected send already removed its pending message, so there is nothing left to observe.
+			if (!state.send?.rejected) await recoverCancelledPending(cause)
 		} else if (generation === "cancelling") {
 			// No concurrent transition settled: restore the pre-cancel state.
 			generation = state.previousGeneration
@@ -682,39 +817,53 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		}
 	}
 
-	function cancelResponse(): Promise<void> {
-		requireUsable()
-		if (cancellationPromise !== undefined) return cancellationPromise
-		if (generation === "idle") return Promise.resolve()
-		const state: CancellationState = {
+	function createCancellationState(): CancellationState {
+		return {
 			previousGeneration: generation,
 			controller: new AbortController(),
 			preAcceptance: activeSend !== undefined && activeGenerationId === undefined,
 			send: activeSend,
 		}
+	}
+
+	function preparePreAcceptanceCancellation(state: CancellationState): void {
+		if (!state.preAcceptance || activeSend === undefined) return
+		activeSend.cancellationRequested = true
+		if (options.transport || !activeSend.dispatched) activeSend.controller.abort(new Error("Chat response cancelled"))
+	}
+
+	function settleCancellation(state: CancellationState, cancellation: Promise<void>): void {
+		if (cancellationController === state.controller) cancellationController = undefined
+		if (cancellationPromise === cancellation) cancellationPromise = undefined
+	}
+
+	function cancelResponse(): Promise<void> {
+		requireUsable()
+		if (cancellationPromise !== undefined) return cancellationPromise
+		if (generation === "idle") return Promise.resolve()
+		const state = createCancellationState()
 		cancellationController = state.controller
-		if (state.preAcceptance && activeSend !== undefined) {
-			activeSend.cancellationRequested = true
-			activeSend.controller.abort(new Error("Chat response cancelled"))
-		}
+		preparePreAcceptanceCancellation(state)
 		generation = "cancelling"
 		publish()
-		const cancellation = performCancellation(state).finally(() => {
-			if (cancellationController === state.controller) cancellationController = undefined
-			if (cancellationPromise === cancellation) cancellationPromise = undefined
-		})
+		const cancellation = performCancellation(state).finally(() => settleCancellation(state, cancellation))
 		cancellationPromise = cancellation
 		return cancellation
+	}
+
+	function lastFailedAssistantIndex(): number {
+		const index = messages.length - 1
+		const message = messages[index]
+		if (message?.role !== "assistant" || message.outcome !== "failed")
+			throw new Error("No failed response is available to retry")
+		return index
 	}
 
 	async function retryLastMessage(): Promise<void> {
 		requireUsable()
 		if (error?.retriable !== true) throw new Error("The latest chat error is not retriable")
-		const failedAssistantIndex = messages.length - 1
-		const failedAssistant = messages[failedAssistantIndex]
-		if (failedAssistant?.role !== "assistant" || failedAssistant.outcome !== "failed") {
-			throw new Error("No failed response is available to retry")
-		}
+		if (hasClientToolAction(messages.at(-1))) throw new Error("A website action cannot be safely retried")
+		const failedAssistantIndex = lastFailedAssistantIndex()
 		const failedUserMessage = messages
 			.slice(0, failedAssistantIndex)
 			.findLast((message) => message.role === "user" && message.outcome === "completed")

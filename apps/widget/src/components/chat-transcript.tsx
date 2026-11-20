@@ -2,29 +2,104 @@ import type { ChatAnnouncement, ChatView } from "@/lib/chat-view"
 import type { ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
 import type { RefObject } from "react"
 
+import ChevronDownIcon from "@/assets/icons/chevron-down.svg?react"
+import CircleCheckIcon from "@/assets/icons/circle-check.svg?react"
+import CircleXIcon from "@/assets/icons/circle-x.svg?react"
+import LoaderIcon from "@/assets/icons/loader.svg?react"
+import { groupTranscriptParts } from "@talqo/shared/chat-transcript"
 import { Markdown } from "@talqo/ui/components/markdown"
+import { cn } from "@talqo/ui/lib/utils"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
 
 import { errorText, outcomeText, ResponseIndicator } from "./chat-feedback"
 import { Bubble, BubbleContent, BubbleGroup } from "./ui/bubble"
 
+type MessagePart = ChatMessage["parts"][number]
+type ToolPart = Extract<MessagePart, { type: "dynamic-tool" }>
+
+function ToolRow({ part }: { part: ToolPart }) {
+	const { t } = useTranslation()
+	const toolStatuses = {
+		running: t("toolRunning"),
+		completed: t("toolCompleted"),
+		failed: t("toolFailed"),
+		cancelled: t("toolCancelled"),
+		interrupted: t("toolInterrupted"),
+	}
+	const status =
+		part.toolMetadata.outcome ??
+		(part.state === "input-available" ? "running" : part.state === "output-error" ? "failed" : "completed")
+	const StatusIcon = status === "running" ? LoaderIcon : status === "completed" ? CircleCheckIcon : CircleXIcon
+	return (
+		<output
+			title={toolStatuses[status]}
+			className="tw:flex tw:min-w-0 tw:max-w-full tw:items-center tw:gap-1.5 tw:break-words tw:px-1 tw:text-muted-foreground tw:text-xs"
+		>
+			<StatusIcon
+				aria-hidden="true"
+				className={cn(
+					"tw:size-3.5 tw:shrink-0",
+					status === "running" && "tw:animate-spin tw:motion-reduce:animate-none",
+				)}
+			/>
+			{part.toolMetadata.source === "client" ? t("websiteTool") : t("backendTool")}
+			<span className="tw:sr-only"> {toolStatuses[status]}</span>
+		</output>
+	)
+}
+
 // Unchanged messages keep object identity through the SDK, so memo skips most rows per delta.
 const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: ChatMessage }) {
 	const { t } = useTranslation()
-	const awaitingText = message.role === "assistant" && message.outcome === "streaming" && message.text.length === 0
+	const groups = groupTranscriptParts(message.parts)
+	const lastPart = message.parts.at(-1)
+	const awaitingText =
+		message.role === "assistant" &&
+		message.outcome === "streaming" &&
+		!message.parts.some((part) => part.type === "dynamic-tool" && part.state === "input-available") &&
+		(lastPart?.type !== "text" || lastPart.text.length === 0)
 	return (
 		<Bubble align={message.role === "user" ? "end" : "start"}>
 			<span className="tw:sr-only">{message.role === "user" ? t("youLabel") : t("agentLabel")}</span>
-			{(awaitingText || message.text.length > 0) && (
-				<BubbleContent variant={message.role === "user" ? "default" : "muted"}>
-					{awaitingText ? (
-						<ResponseIndicator label={t("agentResponding")} />
-					) : message.role === "assistant" ? (
-						<Markdown>{message.text}</Markdown>
-					) : (
-						message.text
-					)}
+			{groups.map((group) => {
+				if (group.kind === "text")
+					return (
+						<BubbleContent key={`${message.id}:${group.index}`} variant={message.role === "user" ? "default" : "muted"}>
+							{message.role === "assistant" ? <Markdown>{group.part.text}</Markdown> : group.part.text}
+						</BubbleContent>
+					)
+				if (group.kind === "tool") return <ToolRow key={group.groupKey} part={group.part} />
+				const running = group.parts.some((part) => part.state === "input-available")
+				return (
+					<details key={group.groupKey} className="tw:group tw:px-1">
+						<summary className="tw:flex tw:w-fit tw:cursor-pointer tw:items-center tw:gap-1 tw:text-muted-foreground tw:text-xs">
+							<ChevronDownIcon
+								aria-hidden="true"
+								className="tw:size-3.5 tw:shrink-0 tw:transition-transform tw:group-open:rotate-180"
+							/>
+							{t("toolsCalled", { count: group.parts.length })}
+							{running && (
+								<>
+									<LoaderIcon
+										aria-hidden="true"
+										className="tw:size-3.5 tw:shrink-0 tw:animate-spin tw:motion-reduce:animate-none"
+									/>
+									<span className="tw:sr-only"> {t("toolRunning")}</span>
+								</>
+							)}
+						</summary>
+						<div className="tw:mt-1 tw:flex tw:flex-col tw:gap-1">
+							{group.parts.map((part) => (
+								<ToolRow key={part.toolCallId} part={part} />
+							))}
+						</div>
+					</details>
+				)
+			})}
+			{awaitingText && (
+				<BubbleContent variant="muted">
+					<ResponseIndicator label={t("agentResponding")} />
 				</BubbleContent>
 			)}
 			{message.role === "assistant" && outcomeText(message.outcome, t) && (
@@ -170,7 +245,6 @@ export function ChatTranscript({
 					{view.messages.map((message) => (
 						<TranscriptBubble key={message.id} message={message} />
 					))}
-					{view.activeTools.length > 0 && <StatusBubble label={t("usingTool")} />}
 					{view.activity === "sending" && <StatusBubble label={t("agentResponding")} />}
 				</BubbleGroup>
 				<ActivityStatus activity={view.activity} />

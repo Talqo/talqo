@@ -29,7 +29,16 @@ const conversationWith = (text: string) => ({
 	id: CONVERSATION_ID,
 	agentId: AGENT.id,
 	startedAt: "2026-10-01T10:00:00.000Z",
-	messages: [{ id: "1", role: "user", text, outcome: "completed", createdAt: "2026-10-01T10:00:00.000Z" }],
+	messages: [
+		{
+			id: "1",
+			role: "user",
+			text,
+			parts: [{ type: "text", text }],
+			outcome: "completed",
+			createdAt: "2026-10-01T10:00:00.000Z",
+		},
+	],
 })
 
 const found = () => json({ conversation: conversationWith("Where is my order?") })
@@ -141,6 +150,7 @@ describe("ConversationPage", () => {
 							id: "1",
 							role: "assistant",
 							text: "Welcome",
+							parts: [{ type: "text", text: "Welcome" }],
 							outcome: "completed",
 							createdAt: "2026-10-01T10:00:00.000Z",
 						},
@@ -148,6 +158,7 @@ describe("ConversationPage", () => {
 							id: "2",
 							role: "user",
 							text: "Where is my order?",
+							parts: [{ type: "text", text: "Where is my order?" }],
 							outcome: "completed",
 							createdAt: "2026-10-01T10:00:00.000Z",
 						},

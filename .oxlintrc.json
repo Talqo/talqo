@@ -11,6 +11,7 @@
 	],
 	"plugins": ["import", "oxc", "typescript", "unicorn"],
 	"jsPlugins": [
+		{ "name": "eslint-js", "specifier": "oxlint-plugin-eslint" },
 		"@shadcn/lint",
 		{ "name": "@tanstack/router", "specifier": "@tanstack/eslint-plugin-router" },
 		"eslint-plugin-playwright"
@@ -30,6 +31,13 @@
 		"suspicious": "error"
 	},
 	"rules": {
+		"eslint-js/no-restricted-syntax": [
+			"error",
+			{
+				"selector": "TSTypeAliasDeclaration:not([typeParameters]) > TSTypeReference:not([typeArguments])",
+				"message": "Use the original type instead of declaring a plain type rename."
+			}
+		],
 		"import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
 		"no-magic-numbers": [
 			"error",

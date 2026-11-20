@@ -1,11 +1,9 @@
+import type { GetAiProviderConfiguration200 } from "@/api/generated/models/ai-providers/getAiProviderConfiguration200.zod.ts"
+import type { SaveAiProviderConfigurationBody } from "@/api/generated/models/ai-providers/saveAiProviderConfigurationBody.zod.ts"
+
 import { z } from "zod"
 
-import type {
-	AiProviderAuthMode,
-	AiProviderConfiguration,
-	AiProviderId,
-	SaveAiProviderConfigurationInput,
-} from "./types.ts"
+import type { AiProviderAuthMode, AiProviderId } from "./types.ts"
 
 const roleSchema = z.object({
 	providerId: z.enum(["openai", "anthropic", "google", "mistral", "azure", "amazon-bedrock", "openai-compatible"]),
@@ -27,7 +25,7 @@ function emptyRole(providerId: AiProviderId = "openai", authMode: AiProviderAuth
 	return { providerId, modelId: "", authMode, settings: {}, credentials: {} }
 }
 
-export function configurationToFormValues(configuration: AiProviderConfiguration): AiConfigurationFormValues {
+export function configurationToFormValues(configuration: GetAiProviderConfiguration200): AiConfigurationFormValues {
 	return {
 		revision: configuration.revision,
 		text: configuration.text ? { ...configuration.text, credentials: {} } : emptyRole(),
@@ -51,7 +49,7 @@ function buildRole(role: AiConfigurationFormValues["text"]) {
 	return { authMode: "static" as const, modelId, providerId, settings, ...(credentials ? { credentials } : {}) }
 }
 
-export function buildSaveInput(values: AiConfigurationFormValues): SaveAiProviderConfigurationInput {
+export function buildSaveInput(values: AiConfigurationFormValues): SaveAiProviderConfigurationBody {
 	return {
 		expectedRevision: values.revision,
 		text: buildRole(values.text),

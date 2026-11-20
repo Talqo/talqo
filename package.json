@@ -60,6 +60,7 @@
 		"husky": "^9.1.7",
 		"orval": "8.48.0",
 		"oxlint": "1.94.0",
+		"oxlint-plugin-eslint": "1.94.0",
 		"oxlint-tsgolint": "^7.0.2006",
 		"@fidasek009/stryker-mutator-bun-runner": "0.5.2",
 		"supercov": "4.28.0",
