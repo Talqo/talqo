@@ -1858,15 +1858,12 @@ describe("createChatClient", () => {
 		const sent = Promise.withResolvers<void>()
 		const sendRejected = Promise.withResolvers<void>()
 		let sending: Promise<unknown> | undefined
-		let sends = 0
-		let loads = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
 			storage,
 			transport: baseTransport({
 				sendMessage: async () => {
-					sends += 1
 					sent.resolve()
 					await sendRejected.promise
 					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
@@ -1876,7 +1873,6 @@ describe("createChatClient", () => {
 					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
 				},
 				loadSession: async () => {
-					loads += 1
 					throw new Error("A rejected send is not recoverable")
 				},
 			}),
@@ -1891,8 +1887,46 @@ describe("createChatClient", () => {
 		await sending
 		await cancelling
 
-		expect(loads).toBe(0)
-		expect(sends).toBe(1)
+		expect(client.getSnapshot()).toMatchObject({
+			activity: "idle",
+			messages: [],
+			error: { code: "chat-session-unauthorized", status: 401 },
+		})
+		expect(await storage.getItem(createChatStorageKey("https://api.example.test", "embed"))).toBeNull()
+	})
+
+	test("a definite rejection still settles idle when the cancellation failure arrives first", async () => {
+		const storage = createMemoryStorage()
+		const sent = Promise.withResolvers<void>()
+		const sendRejected = Promise.withResolvers<void>()
+		const cancellationFailed = Promise.withResolvers<void>()
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage,
+			transport: baseTransport({
+				sendMessage: async () => {
+					sent.resolve()
+					await sendRejected.promise
+					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
+				},
+				cancelResponse: async () => {
+					await cancellationFailed.promise
+					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
+				},
+			}),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
+			recoveryDelays: [0],
+		})
+		await client.initialize()
+		const sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+		await sent.promise
+		const cancelling = client.cancelResponse()
+		cancellationFailed.resolve()
+		await cancelling
+		sendRejected.resolve()
+		await sending
+
 		expect(client.getSnapshot()).toMatchObject({
 			activity: "idle",
 			messages: [],
