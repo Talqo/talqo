@@ -141,6 +141,7 @@ test("observes the page and reports private controls without exposing them", asy
 		<input id="number" type="tel" name="credit-card" aria-label="Card number">
 		<select id="saved" data-card-number><option>Saved card</option></select>
 		<form data-payment><input id="code" name="code"></form>
+		<section data-payment><div><input id="wrapped" name="number"></div></section>
 		<input name="quantity">
 		<button id="buy">Buy</button>
 	</main>`
@@ -150,6 +151,7 @@ test("observes the page and reports private controls without exposing them", asy
 			"number",
 			"saved",
 			"code",
+			"wrapped",
 		])
 	}
 	controllerState.element = document.querySelector("#buy") as HTMLElement
