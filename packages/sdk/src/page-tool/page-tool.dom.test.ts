@@ -142,8 +142,6 @@ test("observes the page and reports private controls without exposing them", asy
 		<select id="saved" data-card-number><option>Saved card</option></select>
 		<form data-payment><input id="code" name="code"></form>
 		<section data-payment><div><input id="wrapped" name="number"></div></section>
-		<div id="payment"><input id="payment-number" name="number"></div>
-		<div data-testid="payment"><input id="payment-expiry" name="expiry"></div>
 		<input id="marked" data-payment>
 		<input name="quantity">
 		<button id="buy">Buy</button>
@@ -155,8 +153,6 @@ test("observes the page and reports private controls without exposing them", asy
 			"saved",
 			"code",
 			"wrapped",
-			"payment-number",
-			"payment-expiry",
 			"marked",
 		])
 	}
@@ -333,8 +329,8 @@ test("fills and selects ordinary controls even when their ID or test ID is payme
 	page.dispose()
 })
 
-test("rejects a private payment control returned by the controller", async () => {
-	document.body.innerHTML = '<main><div id="payment"><input name="number"></div></main>'
+test("rejects a control marked as a payment field even when the controller returns it", async () => {
+	document.body.innerHTML = '<main><input name="number" data-payment></main>'
 	const input = document.querySelector("input")!
 	setRect(input, 20, 40)
 	document.elementFromPoint = () => input

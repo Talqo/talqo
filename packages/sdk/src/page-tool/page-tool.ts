@@ -94,7 +94,7 @@ function fieldMetadata(element: Element): string {
 function isPaymentContainer(element: Element | null | undefined): boolean {
 	return (
 		!!element &&
-		(element.matches("[data-payment], #payment, [data-testid=payment]") ||
+		(element.hasAttribute("data-payment") ||
 			(element.matches("form, fieldset") && /payment/i.test(fieldMetadata(element))))
 	)
 }
@@ -107,7 +107,7 @@ function isInsidePaymentContainer(element: Element): boolean {
 }
 
 function isPrivateControl(element: Element): boolean {
-	if (element.hasAttribute("data-payment")) return true
+	if (isPaymentContainer(element)) return true
 	const metadata = fieldMetadata(element)
 	if (PRIVATE_FIELD.test(metadata) || PAYMENT_FIELD.test(metadata)) return true
 	const form = element instanceof HTMLElement ? formControl(element)?.form : undefined
