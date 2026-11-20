@@ -1853,7 +1853,7 @@ describe("createChatClient", () => {
 		})
 	}
 
-	test("a definite pre-accept rejection is rejected once, by the send path", async () => {
+	test("a definite rejection settles before the cancellation failure", async () => {
 		const storage = createMemoryStorage()
 		const sent = Promise.withResolvers<void>()
 		const sendRejected = Promise.withResolvers<void>()
