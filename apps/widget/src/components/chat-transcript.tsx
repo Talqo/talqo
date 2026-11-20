@@ -232,7 +232,7 @@ export function ChatTranscript({
 				aria-label={t("transcriptLabel")}
 				className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4"
 			>
-				<p id={monitoringNoticeId} className="tw:mb-4 tw:text-center tw:text-muted-foreground tw:text-xs">
+				<p id={monitoringNoticeId} className="tw:pb-4 tw:text-center tw:text-muted-foreground tw:text-xs">
 					{t("monitoringNotice")}
 				</p>
 				<BubbleGroup>
