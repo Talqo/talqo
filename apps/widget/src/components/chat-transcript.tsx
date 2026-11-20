@@ -72,11 +72,11 @@ const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: 
 				if (group.kind === "tool") return <ToolRow key={group.groupKey} part={group.part} />
 				const running = group.parts.some((part) => part.state === "input-available")
 				return (
-					<details key={group.groupKey} className="tw:group tw:px-1">
+					<details key={group.groupKey} className="tw:px-1">
 						<summary className="tw:flex tw:w-fit tw:cursor-pointer tw:items-center tw:gap-1 tw:text-muted-foreground tw:text-xs">
 							<ChevronDownIcon
 								aria-hidden="true"
-								className="tw:size-3.5 tw:shrink-0 tw:transition-transform tw:group-open:rotate-180"
+								className="talqo-tool-chevron tw:size-3.5 tw:shrink-0 tw:motion-safe:transition-transform"
 							/>
 							{t("toolsCalled", { count: group.parts.length })}
 							{running && (
