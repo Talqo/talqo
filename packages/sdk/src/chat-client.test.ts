@@ -1853,6 +1853,54 @@ describe("createChatClient", () => {
 		})
 	}
 
+	test("a definite pre-accept rejection is rejected once, by the send path", async () => {
+		const storage = createMemoryStorage()
+		const sent = Promise.withResolvers<void>()
+		const sendRejected = Promise.withResolvers<void>()
+		let sending: Promise<unknown> | undefined
+		let sends = 0
+		let loads = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage,
+			transport: baseTransport({
+				sendMessage: async () => {
+					sends += 1
+					sent.resolve()
+					await sendRejected.promise
+					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
+				},
+				cancelResponse: async () => {
+					await sending
+					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
+				},
+				loadSession: async () => {
+					loads += 1
+					throw new Error("A rejected send is not recoverable")
+				},
+			}),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
+			recoveryDelays: [0],
+		})
+		await client.initialize()
+		sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+		await sent.promise
+		const cancelling = client.cancelResponse()
+		sendRejected.resolve()
+		await sending
+		await cancelling
+
+		expect(loads).toBe(0)
+		expect(sends).toBe(1)
+		expect(client.getSnapshot()).toMatchObject({
+			activity: "idle",
+			messages: [],
+			error: { code: "chat-session-unauthorized", status: 401 },
+		})
+		expect(await storage.getItem(createChatStorageKey("https://api.example.test", "embed"))).toBeNull()
+	})
+
 	test("a failed post-acceptance cancellation keeps a concurrently completed state", async () => {
 		const terminal = deferred<void>()
 		const cancellation = deferred<void>()
