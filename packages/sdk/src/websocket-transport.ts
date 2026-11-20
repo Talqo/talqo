@@ -81,6 +81,8 @@ export function createWebSocketChatTransport(
 			let closed = false
 			let started = false
 			let terminal = false
+			// A rejection ends the turn before any terminal event reaches the consumer.
+			let delivered = false
 			let accepted = false
 			const dispatched = new Set<string>()
 			const advertisedNames = new Set(manifest.map((definition) => definition.name))
@@ -89,7 +91,7 @@ export function createWebSocketChatTransport(
 			const acceptance = Promise.withResolvers<void>()
 			const settled = Promise.withResolvers<void>()
 			function recordStopFailure(): void {
-				if (stopRequested && !terminal) failure ??= new ChatTransportError({ code: "cancel-failed" })
+				if (stopRequested && !delivered) failure ??= new ChatTransportError({ code: "cancel-failed" })
 			}
 			function rejectAcceptance(): void {
 				if (!accepted) acceptance.reject(failure ?? new ChatTransportError({ code: "transport-error" }))
@@ -117,7 +119,7 @@ export function createWebSocketChatTransport(
 				}
 				close()
 				// Surface the specific rejection or transport error; a generic cancel-failed is only the fallback.
-				if (stopRequested && !terminal && failure) throw failure
+				if (stopRequested && !delivered && failure) throw failure
 			})
 			ws.addEventListener(
 				"open",
@@ -184,6 +186,7 @@ export function createWebSocketChatTransport(
 				bufferedBytes += bytes
 				if (parsed.type === "terminal" || parsed.type === "error") {
 					terminal = true
+					delivered = true
 					toolController.abort()
 					settled.resolve()
 				}
