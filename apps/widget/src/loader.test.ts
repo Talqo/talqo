@@ -76,6 +76,10 @@ function resolveChat(module: FakeChat, script = injected.at(-1)) {
 	script.dispatchEvent(new Event("load"))
 }
 
+function removeEmbedScripts(): void {
+	document.querySelectorAll("script[data-talqo-embed-token]").forEach((script) => script.remove())
+}
+
 describe("widget loader", () => {
 	let fetchSpy: { mockRestore: () => void }
 	let originalAppend: typeof document.head.append
@@ -83,7 +87,7 @@ describe("widget loader", () => {
 	beforeEach(() => {
 		globals().TalqoWidget?.unmount()
 		document.querySelector("#talqo-widget")?.remove()
-		document.querySelectorAll("script[data-talqo-embed-token]").forEach((script) => script.remove())
+		removeEmbedScripts()
 		Reflect.deleteProperty(window, "TalqoWidgetChat")
 		fetchSpy = spyOn(globalThis, "fetch").mockResolvedValue(
 			new Response(JSON.stringify({ name: "Test", appearance: {}, isAvailable: true })),
@@ -104,6 +108,7 @@ describe("widget loader", () => {
 	afterEach(() => {
 		globals().TalqoWidget?.unmount()
 		document.head.append = originalAppend
+		removeEmbedScripts()
 		fetchSpy.mockRestore()
 	})
 
