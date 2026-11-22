@@ -38,8 +38,6 @@ export const embed = pgTable(
 		themeToggleEnabled: boolean("theme_toggle_enabled").notNull().default(false),
 		// text, not an enum: `@talqo/shared` owns the set, and an enum costs a migration per language.
 		language: text("language").notNull().default("en"),
-		// Set while a custom launcher icon file exists; also versions its public URL.
-		iconUpdatedAt: timestamp("icon_updated_at", { withTimezone: true, mode: "date" }),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},

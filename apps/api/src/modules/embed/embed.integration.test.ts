@@ -1,6 +1,6 @@
 import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
-import { uploadAreaDir } from "@/lib/upload-storage.ts"
+import { moduleUploadDir } from "@/lib/upload-storage.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
@@ -505,7 +505,7 @@ function resetIcon(cookie: string, embedId: string) {
 }
 
 function iconDir(embedId: string): string {
-	return join(uploadAreaDir("embeds"), embedId)
+	return join(moduleUploadDir("embedIcons"), embedId)
 }
 
 async function storedIconUrl(embedId: string): Promise<string | null> {
@@ -520,7 +520,7 @@ describe("embed launcher icon", () => {
 
 		expect(uploaded.status).toBe(200)
 		const { embed } = (await uploaded.json()) as { embed: { iconUrl: string } }
-		expect(embed.iconUrl).toMatch(new RegExp(`^/api/embed-config/${created.embedToken}/icon\\?v=\\d+$`))
+		expect(embed.iconUrl).toMatch(new RegExp(`^/api/embed-config/${created.embedToken}/icon\\?v=[0-9a-f]{16}$`))
 		expect(await readFile(join(iconDir(created.id), "icon.svg"), "utf8")).toBe(ICON_SVG)
 		const config = await app.request(`/api/embed-config/${created.embedToken}`)
 		expect(((await config.json()) as { iconUrl: string }).iconUrl).toBe(embed.iconUrl)
@@ -544,7 +544,6 @@ describe("embed launcher icon", () => {
 		const first = await storedIconUrl(created.id)
 		const etag = (await app.request(`/api/embed-config/${created.embedToken}`)).headers.get("etag") ?? ""
 		const replacement = '<svg xmlns="http://www.w3.org/2000/svg"><title>Kočka 🐈</title></svg>'
-		await Bun.sleep(2)
 
 		await uploadIcon(cookie, created.id, replacement)
 
@@ -563,6 +562,7 @@ describe("embed launcher icon", () => {
 		const cookie = await createManagerSession()
 		await uploadIcon(cookie, created.id)
 		const iconUrl = await storedIconUrl(created.id)
+		const etag = (await app.request(`/api/embed-config/${created.embedToken}`)).headers.get("etag") ?? ""
 
 		const reset = await resetIcon(cookie, created.id)
 
@@ -570,6 +570,10 @@ describe("embed launcher icon", () => {
 		expect(await reset.json()).toMatchObject({ embed: { id: created.id, iconUrl: null } })
 		expect((await service.getConfigByToken(created.embedToken)).iconUrl).toBeNull()
 		await expect(stat(iconDir(created.id))).rejects.toMatchObject({ code: "ENOENT" })
+		const refreshed = await app.request(`/api/embed-config/${created.embedToken}`, {
+			headers: { "If-None-Match": etag },
+		})
+		expect(refreshed.status).toBe(200)
 		const gone = await app.request(iconUrl ?? "")
 		expect(gone.status).toBe(404)
 		expect(await gone.json()).toMatchObject({ code: "embed-icon-not-found" })
@@ -671,12 +675,15 @@ describe("embed launcher icon", () => {
 		await expect(stat(iconDir(created.id))).rejects.toMatchObject({ code: "ENOENT" })
 	})
 
-	it("conceals embeds of agents the operator cannot see", async () => {
+	it.each([
+		["a valid icon", ICON_SVG],
+		["an invalid file", "<html></html>"],
+	])("conceals embeds of agents the operator cannot see when uploading %s", async (_label, contents) => {
 		const hidden = await createEmbed(await createAgent("Hidden"))
 		const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
 		await giveRole(operator.id, ["agents:manage"], [await createAgent("Visible")])
 
-		const response = await uploadIcon(await login(operator.username), hidden.id)
+		const response = await uploadIcon(await login(operator.username), hidden.id, contents)
 
 		expect(response.status).toBe(404)
 		expect(await response.json()).toMatchObject({ code: "embed-not-found" })

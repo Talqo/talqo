@@ -32,8 +32,8 @@ const CONFIG_MAX_AGE_SECONDS = 60
 
 function serveEmbedConfig(c: Context) {
 	return service.getConfigByToken(c.req.param("embedToken")!, annotator(c)).then((config) => {
-		// Availability follows the AI provider, not the embed row, so it must vary the tag too.
-		const etag = `W/"${config.updatedAt.getTime()}-${config.isAvailable ? 1 : 0}"`
+		// Availability follows the AI provider and the icon lives on disk, so neither moves the row; both vary the tag.
+		const etag = `W/"${config.updatedAt.getTime()}-${config.isAvailable ? 1 : 0}-${config.iconUrl ?? ""}"`
 		if (c.req.header("if-none-match") === etag) return c.body(null, HTTP_STATUS.NOT_MODIFIED)
 		c.header("Cache-Control", `public, max-age=${CONFIG_MAX_AGE_SECONDS}`)
 		c.header("ETag", etag)
@@ -111,8 +111,8 @@ const ICON_HEADERS = {
 export const embedConfigRoutes = new OpenAPIHono()
 	.openapi(getEmbedConfigRoute, serveEmbedConfig)
 	.openapi(getEmbedIconRoute, async (c) => {
-		const { content, updatedAt } = await service.getIconByToken(c.req.valid("param").embedToken)
-		const etag = `W/"${updatedAt.getTime()}"`
+		const { content, version } = await service.getIconByToken(c.req.valid("param").embedToken)
+		const etag = `"${version}"`
 		if (c.req.header("if-none-match") === etag) return c.body(null, HTTP_STATUS.NOT_MODIFIED, { ETag: etag })
 		return c.body(new Uint8Array(content), HTTP_STATUS.OK, {
 			...ICON_HEADERS,

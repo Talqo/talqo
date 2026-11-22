@@ -6,7 +6,7 @@ import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { generateOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
-import { uploadAreaDir } from "@/lib/upload-storage.ts"
+import { moduleUploadDir } from "@/lib/upload-storage.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { EMBED_ICON_MAX_BYTES, EMBED_ICON_MAX_KB, isSvgDocument } from "@talqo/shared/embed-icon"
@@ -72,12 +72,12 @@ class EmbedIconTooLargeError extends ApiError {
 
 type EmbedRow = NonNullable<Awaited<ReturnType<typeof repo.findEmbed>>>
 
-/** Relative to the API origin; the version busts caches when the icon is replaced. */
-function iconPath(embedToken: string, iconUpdatedAt: Date): string {
-	return `/api/embed-config/${encodeURIComponent(embedToken)}/icon?v=${iconUpdatedAt.getTime()}`
+/** Relative to the API origin; the content-derived version busts caches when the icon is replaced. */
+function iconPath(embedToken: string, iconVersion: string): string {
+	return `/api/embed-config/${encodeURIComponent(embedToken)}/icon?v=${iconVersion}`
 }
 
-function toEmbed(row: EmbedRow): Embed {
+function toEmbed(row: EmbedRow, iconVersion: string | null): Embed {
 	return {
 		id: row.id,
 		agentId: row.agentId,
@@ -85,7 +85,7 @@ function toEmbed(row: EmbedRow): Embed {
 		embedToken: row.embedToken,
 		accessVersion: row.accessVersion,
 		isDisabled: row.isDisabled,
-		iconUrl: row.iconUpdatedAt === null ? null : iconPath(row.embedToken, row.iconUpdatedAt),
+		iconUrl: iconVersion === null ? null : iconPath(row.embedToken, iconVersion),
 		appearance: {
 			light: {
 				primary: row.lightPrimaryColor,
@@ -131,9 +131,9 @@ function toColumns(appearance: WidgetAppearance) {
 
 export async function listVisibleEmbeds(actorId: string, agentId?: string): Promise<Embed[]> {
 	const scope = await roles.agentScope(actorId, roles.AgentPermission.AgentRead)
-	if (!agentId) return (await repo.listEmbeds(scope)).map(toEmbed)
+	if (!agentId) return Promise.all((await repo.listEmbeds(scope)).map(present))
 	const allowed = scope === "all" || scope.includes(agentId)
-	return (await repo.listEmbeds(allowed ? [agentId] : [])).map(toEmbed)
+	return Promise.all((await repo.listEmbeds(allowed ? [agentId] : [])).map(present))
 }
 
 export async function getEmbed(
@@ -144,7 +144,7 @@ export async function getEmbed(
 	const row = await repo.findEmbed(id)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
 	await roles.requireAgentPermission(actorId, row.agentId, permission, PROBLEM_CODES.EMBED_NOT_FOUND)
-	return toEmbed(row)
+	return present(row)
 }
 
 export async function createEmbed(input: EmbedInput, actorId: string): Promise<Embed> {
@@ -157,7 +157,7 @@ export async function createEmbed(input: EmbedInput, actorId: string): Promise<E
 			embedToken: generateOpaqueToken(),
 			...toColumns(input.appearance),
 		})
-		return toEmbed(row)
+		return present(row)
 	} catch (error) {
 		if (isForeignKeyViolation(error)) throw new UnknownAgentError(`Agent ${input.agentId} not found`)
 		throw error
@@ -178,7 +178,7 @@ export async function updateEmbed(id: string, input: EmbedInput, actorId: string
 			current.agentId,
 		)
 		if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
-		return toEmbed(row)
+		return present(row)
 	} catch (error) {
 		if (isForeignKeyViolation(error)) throw new UnknownAgentError("Agent not found")
 		throw error
@@ -189,7 +189,7 @@ export async function rotateEmbedToken(id: string, actorId: string): Promise<Emb
 	const current = await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
 	const row = await repo.rotateEmbedToken(id, generateOpaqueToken(), current.agentId)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
-	return toEmbed(row)
+	return present(row)
 }
 
 export async function disableEmbed(id: string, actorId: string): Promise<Embed> {
@@ -204,15 +204,35 @@ async function setDisabled(id: string, isDisabled: boolean, actorId: string): Pr
 	const current = await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
 	const row = await repo.setEmbedDisabled(id, isDisabled, current.agentId)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
-	return toEmbed(row)
+	return present(row)
 }
 
 function iconDir(embedId: string): string {
-	return join(uploadAreaDir("embeds"), embedId)
+	return join(moduleUploadDir("embedIcons"), embedId)
 }
 
 function iconFile(embedId: string): string {
 	return join(iconDir(embedId), "icon.svg")
+}
+
+const ICON_VERSION_LENGTH = 16
+
+function hashIcon(content: Uint8Array): string {
+	return new Bun.CryptoHasher("sha256").update(content).digest("hex").slice(0, ICON_VERSION_LENGTH)
+}
+
+async function readIcon(embedId: string): Promise<{ content: Uint8Array; version: string } | null> {
+	try {
+		const content = await readFile(iconFile(embedId))
+		return { content, version: hashIcon(content) }
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return null
+		throw error
+	}
+}
+
+async function present(row: EmbedRow): Promise<Embed> {
+	return toEmbed(row, (await readIcon(row.id))?.version ?? null)
 }
 
 // Written beside the target and renamed over it, so a replacement is never served half-written.
@@ -245,44 +265,36 @@ function decodeIcon(content: ArrayBuffer): string {
 	return markup
 }
 
-// File first, then the column: a crash in between leaves at most an unreferenced file.
 export async function setEmbedIcon(id: string, content: ArrayBuffer, actorId: string): Promise<Embed> {
-	const markup = decodeIcon(content)
-	const current = await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
-	await writeIconFile(id, markup)
-	const row = await repo.setEmbedIconUpdatedAt(id, new Date(), current.agentId)
+	await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
+	await writeIconFile(id, decodeIcon(content))
+	// A deletion that ran meanwhile already removed the directory; drop the file it left behind.
+	const row = await repo.findEmbed(id)
 	if (!row) {
 		await removeIconDir(id)
 		throw new EmbedNotFoundError(`Embed ${id} not found`)
 	}
-	return toEmbed(row)
+	return present(row)
 }
 
-// Column first, then the file: the public URL disappears before the file it points at.
 export async function removeEmbedIcon(id: string, actorId: string): Promise<Embed> {
-	const current = await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
-	const row = await repo.setEmbedIconUpdatedAt(id, null, current.agentId)
-	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
+	await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
 	await removeIconDir(id)
-	return toEmbed(row)
+	return getEmbed(id, actorId)
 }
 
-export async function getIconByToken(embedToken: string): Promise<{ content: Uint8Array; updatedAt: Date }> {
+export async function getIconByToken(embedToken: string): Promise<{ content: Uint8Array; version: string }> {
 	const row = await repo.findEmbedByToken(embedToken)
-	if (!row?.iconUpdatedAt) throw new EmbedIconNotFoundError("Embed icon not found")
-	try {
-		return { content: await readFile(iconFile(row.id)), updatedAt: row.iconUpdatedAt }
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code === "ENOENT") throw new EmbedIconNotFoundError("Embed icon not found")
-		throw error
-	}
+	const icon = row ? await readIcon(row.id) : null
+	if (!icon) throw new EmbedIconNotFoundError("Embed icon not found")
+	return icon
 }
 
 /** Removes icon directories left by an embed deletion that crashed before its file cleanup. */
 export async function removeOrphanIcons(): Promise<void> {
 	let embedIds: string[]
 	try {
-		embedIds = await readdir(uploadAreaDir("embeds"))
+		embedIds = await readdir(moduleUploadDir("embedIcons"))
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") return
 		throw error
@@ -305,7 +317,7 @@ export async function getConfigByToken(embedToken: string, annotate: Annotate = 
 	const row = await repo.findEmbedByToken(embedToken)
 	if (!row) throw new EmbedNotFoundError("Embed not found")
 	annotate({ "embed.id": row.id, "agent.id": row.agentId })
-	const { name, appearance, iconUrl, isDisabled } = toEmbed(row)
+	const { name, appearance, iconUrl, isDisabled } = await present(row)
 	const isAvailable = !isDisabled && (await aiProvider.canGenerateText())
 	return { version: WIDGET_CONFIG_VERSION, name, appearance, iconUrl, isAvailable, updatedAt: row.updatedAt }
 }
@@ -313,5 +325,5 @@ export async function getConfigByToken(embedToken: string, annotate: Annotate = 
 export async function getEmbedByToken(embedToken: string): Promise<Embed> {
 	const row = await repo.findEmbedByToken(embedToken)
 	if (!row) throw new EmbedNotFoundError("Embed not found")
-	return toEmbed(row)
+	return present(row)
 }

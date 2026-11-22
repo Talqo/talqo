@@ -113,13 +113,6 @@
 			"when": 1792923808406,
 			"tag": "0015_daily_counter_cleanup",
 			"breakpoints": true
-		},
-		{
-			"idx": 16,
-			"version": "7",
-			"when": 1794948331148,
-			"tag": "0016_embed_icon",
-			"breakpoints": true
 		}
 	]
 }
