@@ -1,52 +1,22 @@
 ---
 paths:
   - "**/Chart.yaml"
-  - "**/charts/**/values*.yaml"
-  - "**/charts/**/values*.yml"
-  - "**/charts/**/values.schema.json"
-  - "**/charts/**/templates/**/*.yaml"
-  - "**/charts/**/templates/**/*.yml"
-  - "**/charts/**/templates/**/*.tpl"
-  - "**/helm/**/values*.yaml"
-  - "**/helm/**/values*.yml"
-  - "**/helm/**/values.schema.json"
-  - "**/helm/**/templates/**/*.yaml"
-  - "**/helm/**/templates/**/*.yml"
-  - "**/helm/**/templates/**/*.tpl"
+  - "**/{charts,helm}/**/values*.{yaml,yml}"
+  - "**/{charts,helm}/**/values.schema.json"
+  - "**/{charts,helm}/**/templates/**/*.{yaml,yml,tpl}"
+  - "**/{charts,helm}/**/crds/**/*.{yaml,yml}"
 ---
 
-# Helm Standards
+# Helm
 
-## Chart Structure
+## Values and rendering
 
-- Use lowercase hyphenated chart names.
-- Keep chart `version` SemVer-compliant.
-- Quote `appVersion`.
-- Namespace helper template names with the chart name to avoid collisions.
+- Keep chart values compatible with existing overrides. Maintain a values schema for non-trivial charts. Preserve explicit `false` and `0` when applying defaults.
+- For GitOps, render the same manifests from the same chart and values. Use chart-qualified helpers for resource names and selector labels so services target the intended workloads.
+- Use existing Secrets or the platform's secret store. Keep plaintext credentials out of chart values and rendered test output.
 
-## Values
+## Upgrades and verification
 
-- Use stable, documented value names for public chart configuration.
-- Group related values clearly while keeping common CLI overrides straightforward.
-- Quote strings and version-like values; keep booleans and integers typed correctly.
-- Use `values.schema.json` when the chart has a non-trivial public values surface.
-- Require mandatory values at template time with clear error messages.
-
-## Templates
-
-- Keep templates deterministic for GitOps-managed releases.
-- Use `tpl` for intentionally supported user-supplied templates.
-- Apply labels and selectors consistently through helpers.
-- Keep RBAC least-privilege. Document any required wildcard verbs or resources.
-
-## Workload Security
-
-- Use non-root containers, dropped capabilities, read-only filesystems, and explicit security contexts.
-- Set resource requests and limits according to workload type and platform policy.
-- Add readiness and liveness probes for long-running services that can report health meaningfully.
-- Keep plaintext secrets out of `values.yaml` and templates.
-
-## Verification
-
-- Run `helm lint` and `helm template` for changed charts.
-- Use dry-run or chart tests when changing install/upgrade behavior.
+- Preserve deployed workload selectors and persistent volume claims. Plan a migration before changing their identity or immutable fields. Plan CRD upgrades explicitly because Helm skips already-installed CRDs in `crds/`.
+- Run `helm lint`. Use `helm template` with defaults and representative overrides, including feature toggles. Check the rendered diff for resource replacements, selector mismatches, and unexpected changes to existing installs.
+- For changes to cluster APIs, hooks, or storage, run a server-side dry run or install and upgrade in a disposable cluster as appropriate. Test an upgrade from the previous release when lifecycle behavior changes.

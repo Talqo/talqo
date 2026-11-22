@@ -55,7 +55,8 @@ bun run quality:fix      # any edit
 bun run check            # code edits: typecheck, dead-code, duplication, architecture
 bun run test             # changed behavior or its tests
 bun run test:integration # module, database, service, or route
-bun run e2e              # web, widget, SDK, or API request handling; never run on PRs
+bun run health           # coverage and CRAP score; slow so run only when needed
+bun run e2e              # web, widget, SDK, or API request handling; slow so run only when needed
 bun run contracts:check  # API contract or generated client
 bun run i18n:fix         # app locales or translated keys
 bun run actions:check    # .github/workflows
@@ -64,7 +65,6 @@ bun run actions:check    # .github/workflows
 Run the following only when explicitly requested, or once at the very end of implementation before handing over for review or merging. They are slow enough to break the loop, so never make them part of routine checks.
 
 ```sh
-bun run health                         # test coverage and CRAP score
 bun run test:mutation                  # behavior you changed; incremental
 bun run test:mutation:full             # repository-wide score
 bun run test:mutation:integration      # API integration coverage

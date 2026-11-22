@@ -100,7 +100,7 @@ jobs:
         run: bun run typecheck
 
   test:
-    name: Test
+    name: Tests & code health
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     env:
