@@ -1,27 +1,10 @@
 ---
 paths:
-  - ".claude/rules/*.md"
+  - ".claude/rules/**/*.md"
 ---
 
-# Rules File Standards
+# Writing Claude rules
 
-## Philosophy
-
-- Write reusable standards that change code, commands, review findings, or documentation.
-- Favor current industry standards, strong defaults, and strict project consistency.
-- State preferred tools, patterns, conventions, outputs, and exceptions.
-- Assume the agent already knows technology syntax and concepts.
-- Capture the philosophy behind the rule that the agent should follow.
-- Include snippets only for required conventions or canonical project shapes.
-
-## Scope
-
-- Path scoping is routing, not project specificity.
-- Use narrow globs that apply technology-specific rules only to relevant files.
-
-## Style
-
-- Use concise sections, direct language, and concrete technical terms.
-- State the desired agent behavior.
-- For common mistakes, state the replacement behavior.
-- Merge related bullet points into one more specific rule.
+- Keep a rule only if it changes a decision the model would otherwise get wrong. Write down local contracts, exceptions, and recurring mistakes.
+- Leave mechanical checks to tools and workflows to skills. Use existing code to show conventions. Keep each instruction in one place.
+- Scope each rule to the files it applies to. Use global rules for defaults that apply across tasks.

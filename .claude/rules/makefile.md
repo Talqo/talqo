@@ -1,47 +1,19 @@
 ---
 paths:
-  - "**/Makefile"
-  - "**/makefile"
-  - "**/GNUmakefile"
-  - "**/*.mk"
+  - "**/{Makefile,makefile,GNUmakefile,*.mk}"
 ---
 
-# Makefile Standards
+# Makefiles
 
-## Syntax
+## Targets and dependencies
 
-- Recipe lines must start with a tab.
-- Declare non-file targets with `.PHONY`.
-- Use `:=` for values evaluated once.
-- Use `?=` for user-overridable defaults.
-- Escape shell variables as `$$var` inside recipes.
+- Use conventional developer targets such as `setup`, `test`, `lint`, and `build`. In new top-level developer Makefiles, default to a `help` target that lists targets marked with `##`.
+- Declare which inputs each generated file depends on. Use order-only prerequisites for output directories. Express build order through prerequisites so `make -j` works from a clean tree.
+- Keep recipes short and call the same commands developers and CI use. Use `$(MAKE)` for recursive builds so flags and parallelism carry through. Put steps that share shell state in a script.
+- Honor command-line overrides for tools, paths, and build options. Propagate recipe failures and remove incomplete outputs so a retry rebuilds them.
 
-## Command Surface
+## Side effects and verification
 
-- Top-level developer Makefiles should expose `help`, `setup`, `test`, `lint`, `build`, and `clean` when relevant.
-- Use standard target names for common actions: `setup`, `install`, `dev`, `test`, `lint`, `format`, `typecheck`, `build`, `clean`, `deploy`, and `help`.
-- Use this help-target convention for top-level developer Makefiles:
-
-```makefile
-.PHONY: help
-help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-	awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
-
-.DEFAULT_GOAL := help
-```
-
-- Put dangerous or environment-specific targets behind explicit variables or confirmation checks.
-- Handle expected missing files explicitly instead of masking target failures.
-
-## Shell Behavior
-
-- Set `SHELL` only when recipes require a specific shell.
-- Quote variables passed into shell commands.
-- Validate required variables before deploy, publish, migration, or destructive targets.
-- Prefer small scripts when a recipe becomes complex enough to need substantial shell logic.
-
-## Verification
-
-- Run the affected target after changing a Makefile.
-- For reusable Makefiles, verify includes and variable overrides from at least one consumer.
+- Require an explicit destination or opt-in for deploy, publish, migration, and destructive recipes.
+- Run changed targets that are safe to execute. For dependency changes, run a clean parallel build, rebuild without changes, then rebuild after changing an input. For shared `.mk` changes, test an existing consumer with an override.
+- Review recipes before using `make -n` on targets with side effects. Recursive recipes and `$(shell ...)` calls can still execute.

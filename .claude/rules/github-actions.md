@@ -1,43 +1,25 @@
 ---
 paths:
-  - "**/.github/workflows/*.yml"
-  - "**/.github/workflows/*.yaml"
-  - "**/action.yml"
-  - "**/action.yaml"
+  - "**/.github/workflows/*.{yml,yaml}"
+  - "**/.github/**/action.{yml,yaml}"
+  - "**/action.{yml,yaml}"
 ---
 
-# GitHub Actions Standards
+# GitHub Actions
 
-## Workflow Defaults
+## Jobs and caching
 
-- Use descriptive workflow and job names.
-- Set top-level `permissions: contents: read` by default and grant additional permissions only per job when needed.
-- Use `concurrency` for deployments and single-flight workflows.
-- Pin actions to major versions at minimum; use commit SHAs for high-risk or security-sensitive workflows.
-- Use versioned action refs or commit SHAs for all actions.
+- Split jobs where permissions or runners differ, or where work can run independently. Reuse the project's build and test commands.
+- Connect dependent jobs with `needs`. Pass small values as job outputs and build products as artifacts.
+- Key package download caches on the lockfile and any platform or toolchain details that affect the packages. Keep installs working on cache misses. Keep credentials out of caches.
 
-## Secrets And Identity
+## Security and deployment
 
-- Use GitHub Secrets or environment secrets for sensitive values.
-- Prefer OIDC federation over long-lived cloud credentials.
-- Keep secrets, tokens, and raw environment dumps out of logs.
-- For `pull_request_target`, keep fork checkout and script execution separated from privileged credentials.
-
-## Build Quality
-
-- Use cache keys based on lockfiles and relevant platform inputs.
-- Pin toolchain versions.
-- Keep matrix jobs focused on meaningful compatibility coverage.
-- Upload artifacts with explicit names and retention where artifacts matter.
-- Use `actions/checkout` with `fetch-depth: 1` by default. Use full history for release, changelog, version, or `git describe` workflows.
-
-## Deployment
-
-- Use GitHub environments for protected deployments.
-- Make deployment jobs depend on successful build/test jobs.
-- Prefer progressive rollout and clear rollback commands for production changes.
+- Start with read-only repository permissions. Grant extra permissions to the jobs that need them. Keep fork-controlled code and artifacts out of privileged jobs, including `pull_request_target` jobs. Prefer OIDC to long-lived cloud credentials.
+- Deploy the tested artifact after the required build and test jobs pass. Use a protected environment and a concurrency group per deployment target.
+- Keep required check names stable. When changing job names, filters, or conditions, verify how required checks behave on pushes and pull requests.
 
 ## Verification
 
-- Validate changed workflows with the available local or CI syntax tooling.
-- Check permissions, triggers, secrets, and fork behavior after workflow changes.
+- Use the project's workflow linter, or `actionlint` when available. Run affected jobs with `act` where supported. Use representative event payloads and test credentials.
+- Verify permissions, protected environments, OIDC, and concurrency on GitHub.
