@@ -119,11 +119,15 @@ function ChatAlert({ snapshot, client }: { snapshot: ChatSnapshot; client: ChatC
 	)
 }
 
+function isResponding(snapshot: ChatSnapshot) {
+	return snapshot.actions.includes("stop") || snapshot.activity === "stopping"
+}
+
 function Composer({ snapshot, client }: { snapshot: ChatSnapshot; client: ChatClient }) {
 	const { t } = useTranslation()
 	const { draft, setDraft, markSent } = useDraft(snapshot)
 	const canSend = snapshot.actions.includes("send")
-	const responding = snapshot.actions.includes("stop") || snapshot.activity === "stopping"
+	const responding = isResponding(snapshot)
 
 	function submit(event?: FormEvent) {
 		event?.preventDefault()
@@ -188,7 +192,13 @@ export function TestChatCard({
 					<Button
 						variant="outline"
 						size="sm"
-						disabled={!client || !snapshot?.actions.includes("new-chat") || snapshot.messages.length === 0}
+						// Test chats are not listed in Conversations, so clearing one mid-reply would lose it for good.
+						disabled={
+							!client ||
+							!snapshot?.actions.includes("new-chat") ||
+							snapshot.messages.length === 0 ||
+							isResponding(snapshot)
+						}
 						onClick={() => client && runAction(client.startNewChat())}
 					>
 						<MessageSquarePlus className="size-4" />

@@ -129,7 +129,7 @@ describe("TestChatCard", () => {
 		expect(host.querySelector("[role=alert]")?.textContent).toContain(t("testChat.errorAccess"))
 	})
 
-	test("stops a running answer and starts a new chat afterwards", async () => {
+	test("keeps new chat disabled until a running answer stops", async () => {
 		const cancels: string[] = []
 		const release = gate()
 		const host = await render(
@@ -144,6 +144,7 @@ describe("TestChatCard", () => {
 		)
 		await typeInto(composer(host), "Hello")
 		await click(findButton(t("testChat.send"), host))
+		expect(findButton(t("testChat.newChat"), host).disabled).toBe(true)
 
 		await click(findButton(t("testChat.stop"), host))
 		release.open()

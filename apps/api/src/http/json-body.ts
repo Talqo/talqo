@@ -4,6 +4,7 @@ import { hasMatchedRoute } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { bodyLimit } from "hono/body-limit"
 import { createMiddleware } from "hono/factory"
+import { matchedRoutes } from "hono/route"
 
 // Hard ceiling for inbound bodies; generous for the largest payload (system prompts up to 20k chars).
 const REQUEST_BODY_MAX_BYTES = 262_144
@@ -23,11 +24,13 @@ function chatBodyLimit() {
 	})
 }
 
-const TEST_CHAT_SEND_PATH = /^\/api\/agents\/[^/]+\/test-chat\/messages$/
+/** Mounted on a route to raise its body ceiling to the chat allowance; the global limit enforces it. */
+export const allowChatSizedBody = createMiddleware(async (_context, next) => next())
 
 export const rejectOversizedBody = createMiddleware(async (context, next) => {
 	if (!context.req.header("Content-Type")?.startsWith("application/json")) return next()
-	if (context.req.path.startsWith("/api/chat/") || TEST_CHAT_SEND_PATH.test(context.req.path)) {
+	// Hono composes sub-app handlers unchanged unless the sub-app sets onError, so identity holds.
+	if (matchedRoutes(context).some((route) => route.handler === allowChatSizedBody)) {
 		return chatBodyLimit()(context, next)
 	}
 	return rejectOversizedJsonBody(context, next)

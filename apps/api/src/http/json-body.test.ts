@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { Hono } from "hono"
 
-import { rejectMalformedJson, rejectOversizedBody } from "./json-body.ts"
+import { allowChatSizedBody, rejectMalformedJson, rejectOversizedBody } from "./json-body.ts"
 
 // Mirrors TALQO_CHAT_MAX_INPUT_CHARACTERS in apps/api/.env.example.
 const CHAT_LIMIT_CODE_POINTS = 400_000
@@ -11,8 +11,8 @@ function app() {
 	return new Hono()
 		.use(rejectOversizedBody)
 		.use(rejectMalformedJson)
-		.post("/api/chat/embed/messages", (c) => c.json({ ok: true }))
-		.post("/api/agents/:agentId/test-chat/messages", (c) => c.json({ ok: true }))
+		.post("/api/chat/embed/messages", allowChatSizedBody, (c) => c.json({ ok: true }))
+		.post("/api/agents/:agentId/test-chat/messages", allowChatSizedBody, (c) => c.json({ ok: true }))
 		.post("/api/agents", (c) => c.json({ ok: true }))
 }
 

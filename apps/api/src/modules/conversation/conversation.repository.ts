@@ -138,10 +138,12 @@ export async function findDashboardConversation(input: {
 	return row
 }
 
+const isTestChat = isNull(conversation.embedAccessVersion)
+
 function dashboardConversationOwned(input: { agentId: string; conversationId: string; operatorId: string }) {
 	return and(
 		eq(conversation.id, input.conversationId),
-		eq(conversation.origin, "dashboard"),
+		isTestChat,
 		eq(conversation.agentId, input.agentId),
 		eq(conversation.operatorId, input.operatorId),
 	)
@@ -242,24 +244,20 @@ async function ensureConversation(tx: Transaction, input: AcceptanceInput): Prom
 					embedId: input.embedId,
 					embedAccessVersion: input.embedAccessVersion,
 				}
-			: { id: input.conversationId, agentId: input.agentId, origin: "dashboard", operatorId: input.operatorId },
+			: { id: input.conversationId, agentId: input.agentId, operatorId: input.operatorId },
 	)
 }
 
 function assertConversationIdentity(existing: typeof conversation.$inferSelect, input: AcceptanceInput): void {
 	if (input.origin === "embed") {
-		if (
-			existing.origin !== "embed" ||
-			existing.embedId !== input.embedId ||
-			existing.embedAccessVersion !== input.embedAccessVersion
-		) {
+		if (existing.embedId !== input.embedId || existing.embedAccessVersion !== input.embedAccessVersion) {
 			throw new SessionUnauthorizedError()
 		}
 		return
 	}
 	// A client-chosen ID that collides with someone else's conversation must not reveal it exists.
 	if (
-		existing.origin !== "dashboard" ||
+		existing.embedAccessVersion !== null ||
 		existing.agentId !== input.agentId ||
 		existing.operatorId !== input.operatorId
 	) {
@@ -688,7 +686,7 @@ export type AgentDailyCount = {
 }
 
 // Dashboard test chats stay out of every visitor-facing listing and count; their usage does not.
-const fromEmbed = eq(conversation.origin, "embed")
+const fromEmbed = isNotNull(conversation.embedAccessVersion)
 const conversationDay = sql<string>`to_char(${conversation.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 const messageDay = sql<string>`to_char(${message.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 

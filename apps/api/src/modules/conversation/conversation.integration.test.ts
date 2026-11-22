@@ -2098,8 +2098,8 @@ describe("dashboard test chat", () => {
 
 		await sql`DELETE FROM "user" WHERE id = ${operatorId}`
 
-		expect([...(await sql`SELECT origin, operator_id FROM conversation`)]).toEqual([
-			{ origin: "dashboard", operator_id: null },
+		expect([...(await sql`SELECT embed_access_version, operator_id FROM conversation`)]).toEqual([
+			{ embed_access_version: null, operator_id: null },
 		])
 		expect((await sql`SELECT count(*)::int AS value FROM usage_record`)[0]?.value).toBe(1)
 	})
@@ -2117,10 +2117,17 @@ describe("dashboard test chat", () => {
 			headers: { Cookie: managerCookie, "Content-Type": "application/json" },
 			body: JSON.stringify({ conversationId: "not-a-uuid", requestId: REQUEST_1, text: "hi" }),
 		})
+		// Beyond the default JSON ceiling, so only the chat-sized allowance lets it reach validation.
+		const long = await app.request(`${base}/messages`, {
+			method: "POST",
+			headers: { Cookie: managerCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ conversationId: "not-a-uuid", requestId: REQUEST_1, text: "a".repeat(300_000) }),
+		})
 
 		expect(denied.status).toBe(403)
 		expect(missing.status).toBe(404)
 		expect(await missing.json()).toMatchObject({ code: "conversation-not-found" })
 		expect(invalid.status).toBe(400)
+		expect(long.status).toBe(400)
 	})
 })

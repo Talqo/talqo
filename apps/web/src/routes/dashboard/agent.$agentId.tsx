@@ -673,8 +673,10 @@ function AgentDetailTabs(props: {
 	refetch: () => Promise<unknown>
 }) {
 	const { t } = useTranslation()
+	// Shared links can name a tab the viewer cannot open; show the default one instead of a blank panel.
+	const tab = props.tab === "test-chat" && !props.canManage ? "configuration" : props.tab
 	return (
-		<Tabs value={props.tab} onValueChange={(value) => isAgentTab(value) && props.setTab(value)}>
+		<Tabs value={tab} onValueChange={(value) => isAgentTab(value) && props.setTab(value)}>
 			<TabsList>
 				<TabsTrigger value="configuration">{t("agentConfig.tabConfiguration")}</TabsTrigger>
 				<TabsTrigger value="context">{t("agentConfig.tabContext")}</TabsTrigger>

@@ -18,10 +18,9 @@ Implement FR-2.13: an operator tests an agent through a live chat on the agent p
 
 One migration on `conversation`:
 
-- `origin` enum `embed | dashboard`, not null, default `embed` for existing rows.
 - `operator_id` nullable FK to `user.id`, `ON DELETE SET NULL`, so deleting an operator keeps the usage their tests produced. `SET NULL` leaves the conversation unreachable, which is the intended end state.
-- `embed_access_version` becomes nullable.
-- Checks: `origin = 'dashboard'` implies `embed_id IS NULL AND embed_access_version IS NULL`; `origin = 'embed'` implies `embed_access_version IS NOT NULL AND operator_id IS NULL`.
+- `embed_access_version` becomes nullable; null marks a test chat. `embed_id` cannot, since embed deletion nulls it, and `operator_id` cannot, since operator deletion nulls it.
+- Check: a test chat has no `embed_id`; an embed chat has no `operator_id`.
 
 `generation_attempt.network_hash` becomes nullable; dashboard attempts store null so they never count against visitor network concurrency.
 
@@ -37,7 +36,7 @@ New operator routes under the conversation module, declared with `access.agent(a
 | `GET /agents/{agentId}/test-chat/conversations/{conversationId}` | Same session-state schema as the public session route. |
 | `POST /agents/{agentId}/test-chat/conversations/{conversationId}/cancel` | Same body and semantics as the public cancel. |
 
-The conversation ID is client-generated UUIDv4, as in public chat, but authorization comes from the operator session: the conversation must have `origin = 'dashboard'`, the caller as `operator_id`, and the path's agent. A mismatch answers `conversation-not-found`, never revealing another operator's conversation. Conversation IDs are not added to `ROUTE_ID_FIELDS`.
+The conversation ID is client-generated UUIDv4, as in public chat, but authorization comes from the operator session: the conversation must be a test chat, the caller as `operator_id`, and the path's agent. A mismatch answers `conversation-not-found`, never revealing another operator's conversation. Conversation IDs are not added to `ROUTE_ID_FIELDS`.
 
 ### Service
 
@@ -48,7 +47,7 @@ The conversation ID is client-generated UUIDv4, as in public chat, but authoriza
 
 Everything after acceptance (`run`, finalization, usage, recovery, blacklist, retrieval, tools) is shared unchanged.
 
-Repository queries backing `listConversations`, `findConversationByReference`, and the daily/active conversation and message counts filter `origin = 'embed'`. Usage totals are not filtered.
+Repository queries backing `listConversations`, `findConversationByReference`, and the daily/active conversation and message counts filter `embed_access_version IS NOT NULL`. Usage totals are not filtered.
 
 ## SDK
 

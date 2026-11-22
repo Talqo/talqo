@@ -2,6 +2,7 @@ import type { Context } from "hono"
 
 import { env } from "@/config/env.ts"
 import { hashClientNetwork, resolveClientNetwork } from "@/http/client-network.ts"
+import { allowChatSizedBody } from "@/http/json-body.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate, annotator, deferWideEvent } from "@/http/wide-event.ts"
@@ -156,6 +157,7 @@ export function createConversationRoutes(
 		)
 	}
 
+	routes.use("*", allowChatSizedBody)
 	return routes
 		.openapi(sendRoute, send)
 		.openapi(sessionRoute, async (c) => {
@@ -186,7 +188,9 @@ type TestChatService = Pick<
 
 export function createTestChatRoutes(service?: TestChatService) {
 	const activeService = () => service ?? getConversationService()
-	const testChat = new OpenAPIHono()
+	const base = new OpenAPIHono()
+	base.use(sendTestChatMessageRoute.path, allowChatSizedBody)
+	const testChat = base
 		.openapi(sendTestChatMessageRoute, (c) => {
 			const body = c.req.valid("json")
 			return streamChat(c, (emit) =>

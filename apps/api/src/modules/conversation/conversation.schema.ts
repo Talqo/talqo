@@ -20,10 +20,6 @@ export const generationAttemptFinalOutcome = pgEnum(
 	GENERATION_ATTEMPT_FINAL_OUTCOMES,
 )
 
-export const CONVERSATION_ORIGINS = ["embed", "dashboard"] as const
-export type ConversationOrigin = (typeof CONVERSATION_ORIGINS)[number]
-export const conversationOrigin = pgEnum("conversation_origin", CONVERSATION_ORIGINS)
-
 export const conversation = pgTable(
 	"conversation",
 	{
@@ -35,8 +31,8 @@ export const conversation = pgTable(
 		agentId: text("agent_id")
 			.notNull()
 			.references(() => agent.id, { onDelete: "cascade" }),
-		origin: conversationOrigin("origin").notNull().default("embed"),
 		embedId: text("embed_id").references(() => embed.id, { onDelete: "set null" }),
+		// Null marks a dashboard test chat; embed_id alone cannot, since embed deletion nulls it.
 		embedAccessVersion: integer("embed_access_version"),
 		// Set null on operator deletion so the usage their test chats produced survives.
 		operatorId: text("operator_id").references(() => user.id, { onDelete: "set null" }),
@@ -51,8 +47,8 @@ export const conversation = pgTable(
 		index("conversation_created_at_idx").on(table.createdAt, table.referenceId),
 		index("conversation_operator_id_idx").on(table.operatorId),
 		check(
-			"conversation_origin_identity_check",
-			sql`CASE ${table.origin} WHEN 'embed' THEN ${table.embedAccessVersion} IS NOT NULL AND ${table.operatorId} IS NULL ELSE ${table.embedId} IS NULL AND ${table.embedAccessVersion} IS NULL END`,
+			"conversation_identity_check",
+			sql`CASE WHEN ${table.embedAccessVersion} IS NULL THEN ${table.embedId} IS NULL ELSE ${table.operatorId} IS NULL END`,
 		),
 	],
 )

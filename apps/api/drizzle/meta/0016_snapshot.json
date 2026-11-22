@@ -1,5 +1,5 @@
 {
-	"id": "72683346-bb06-48fa-a66e-a94df33ae065",
+	"id": "c74bab5c-b043-4b71-8740-91347bb5212d",
 	"prevId": "3ae22a2f-4a93-4d37-ad91-8c2980603d62",
 	"version": "7",
 	"dialect": "postgresql",
@@ -229,14 +229,6 @@
 					"primaryKey": false,
 					"notNull": true
 				},
-				"origin": {
-					"name": "origin",
-					"type": "conversation_origin",
-					"typeSchema": "public",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "'embed'"
-				},
 				"embed_id": {
 					"name": "embed_id",
 					"type": "text",
@@ -404,9 +396,9 @@
 			},
 			"policies": {},
 			"checkConstraints": {
-				"conversation_origin_identity_check": {
-					"name": "conversation_origin_identity_check",
-					"value": "CASE \"conversation\".\"origin\" WHEN 'embed' THEN \"conversation\".\"embed_access_version\" IS NOT NULL AND \"conversation\".\"operator_id\" IS NULL ELSE \"conversation\".\"embed_id\" IS NULL AND \"conversation\".\"embed_access_version\" IS NULL END"
+				"conversation_identity_check": {
+					"name": "conversation_identity_check",
+					"value": "CASE WHEN \"conversation\".\"embed_access_version\" IS NULL THEN \"conversation\".\"embed_id\" IS NULL ELSE \"conversation\".\"operator_id\" IS NULL END"
 				}
 			},
 			"isRLSEnabled": false
@@ -2187,11 +2179,6 @@
 		}
 	},
 	"enums": {
-		"public.conversation_origin": {
-			"name": "conversation_origin",
-			"schema": "public",
-			"values": ["embed", "dashboard"]
-		},
 		"public.generation_attempt_final_outcome": {
 			"name": "generation_attempt_final_outcome",
 			"schema": "public",
