@@ -22,7 +22,9 @@ const agentResponseSchema = z
 		id: z.string(),
 		name: z.string(),
 		systemPrompt: z.string(),
-		pageControl: pageControlSchema,
+		pageControl: pageControlSchema.extend({
+			defaultApprovalInstructions: pageControlSchema.shape.approvalInstructions,
+		}),
 		wordBlacklist: z.array(z.string()),
 		createdAt: z.iso.datetime(),
 		updatedAt: z.iso.datetime(),

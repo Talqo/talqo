@@ -12,6 +12,7 @@ import { APPROVAL_INSTRUCTIONS_MAX_LENGTH } from "@talqo/shared/page-control"
 
 import { PLATFORM_SYSTEM_PROMPT } from "./agent.platform-prompt.ts"
 import * as repo from "./agent.repository.ts"
+import { DEFAULT_APPROVAL_INSTRUCTIONS } from "./agent.schema.ts"
 
 export class InvalidAgentInputError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
@@ -39,7 +40,11 @@ function toAgent({ agent, words }: repo.AgentWithWords): Agent {
 		id: agent.id,
 		name: agent.name,
 		systemPrompt: agent.systemPrompt,
-		pageControl: { enabled: agent.pageControlEnabled, approvalInstructions: agent.pageApprovalInstructions },
+		pageControl: {
+			enabled: agent.pageControlEnabled,
+			approvalInstructions: agent.pageApprovalInstructions,
+			defaultApprovalInstructions: DEFAULT_APPROVAL_INSTRUCTIONS,
+		},
 		wordBlacklist: words.map((word) => word.word),
 		createdAt: agent.createdAt,
 		updatedAt: agent.updatedAt,
@@ -51,13 +56,13 @@ export type Agent = {
 	id: string
 	name: string
 	systemPrompt: string
-	pageControl: { enabled: boolean; approvalInstructions: string }
+	pageControl: { enabled: boolean; approvalInstructions: string; defaultApprovalInstructions: string }
 	updatedAt: Date
 	wordBlacklist: Array<string>
 }
 
 export type AgentInput = {
-	pageControl?: Agent["pageControl"]
+	pageControl?: Pick<Agent["pageControl"], "enabled" | "approvalInstructions">
 	name: string
 	systemPrompt: string
 	wordBlacklist: Array<string>

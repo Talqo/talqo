@@ -4,7 +4,7 @@ import { getGetAgentQueryKey, useUpdateAgent } from "@/api/generated/agent/agent
 import { getProblemMessage } from "@/lib/problem-message"
 import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { APPROVAL_INSTRUCTIONS_MAX_LENGTH, DEFAULT_APPROVAL_INSTRUCTIONS } from "@talqo/shared/page-control"
+import { APPROVAL_INSTRUCTIONS_MAX_LENGTH } from "@talqo/shared/page-control"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { FormActions } from "@talqo/ui/components/form-actions"
@@ -72,6 +72,7 @@ function ApprovalInstructions({
 }
 
 function Actions({
+	defaultInstructions,
 	saved,
 	showReset,
 	pending,
@@ -79,6 +80,7 @@ function Actions({
 	instructions,
 	setValue,
 }: {
+	defaultInstructions: string
 	saved: boolean
 	showReset: boolean
 	pending: boolean
@@ -93,9 +95,9 @@ function Actions({
 				<Button
 					type="button"
 					variant="outline"
-					disabled={pending || instructions === DEFAULT_APPROVAL_INSTRUCTIONS}
+					disabled={pending || instructions === defaultInstructions}
 					onClick={() =>
-						setValue("approvalInstructions", DEFAULT_APPROVAL_INSTRUCTIONS, {
+						setValue("approvalInstructions", defaultInstructions, {
 							shouldDirty: true,
 							shouldValidate: true,
 						})
@@ -117,11 +119,11 @@ export function WebsiteActionsCard({ agent, canManage }: { agent: Agent; canMana
 	const update = useUpdateAgent()
 	const [error, setError] = useState<string>()
 	const [saved, setSaved] = useState(false)
+	const { enabled, approvalInstructions, defaultApprovalInstructions } = agent.pageControl
 	const { control, register, handleSubmit, reset, setValue, setFocus, formState } = useForm<Values>({
 		resolver: zodResolver(schema),
-		defaultValues: agent.pageControl,
+		defaultValues: { enabled, approvalInstructions },
 	})
-	const { enabled, approvalInstructions } = agent.pageControl
 	useEffect(() => {
 		reset({ enabled, approvalInstructions })
 	}, [enabled, approvalInstructions, reset])
@@ -144,7 +146,8 @@ export function WebsiteActionsCard({ agent, canManage }: { agent: Agent; canMana
 					pageControl: values,
 				},
 			})
-			reset(result.data.agent.pageControl)
+			const savedPageControl = result.data.agent.pageControl
+			reset({ enabled: savedPageControl.enabled, approvalInstructions: savedPageControl.approvalInstructions })
 			client.setQueryData(getGetAgentQueryKey(agent.id), result)
 			setSaved(true)
 		} catch (caught) {
@@ -188,6 +191,7 @@ export function WebsiteActionsCard({ agent, canManage }: { agent: Agent; canMana
 					)}
 					{canManage && (
 						<Actions
+							defaultInstructions={defaultApprovalInstructions}
 							saved={saved && !formState.isDirty}
 							showReset={showInstructions}
 							pending={update.isPending}

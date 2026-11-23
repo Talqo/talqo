@@ -1,6 +1,8 @@
-import { DEFAULT_APPROVAL_INSTRUCTIONS } from "@talqo/shared/page-control"
 import { sql } from "drizzle-orm"
 import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+
+export const DEFAULT_APPROVAL_INSTRUCTIONS = `Browse, search, select products, prepare carts, and fill drafts without approval.
+Ask before purchases, payments, important account changes, or actions with unclear consequences.`
 
 export const agent = pgTable(
 	"agent",
