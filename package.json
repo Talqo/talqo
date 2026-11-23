@@ -65,5 +65,5 @@
 		"supercov": "4.28.0",
 		"turbo": "2.11.13"
 	},
-	"packageManager": "bun@1.4.4"
+	"packageManager": "bun@1.4.5"
 }
