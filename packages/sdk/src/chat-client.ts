@@ -554,7 +554,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		generation = "idle"
 		activeGenerationId = undefined
 		void sendMessage(continuation.text, continuation).catch(() => {
-			removePageContinuation(options.apiUrl, options.embedToken)
+			if (!disposed) removePageContinuation(options.apiUrl, options.embedToken)
 		})
 		return true
 	}
@@ -632,7 +632,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		const requestId = continuation?.requestId ?? randomUUID()
 		const pageSession = continuation?.pageSession ?? newPageSession()
 		const controller = new AbortController()
-		pendingMessage = { requestId, text, ...(tools.size ? { clientTools: true } : {}) }
+		if (!continuation) pendingMessage = { requestId, text, ...(tools.size ? { clientTools: true } : {}) }
 		generation = "sending"
 		const record: ChatStorageRecord = {
 			version: CHAT_STORAGE_VERSION,
@@ -645,7 +645,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			cancellationRequested: false,
 			dispatched: false,
 			newSession,
-			persisted: Promise.resolve().then(() => persist(record)),
+			persisted: continuation ? Promise.resolve() : Promise.resolve().then(() => persist(record)),
 			rejected: false,
 		}
 		activeSend = send
@@ -823,7 +823,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			})
 			await consumeSendEvents(state, events)
 		} catch (cause) {
-			if (sendWasDefinitelyRejected(state, cause)) {
+			if (!continuation && sendWasDefinitelyRejected(state, cause)) {
 				state.send.rejected = true
 				await rejectPendingSend(state, cause)
 			} else handleStreamFailure(state, cause)

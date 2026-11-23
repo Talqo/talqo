@@ -229,7 +229,7 @@ test("restores a session on retry without reporting the page tool as a custom sl
 	}
 })
 
-test("resumes into one assistant message and executes the next page tool call", async () => {
+async function expectRecoveredPageTurn(rejected: boolean) {
 	const credential = crypto.randomUUID()
 	const requestId = crypto.randomUUID()
 	const pageSession = crypto.randomUUID()
@@ -239,17 +239,20 @@ test("resumes into one assistant message and executes the next page tool call", 
 	const userMessage = { id: "user", createdAt }
 	const assistantMessage = { id: "assistant", createdAt }
 	const toolReply = Promise.withResolvers<unknown>()
+	const firstResume = Promise.withResolvers<void>()
+	let resumes = 0
+	let finished = false
 	globalThis.fetch = (async (input: string) => {
 		if (!input.endsWith("/session")) return Response.json(configuration)
 		return Response.json({
-			activeGeneration: { id: generationId },
+			...(finished ? {} : { activeGeneration: { id: generationId } }),
 			messages: [
 				{ ...userMessage, role: "user", text, outcome: "completed", parts: [{ type: "text", text }] },
 				{
 					...assistantMessage,
 					role: "assistant",
 					text: "Already stored",
-					outcome: "streaming",
+					outcome: finished ? "completed" : "streaming",
 					parts: [{ type: "text", text: "Already stored" }],
 				},
 			],
@@ -257,6 +260,15 @@ test("resumes into one assistant message and executes the next page tool call", 
 	}) as unknown as typeof fetch
 	const server = chatServer((frame, send) => {
 		if (frame.type === "resume") {
+			if (rejected) {
+				finished = true
+				send({ type: "rejected", code: "invalid-request", status: 400 })
+				return
+			}
+			if (++resumes === 1) {
+				firstResume.resolve()
+				return
+			}
 			send({ type: "accepted", requestId, generationId, userMessage, assistantMessage })
 			const target = { assistantMessageId: assistantMessage.id, index: 0 }
 			send({ ...target, type: "part", part: { type: "text", text: "Already " } })
@@ -279,7 +291,9 @@ test("resumes into one assistant message and executes the next page tool call", 
 	const storage = createMemoryStorage()
 	const root = document.createElement("main")
 	document.body.replaceChildren(root)
-	const client = createChatClient({ apiUrl, embedToken, storage, pageControl: { exclude: [root] } })
+	const options = { apiUrl, embedToken, storage, pageControl: { exclude: [root] }, recoveryDelays: [0] }
+	const firstClient = createChatClient(options)
+	const client = rejected ? firstClient : createChatClient(options)
 	const replyCompleted = Promise.withResolvers<void>()
 	const unsubscribe = client.subscribe(() => {
 		if (
@@ -292,10 +306,15 @@ test("resumes into one assistant message and executes the next page tool call", 
 	try {
 		await storage.setItem(createChatStorageKey(apiUrl, embedToken), JSON.stringify({ version: 1, credential }))
 		sessionStorage.setItem(continuationKey, JSON.stringify({ credential, requestId, pageSession, generationId, text }))
-		await client.initialize()
-		const result = await toolReply.promise
-		expect(result).toMatchObject({ type: "tool-result", toolCallId: "observe" })
-		expect(result).toHaveProperty("output.snapshot")
+		await firstClient.initialize()
+		if (!rejected) {
+			await firstResume.promise
+			firstClient.dispose()
+			await client.initialize()
+			const result = await toolReply.promise
+			expect(result).toMatchObject({ type: "tool-result", toolCallId: "observe" })
+			expect(result).toHaveProperty("output.snapshot")
+		}
 		await replyCompleted.promise
 		expect(client.getSnapshot().messages).toMatchObject([
 			{ id: userMessage.id, role: "user", text },
@@ -303,8 +322,17 @@ test("resumes into one assistant message and executes the next page tool call", 
 		])
 	} finally {
 		unsubscribe()
+		if (!rejected) firstClient.dispose()
 		client.dispose()
 		sessionStorage.removeItem(continuationKey)
 		await server.stop(true)
 	}
+}
+
+test("resumes after another page load during reattachment and executes the next tool call", async () => {
+	await expectRecoveredPageTurn(false)
+})
+
+test("loads the completed transcript when the server rejects an expired page resume", async () => {
+	await expectRecoveredPageTurn(true)
 })
