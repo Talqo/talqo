@@ -203,7 +203,7 @@ describe("structured tool history", () => {
 		})
 		const channel = createClientToolChannel(
 			[
-				{ name: "talqo_page", inputSchema: {} },
+				{ name: "talqo_page", description: "Page-supplied approval rules", inputSchema: {} },
 				{ name: "custom_lookup", inputSchema: {} },
 			],
 			() => {},
@@ -222,6 +222,10 @@ describe("structured tool history", () => {
 		expect([...channel.binding.names.values()].map((tool) => tool.toolName)).toEqual(
 			enabled ? ["talqo_page", "custom_lookup"] : ["custom_lookup"],
 		)
+		const instructions = instance.prompts[0]?.find((message) => message.role === "system")?.content
+		expect(instructions).toBeDefined()
+		expect(instructions?.includes("Ask before every form submission.")).toBe(enabled)
+		expect(instructions).not.toContain("Page-supplied approval rules")
 		if (enabled)
 			await expect(instance.service.authorizePageResume(CREDENTIAL_1, createdEmbed.embedToken)).resolves.toBeUndefined()
 		else

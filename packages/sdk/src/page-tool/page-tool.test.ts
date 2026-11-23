@@ -1,5 +1,4 @@
 import { captureClientTools } from "@/client-tools.ts"
-import { APPROVAL_INSTRUCTIONS_MAX_LENGTH } from "@talqo/shared/page-control"
 import { expect, test } from "bun:test"
 import { z } from "zod"
 
@@ -14,11 +13,10 @@ test("advertises an object-root tool schema accepted by structured-output provid
 	expect(manifest[0]?.inputSchema).toHaveProperty("properties.action.type", "string")
 })
 
-test("advertises configured approval instructions up to the saved setting's limit", async () => {
-	const instructions = "x".repeat(APPROVAL_INSTRUCTIONS_MAX_LENGTH)
-	const page = createPageTool({ exclude: [], language: "en", approvalInstructions: instructions, stop: async () => {} })
+test("describes approval as an on-page action, not a chat question", async () => {
+	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
 	const manifest = await captureClientTools({ talqo_page: page.definition }).manifest()
-	expect(manifest[0]?.description).toContain(instructions)
+	expect(manifest[0]?.description).toContain("do not ask for approval in chat")
 })
 
 test("reports incomplete actions before browser execution", async () => {

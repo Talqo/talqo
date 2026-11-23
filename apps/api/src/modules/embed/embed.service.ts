@@ -27,7 +27,7 @@ export type Embed = {
 }
 
 export type EmbedConfig = {
-	pageControl: { enabled: boolean; approvalInstructions: string }
+	pageControl: { enabled: boolean }
 	appearance: WidgetAppearance
 	isAvailable: boolean
 	name: string
@@ -200,7 +200,7 @@ export async function getConfigByToken(embedToken: string, annotate: Annotate = 
 		name,
 		appearance,
 		isAvailable,
-		pageControl: agent.pageControl,
+		pageControl: { enabled: agent.pageControl.enabled },
 		updatedAt: new Date(Math.max(row.updatedAt.getTime(), agent.updatedAt.getTime())),
 	}
 }

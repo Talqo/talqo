@@ -139,13 +139,18 @@ function validateMessage(input: SendInput): void {
 	requireUuid(input.requestId, new InvalidChatInputError("Request ID is invalid"))
 }
 
-function removeDisabledPageTool(clientTools: SendInput["clientTools"], pageControl: { enabled: boolean }): void {
-	for (const [name, identity] of clientTools?.binding.names ?? []) {
-		if (identity.toolName === PAGE_TOOL_NAME && !pageControl.enabled) {
-			clientTools?.binding.names.delete(name)
-			delete clientTools?.binding.tools[name]
-		}
+function pageApprovalInstructions(
+	clientTools: SendInput["clientTools"],
+	pageControl: { enabled: boolean; approvalInstructions: string },
+): string | undefined {
+	if (!clientTools) return undefined
+	for (const [name, identity] of clientTools.binding.names) {
+		if (identity.toolName !== PAGE_TOOL_NAME) continue
+		if (pageControl.enabled) return pageControl.approvalInstructions
+		clientTools.binding.names.delete(name)
+		delete clientTools.binding.tools[name]
 	}
+	return undefined
 }
 
 function isActiveStatus(
@@ -944,7 +949,7 @@ export function createConversationService(dependencies: Dependencies) {
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
 			if (currentEmbed.isDisabled) throw new EmbedDisabledError()
 			const agent = await agentService.getAgent(currentEmbed.agentId)
-			removeDisabledPageTool(input.clientTools, agent.pageControl)
+			const approvalInstructions = pageApprovalInstructions(input.clientTools, agent.pageControl)
 			if (Array.from(input.text).length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 			const conversationId = requireUuid(
 				input.credential,
@@ -959,7 +964,10 @@ export function createConversationService(dependencies: Dependencies) {
 					? await repository.getHistorySnapshot(session.conversationId)
 					: { messages: [], revision: 0, latestCompletedMessageId: null }
 				const systemPrompt = agentService.composeSystemPrompt(agent.systemPrompt)
-				const messages = await completedPrompt(systemPrompt, history.messages, input.text)
+				const instructions = approvalInstructions
+					? `${systemPrompt}\n\nWebsite action approval rules:\n${approvalInstructions}`
+					: systemPrompt
+				const messages = await completedPrompt(instructions, history.messages, input.text)
 				const promptContent = promptText(messages)
 				const promptCharacters = Array.from(promptContent).length
 				annotate({ "chat.prompt_characters": promptCharacters })

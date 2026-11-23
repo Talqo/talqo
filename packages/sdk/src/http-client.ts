@@ -50,29 +50,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
-type EmbedPageControl = {
-	readonly enabled: boolean
-	readonly approvalInstructions?: string
-}
-
 type EmbedConfiguration = {
 	appearance: Readonly<Record<string, unknown>>
 	isAvailable: boolean
 	name: string
-	pageControl?: EmbedPageControl
+	pageControl?: { readonly enabled: boolean }
 }
 
-function isApprovalInstructions(value: unknown): value is string | undefined {
-	return value === undefined || typeof value === "string"
-}
-
-function isPageControlRecord(value: Record<string, unknown>): value is EmbedPageControl {
-	return typeof value.enabled === "boolean" && isApprovalInstructions(value.approvalInstructions)
-}
-
-function isPageControl(value: unknown): value is EmbedPageControl | undefined {
-	if (value === undefined) return true
-	return isRecord(value) && isPageControlRecord(value)
+function isPageControl(value: unknown): value is { readonly enabled: boolean } | undefined {
+	return value === undefined || (isRecord(value) && typeof value.enabled === "boolean")
 }
 
 function isEmbedConfiguration(value: unknown): value is EmbedConfiguration {

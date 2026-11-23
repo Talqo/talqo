@@ -1,7 +1,7 @@
 import type { BrowserState, PageController } from "@talqo/page-controller"
 import type { Tool } from "ai"
 
-import { DEFAULT_APPROVAL_INSTRUCTIONS, PAGE_TOOL_NAME } from "@talqo/shared/page-control"
+import { PAGE_TOOL_NAME } from "@talqo/shared/page-control"
 import { tool } from "ai"
 import { z } from "zod"
 
@@ -114,11 +114,13 @@ function isPrivateControl(element: Element): boolean {
 	return isPaymentContainer(form) || isInsidePaymentContainer(element)
 }
 
-function privateControls(root: Document | ShadowRoot): Element[] {
-	const controls = [...root.querySelectorAll("input, textarea, select")].filter(isPrivateControl)
+function privatePageRoots(root: Document | ShadowRoot): Element[] {
+	const elements = [...root.querySelectorAll("iframe, input, textarea, select")].filter(
+		(element) => element.matches("iframe") || isPrivateControl(element),
+	)
 	for (const element of root.querySelectorAll("*"))
-		if (element.shadowRoot) controls.push(...privateControls(element.shadowRoot))
-	return controls
+		if (element.shadowRoot) elements.push(...privatePageRoots(element.shadowRoot))
+	return elements
 }
 
 function focusedElement(): Element | null {
@@ -140,6 +142,7 @@ function isTargetOutsidePage(
 ): boolean {
 	return (
 		element.ownerDocument !== document ||
+		element.matches("iframe") ||
 		exclude.some((root) => root.contains(element)) ||
 		!!panel?.contains(element) ||
 		highlight === element
@@ -280,7 +283,6 @@ async function dispatchAction(page: PageController, input: InteractiveInput) {
 export function createPageTool(options: {
 	exclude: readonly Element[]
 	language: string
-	approvalInstructions?: string
 	themeRoot?: () => Element | null
 	stop(): Promise<void>
 }): {
@@ -318,7 +320,7 @@ export function createPageTool(options: {
 	}
 
 	function ignoredRoots(): Element[] {
-		const roots = [...options.exclude, ...privateControls(document)]
+		const roots = [...options.exclude, ...privatePageRoots(document)]
 		if (panel) roots.push(panel)
 		if (highlight) roots.push(highlight)
 		return roots
@@ -446,6 +448,7 @@ export function createPageTool(options: {
 		heading = document.createElement("h2")
 		heading.textContent = text.working
 		status = document.createElement("p")
+		status.id = "proposal"
 		status.setAttribute("role", "status")
 		status.tabIndex = 0
 		buttons = document.createElement("div")
@@ -485,6 +488,7 @@ export function createPageTool(options: {
 	function renderDecisionButton(label: string, approved: boolean, finish: (approved: boolean) => void): void {
 		const button = document.createElement("button")
 		if (approved) button.dataset.primary = ""
+		if (status) button.setAttribute("aria-describedby", status.id)
 		button.textContent = label
 		if (!approved) button.title = options.language === "cs" ? "Odmítnout tuto akci" : "Decline this action"
 		button.addEventListener("click", () => finish(approved), { once: true })
@@ -523,7 +527,6 @@ export function createPageTool(options: {
 			signal.addEventListener("abort", abort, { once: true })
 			renderDecisionButtons(finish)
 			const stopPositioning = anchorPageApproval(panel, highlight, element, options.exclude)
-			buttons.querySelector("button")?.focus({ preventScroll: true })
 		})
 	}
 
@@ -632,9 +635,7 @@ export function createPageTool(options: {
 		definition: tool({
 			description: `Observe and operate the current website to complete the visitor's objective. For click, fill, and select supply snapshot, index, and description. Fill requires text; select requires option; scroll requires down and description.
 Ask for missing details; never invent them. When approval is needed, call the intended action with approval describing the commitment, products, quantities, total including fees, and delivery details. The tool waits for buttons; do not ask for approval in chat.
-Do not retry a declined commitment without a new visitor request, or repeat a purchase or payment whose outcome is uncertain. After interruption, observe to establish the outcome. Confirm success from the website; otherwise report uncertainty.
-Approval rules:
-${options.approvalInstructions ?? DEFAULT_APPROVAL_INSTRUCTIONS}`,
+Do not retry a declined commitment without a new visitor request, or repeat a purchase or payment whose outcome is uncertain. After interruption, observe to establish the outcome. Confirm success from the website; otherwise report uncertainty.`,
 			inputSchema,
 			async execute(operation, { abortSignal }): Promise<unknown> {
 				const parsed = actionSchema.safeParse(operation)

@@ -82,7 +82,7 @@ export const embedConfigResponseSchema = z
 		appearance: appearanceResponseSchema,
 		// Requires an enabled embed and a usable text provider.
 		isAvailable: z.boolean(),
-		pageControl: z.object({ enabled: z.boolean(), approvalInstructions: z.string() }),
+		pageControl: z.object({ enabled: z.boolean() }),
 	})
 	.openapi("EmbedConfig")
 

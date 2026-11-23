@@ -11,7 +11,7 @@ const configuration = {
 	name: "Support",
 	isAvailable: true,
 	appearance: { language: "cs" },
-	pageControl: { enabled: true, approvalInstructions: "Confirm totals." },
+	pageControl: { enabled: true },
 }
 
 const originalFetch = globalThis.fetch

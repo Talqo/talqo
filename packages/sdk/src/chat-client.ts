@@ -531,7 +531,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	function installPageTool(loaded: ChatConfiguration): void {
 		if (pageStorageUnavailable || !hasPageToolSlot()) return
 		pageTool = createPageTool({
-			approvalInstructions: loaded.pageControl?.approvalInstructions,
 			exclude: pageExclude(),
 			themeRoot: options.pageControl?.themeRoot,
 			language: pageLanguage(loaded),

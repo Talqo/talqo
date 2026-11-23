@@ -8,7 +8,7 @@ export type ChatConfiguration = {
 	readonly appearance: Readonly<Record<string, unknown>>
 	/** Requires an enabled embed and a usable text provider. */
 	readonly isAvailable: boolean
-	readonly pageControl?: { readonly enabled: boolean; readonly approvalInstructions?: string }
+	readonly pageControl?: { readonly enabled: boolean }
 }
 
 export type ChatMessageRole = "user" | "assistant"

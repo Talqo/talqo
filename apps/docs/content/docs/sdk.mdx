@@ -57,7 +57,7 @@ The embed token is public. Provider API keys and operator credentials must stay 
 
 ## Browser tools
 
-The agent's website-action setting enables the SDK's page tool, which observes and operates website controls. The SDK reads approval instructions from embed configuration and includes them in the tool description. It owns the on-page action feedback, approval buttons, and Stop control. Custom interfaces do not render approval state.
+The agent's website-action setting enables the SDK's page tool, which observes and operates website controls. The agent decides when to ask for approval using the operator's saved instructions. The SDK waits for the visitor when the agent requests approval; it cannot identify every consequential website action on its own. The SDK owns the on-page action feedback, approval buttons, and Stop control. Custom interfaces do not render approval state.
 
 Custom interfaces opt in by passing their chat's root element through `pageControl: { exclude: [chatElement] }` in `createChatClient()`. The tool cannot read or operate those roots. Without this option, ordinary chat and custom tools are unchanged. The pre-built widget supplies its root automatically. If browser tab storage is unavailable, website actions are disabled but chat remains usable.
 
@@ -95,7 +95,7 @@ Register at most 8 tools in total. The page tool takes one slot when enabled. If
 
 Talqo stores browser and MCP tool results in conversation history and sends them to the model on later completed turns. Do not return secrets or unnecessary personal data.
 
-Website observations include visible page text and ordinary form values. They are sent to the configured AI provider and retained in conversation history, where operators can review them. The tool excludes password fields and uses field attributes to identify other sensitive controls. It cannot detect every sensitive value. Exclude sensitive page sections through `pageControl.exclude`, even if the fields look like ordinary inputs. Reported page URLs omit query strings and fragments. Approval summaries are model-written proposals, not verified transaction receipts; the website remains the source of order details.
+Website observations include visible page text and ordinary form values. They are sent to the configured AI provider and retained in conversation history, where operators can review them. The tool skips iframes and password fields and uses field attributes to identify other sensitive controls. It cannot detect every sensitive value. Exclude sensitive page sections through `pageControl.exclude`, even if the fields look like ordinary inputs. Reported page URLs omit query strings and fragments. Approval summaries are model-written proposals, not verified transaction receipts; the website remains the source of order details.
 
 Browser tools run with your page's permissions. Register only actions you intend the agent to perform, validate application permissions inside `execute`, and honor its abort signal. Stopping or disconnecting cannot undo an action already performed. Interrupted calls are never replayed automatically. When `website-action-uncertain` is reported, tell the visitor to check the page before repeating an instruction.
 

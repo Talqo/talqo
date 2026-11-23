@@ -143,6 +143,7 @@ test("observes the page and reports private controls without exposing them", asy
 		<form data-payment><input id="code" name="code"></form>
 		<section data-payment><div><input id="wrapped" name="number"></div></section>
 		<input id="marked" data-payment>
+		<iframe id="frame" srcdoc="<p>Private frame content</p>"></iframe>
 		<input name="quantity">
 		<button id="buy">Buy</button>
 	</main>`
@@ -154,6 +155,7 @@ test("observes the page and reports private controls without exposing them", asy
 			"code",
 			"wrapped",
 			"marked",
+			"frame",
 		])
 	}
 	controllerState.element = document.querySelector("#buy") as HTMLElement
@@ -179,11 +181,21 @@ test("scrolls the page and re-observes", async () => {
 
 test("approves a click, validates the proposal, and reports dispatch", async () => {
 	buttonFixture()
-	const page = newPage({ approvalInstructions: "Confirm totals." })
+	const composer = document.createElement("input")
+	document.body.append(composer)
+	composer.focus()
+	const page = newPage()
 	const tools = toolsFor(page)
 	const pending = pendingApproval(tools)
 	await Bun.sleep(10)
-	clickButton("Approve")
+	const approve = [...shadowButtons()].find((button) => button.textContent === "Approve")
+	const root = approve?.getRootNode()
+	if (!approve || !(root instanceof ShadowRoot)) throw new Error("Missing approval button")
+	expect(document.activeElement === composer).toBe(true)
+	expect(root.getElementById(approve.getAttribute("aria-describedby") ?? "")?.textContent).toBe(
+		"Buy the shirt for $25.",
+	)
+	approve.click()
 	const result = (await pending) as Record<string, unknown>
 	expect(result).toMatchObject({ status: "dispatched", result: { success: true } })
 	page.dispose()
