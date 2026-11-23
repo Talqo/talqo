@@ -1,5 +1,6 @@
 import type { ToolBinding } from "@/modules/ai-provider/ai-provider.service.ts"
 
+import { PAGE_TOOL_NAME } from "@talqo/shared/page-control"
 import { jsonSchema, type ModelMessage, tool, type ToolExecutionOptions } from "ai"
 
 export const CLIENT_TOOL_LIMIT = 8
@@ -51,6 +52,7 @@ export function createClientToolChannel(
 	>()
 	const received = new Map<string, string>()
 	let calls = 0
+	let customCalls = 0
 	const controller = new AbortController()
 	function interrupt() {
 		controller.abort(new Error("Client connection interrupted"))
@@ -73,13 +75,9 @@ export function createClientToolChannel(
 			strict: definition.strict,
 			inputExamples: definition.inputExamples,
 			execute: async (input: unknown, options: ToolExecutionOptions<unknown>) => {
-				if (
-					++calls >
-					([...binding.names.values()].some((item) => item.toolName === "talqo_page")
-						? PAGE_TOOL_CALL_LIMIT
-						: CLIENT_TOOL_CALL_LIMIT)
-				)
+				if (definition.name !== PAGE_TOOL_NAME && ++customCalls > CLIENT_TOOL_CALL_LIMIT)
 					throw new Error("Client tool call limit reached")
+				if (++calls > PAGE_TOOL_CALL_LIMIT) throw new Error("Client tool call limit reached")
 				if (controller.signal.aborted) throw new Error("Client connection interrupted")
 				if (Buffer.byteLength(JSON.stringify(input)) > TOOL_PAYLOAD_BYTES) throw new Error("Tool input too large")
 				const { toolCallId, abortSignal, messages } = options
@@ -125,7 +123,7 @@ export function createClientToolChannel(
 		resumePage() {
 			let interruptedCustomCall = false
 			for (const [toolCallId, call] of pending) {
-				if (call.name !== "talqo_page") {
+				if (call.name !== PAGE_TOOL_NAME) {
 					interruptedCustomCall = true
 					continue
 				}

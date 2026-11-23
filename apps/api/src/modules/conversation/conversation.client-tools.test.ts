@@ -88,6 +88,26 @@ describe("browser tool channel", () => {
 		expect(descriptions).toContain("Page-provided tool")
 	})
 
+	test("advertising the page tool does not raise the custom tool call limit", async () => {
+		const channel = createClientToolChannel(
+			[
+				{ name: "lookup", inputSchema: {} },
+				{ name: "talqo_page", inputSchema: {} },
+			],
+			(request) => channel.accept({ toolCallId: request.toolCallId, output: null }),
+			400_000,
+		)
+		for (let index = 0; index < 16; index++) {
+			await executeTool(channel)({}, { toolCallId: `lookup-${index}`, messages: [], context: undefined })
+		}
+		await expect(executeTool(channel)({}, { toolCallId: "excess", messages: [], context: undefined })).rejects.toThrow(
+			"limit",
+		)
+		await expect(
+			executeTool(channel, 1)({ action: "observe" }, { toolCallId: "page", messages: [], context: undefined }),
+		).resolves.toBeNull()
+	})
+
 	test("interrupts pending execution without replay and refuses oversized input", async () => {
 		let dispatched = 0
 		const channel = createClientToolChannel(
