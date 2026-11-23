@@ -701,15 +701,17 @@ function AgentDetailTabs(props: {
 			<TabsContent value="embeds">
 				<AgentEmbedsPanel agentId={props.agentId} canManage={props.canManage} />
 			</TabsContent>
-			<TabsContent value="mcp">
+			<TabsContent value="mcp" keepMounted>
 				<div className="space-y-6">
 					<WebsiteActionsCard key={props.agent.id} agent={props.agent} canManage={props.canManage} />
-					<section className="space-y-4" aria-labelledby="connected-tools-heading">
-						<h2 id="connected-tools-heading" className="text-lg font-semibold">
-							{t("pageControl.connectedTools")}
-						</h2>
-						<McpConnectionsCard agentId={props.agentId} canManage={props.canManage} />
-					</section>
+					{props.tab === "mcp" && (
+						<section className="space-y-4" aria-labelledby="connected-tools-heading">
+							<h2 id="connected-tools-heading" className="text-lg font-semibold">
+								{t("pageControl.connectedTools")}
+							</h2>
+							<McpConnectionsCard agentId={props.agentId} canManage={props.canManage} />
+						</section>
+					)}
 				</div>
 			</TabsContent>
 		</Tabs>
