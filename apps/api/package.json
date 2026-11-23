@@ -16,19 +16,19 @@
 		"typecheck": "bun check"
 	},
 	"dependencies": {
-		"@ai-sdk/amazon-bedrock": "5.0.142",
-		"@ai-sdk/anthropic": "4.0.105",
-		"@ai-sdk/azure": "4.0.126",
-		"@ai-sdk/google": "4.0.121",
-		"@ai-sdk/mcp": "2.0.99",
-		"@ai-sdk/mistral": "4.0.87",
-		"@ai-sdk/openai": "4.0.118",
-		"@ai-sdk/openai-compatible": "3.0.92",
-		"@ai-sdk/provider": "4.0.38",
+		"@ai-sdk/amazon-bedrock": "5.0.146",
+		"@ai-sdk/anthropic": "4.0.107",
+		"@ai-sdk/azure": "4.0.130",
+		"@ai-sdk/google": "4.0.124",
+		"@ai-sdk/mcp": "2.0.102",
+		"@ai-sdk/mistral": "4.0.89",
+		"@ai-sdk/openai": "4.0.122",
+		"@ai-sdk/openai-compatible": "3.0.94",
+		"@ai-sdk/provider": "4.0.39",
 		"@azure/identity": "4.14.1",
 		"@hono/zod-openapi": "1.6.3",
 		"@talqo/shared": "workspace:*",
-		"ai": "7.0.173",
+		"ai": "7.0.179",
 		"drizzle-orm": "0.45.4",
 		"hono": "4.13.19",
 		"ipaddr.js": "2.5.0",
@@ -38,7 +38,7 @@
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",
-		"@types/bun": "1.4.4",
+		"@types/bun": "1.4.5",
 		"drizzle-kit": "0.31.11",
 		"typescript": "7.0.2"
 	}
