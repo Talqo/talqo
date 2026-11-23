@@ -572,6 +572,7 @@ describe("agent tabs", () => {
 			t("agentConfig.tabContext"),
 			t("agentConfig.tabEmbeds"),
 			t("agentConfig.tabMcp"),
+			t("agentConfig.tabTestChat"),
 		]) {
 			expect(button(label)).toBeDefined()
 		}
@@ -584,6 +585,15 @@ describe("agent tabs", () => {
 		await click(button(t("agentConfig.tabEmbeds")))
 		expect(router.state.location.search).toEqual({ tab: "embeds" })
 		expect(host.textContent).toContain(t("embedSetup.agentPanelDescription"))
+	})
+
+	test("hides test chat from readers and falls back to configuration for its link", async () => {
+		agentPermissions = ["agents:read"]
+		await renderPage(`/dashboard/agent/${AGENT_ID}?tab=test-chat`)
+
+		expect(() => button(t("agentConfig.tabTestChat"))).toThrow()
+		expect(button(t("agentConfig.tabConfiguration")).getAttribute("aria-selected")).toBe("true")
+		expect(nameInput().readOnly).toBe(true)
 	})
 })
 

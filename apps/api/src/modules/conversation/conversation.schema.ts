@@ -1,5 +1,6 @@
 import { agent } from "@/modules/agent/agent.schema.ts"
 import { embed } from "@/modules/embed/embed.schema.ts"
+import { user } from "@/modules/identity/identity.schema.ts"
 import { sql } from "drizzle-orm"
 import { boolean, check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
@@ -31,7 +32,10 @@ export const conversation = pgTable(
 			.notNull()
 			.references(() => agent.id, { onDelete: "cascade" }),
 		embedId: text("embed_id").references(() => embed.id, { onDelete: "set null" }),
-		embedAccessVersion: integer("embed_access_version").notNull(),
+		// Null marks a dashboard test chat; embed_id alone cannot, since embed deletion nulls it.
+		embedAccessVersion: integer("embed_access_version"),
+		// Set null on operator deletion so the usage their test chats produced survives.
+		operatorId: text("operator_id").references(() => user.id, { onDelete: "set null" }),
 		revision: integer("revision").notNull().default(0),
 		latestCompletedMessageId: text("latest_completed_message_id"),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
@@ -41,6 +45,11 @@ export const conversation = pgTable(
 		index("conversation_embed_id_idx").on(table.embedId),
 		index("conversation_agent_id_created_at_idx").on(table.agentId, table.createdAt),
 		index("conversation_created_at_idx").on(table.createdAt, table.referenceId),
+		index("conversation_operator_id_idx").on(table.operatorId),
+		check(
+			"conversation_identity_check",
+			sql`CASE WHEN ${table.embedAccessVersion} IS NULL THEN ${table.embedId} IS NULL ELSE ${table.operatorId} IS NULL END`,
+		),
 	],
 )
 
@@ -54,7 +63,8 @@ export const generationAttempt = pgTable(
 		requestId: text("request_id").notNull(),
 		estimatedInputTokens: integer("estimated_input_tokens").notNull(),
 		status: generationAttemptStatus("status").notNull().default("accepted"),
-		networkHash: text("network_hash").notNull(),
+		// Null for dashboard test chats, which are exempt from network allowances.
+		networkHash: text("network_hash"),
 		leaseToken: text("lease_token").notNull(),
 		leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true, mode: "date" }).notNull(),
 		cancellationRequestedAt: timestamp("cancellation_requested_at", { withTimezone: true, mode: "date" }),

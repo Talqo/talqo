@@ -2462,6 +2462,35 @@ describe("chat storage", () => {
 			else Object.defineProperty(globalThis, "localStorage", previous)
 		}
 	})
+	test("keeps a transport-addressed chat without an embed token in memory only", async () => {
+		const writes: string[] = []
+		Object.defineProperty(globalThis, "localStorage", {
+			configurable: true,
+			value: { getItem: () => null, setItem: (name: string) => writes.push(name), removeItem: () => undefined },
+		})
+		try {
+			const contexts: (string | undefined)[] = []
+			const client = createChatClient({
+				apiUrl: "https://api.example.test",
+				randomUUID: () => CREDENTIAL,
+				transport: baseTransport({
+					sendMessage: async (input) => {
+						contexts.push(input.embedToken)
+						return streamFrom([acceptedEvent("generation"), { type: "terminal", outcome: "completed" }])
+					},
+				}),
+			})
+
+			await client.initialize()
+			await client.sendMessage("hello")
+
+			expect(contexts).toEqual([undefined])
+			expect(client.getSnapshot()).toMatchObject({ messages: [{ id: "u1" }, { id: "a1" }], notices: [] })
+			expect(writes).toEqual([])
+		} finally {
+			Reflect.deleteProperty(globalThis, "localStorage")
+		}
+	})
 })
 
 describe("chat reset and disposal", () => {

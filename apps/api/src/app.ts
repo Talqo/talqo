@@ -14,6 +14,7 @@ import {
 	type ChatBindings,
 	conversationOperatorRoutes,
 	createConversationRoutes,
+	createTestChatRoutes,
 } from "@/modules/conversation/conversation.routes.ts"
 import { embedConfigRoutes, embedRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
@@ -83,6 +84,7 @@ api.route("/chat", createConversationRoutes())
 api.route("/stats", statsRoutes)
 api.route("/agents", agentFilesRoutes)
 api.route("/agents", mcpServerRoutes)
+api.route("/agents", createTestChatRoutes())
 api.route("/conversations", conversationOperatorRoutes)
 app.route(API_PREFIX, api)
 app.notFound((context) => problemResponse(context, PROBLEM_CODES.ROUTE_NOT_FOUND, HTTP_STATUS.NOT_FOUND))

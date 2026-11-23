@@ -4,6 +4,7 @@ import { and, asc, count, countDistinct, desc, eq, gt, gte, inArray, isNotNull, 
 
 import {
 	ConcurrentGenerationLimitError,
+	ConversationNotFoundError,
 	DailyAllowanceExceededError,
 	EmbedDisabledError,
 	RequestConflictError,
@@ -78,24 +79,32 @@ export type PendingUsageFinalization = {
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
-type AcceptanceInput = {
+type AcceptanceBase = {
 	agentId: string
-	dailyLimit: number
 	conversationId: string
-	embedAccessVersion: number
-	embedId: string
 	estimatedInputTokens: number
 	messageText: string
-	networkHash: string
 	requestId: string
 	historyRevision: number
 	historyTailId: string | null
 	concurrencyLimit: number
 }
 
-async function acquireAcceptanceLocks(tx: Transaction, identityKey: string, networkKey: string): Promise<void> {
-	// The numeric prefixes lock identity before network so concurrent requests share one order.
-	for (const key of [`1:${identityKey}`, `2:${networkKey}`]) {
+type EmbedAcceptance = AcceptanceBase & {
+	origin: "embed"
+	dailyLimit: number
+	embedAccessVersion: number
+	embedId: string
+	networkHash: string
+}
+
+type DashboardAcceptance = AcceptanceBase & { origin: "dashboard"; operatorId: string }
+
+type AcceptanceInput = EmbedAcceptance | DashboardAcceptance
+
+async function acquireAcceptanceLocks(tx: Transaction, identityKey: string, admissionKey: string): Promise<void> {
+	// The numeric prefixes lock identity before admission scope so concurrent requests share one order.
+	for (const key of [`1:${identityKey}`, `2:${admissionKey}`]) {
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`)
 	}
 }
@@ -112,8 +121,32 @@ export async function findConversationById(conversationId: string): Promise<Conv
 		.innerJoin(embed, and(eq(embed.id, conversation.embedId), eq(embed.accessVersion, conversation.embedAccessVersion)))
 		.where(eq(conversation.id, conversationId))
 		.limit(1)
-	if (!row || !row.embedId) return undefined
-	return { ...row, embedId: row.embedId }
+	if (!row?.embedId || row.embedAccessVersion === null) return undefined
+	return { ...row, embedId: row.embedId, embedAccessVersion: row.embedAccessVersion }
+}
+
+export async function findDashboardConversation(input: {
+	agentId: string
+	conversationId: string
+	operatorId: string
+}): Promise<{ conversationId: string } | undefined> {
+	const [row] = await db
+		.select({ conversationId: conversation.id })
+		.from(conversation)
+		.where(dashboardConversationOwned(input))
+		.limit(1)
+	return row
+}
+
+const isTestChat = isNull(conversation.embedAccessVersion)
+
+function dashboardConversationOwned(input: { agentId: string; conversationId: string; operatorId: string }) {
+	return and(
+		eq(conversation.id, input.conversationId),
+		isTestChat,
+		eq(conversation.agentId, input.agentId),
+		eq(conversation.operatorId, input.operatorId),
+	)
 }
 
 export async function listMessages(conversationId: string): Promise<(typeof message.$inferSelect)[]> {
@@ -175,7 +208,7 @@ async function interruptExpiredGenerationAttempts(
 		)
 }
 
-async function lockValidEmbed(tx: Transaction, input: AcceptanceInput): Promise<void> {
+async function lockValidEmbed(tx: Transaction, input: EmbedAcceptance): Promise<void> {
 	const [validEmbed] = await tx
 		.select({ id: embed.id, isDisabled: embed.isDisabled })
 		.from(embed)
@@ -200,20 +233,36 @@ async function ensureConversation(tx: Transaction, input: AcceptanceInput): Prom
 		.where(eq(conversation.id, input.conversationId))
 		.limit(1)
 	if (existingConversation) {
-		if (
-			existingConversation.embedId !== input.embedId ||
-			existingConversation.embedAccessVersion !== input.embedAccessVersion
-		) {
+		assertConversationIdentity(existingConversation, input)
+		return
+	}
+	await tx.insert(conversation).values(
+		input.origin === "embed"
+			? {
+					id: input.conversationId,
+					agentId: input.agentId,
+					embedId: input.embedId,
+					embedAccessVersion: input.embedAccessVersion,
+				}
+			: { id: input.conversationId, agentId: input.agentId, operatorId: input.operatorId },
+	)
+}
+
+function assertConversationIdentity(existing: typeof conversation.$inferSelect, input: AcceptanceInput): void {
+	if (input.origin === "embed") {
+		if (existing.embedId !== input.embedId || existing.embedAccessVersion !== input.embedAccessVersion) {
 			throw new SessionUnauthorizedError()
 		}
 		return
 	}
-	await tx.insert(conversation).values({
-		id: input.conversationId,
-		agentId: input.agentId,
-		embedId: input.embedId,
-		embedAccessVersion: input.embedAccessVersion,
-	})
+	// A client-chosen ID that collides with someone else's conversation must not reveal it exists.
+	if (
+		existing.embedAccessVersion !== null ||
+		existing.agentId !== input.agentId ||
+		existing.operatorId !== input.operatorId
+	) {
+		throw new ConversationNotFoundError()
+	}
 }
 
 function findMessagePair(messages: (typeof message.$inferSelect)[]): {
@@ -268,7 +317,7 @@ async function conversationActiveCount(tx: Transaction, conversationId: string):
 	return row?.value ?? 0
 }
 
-async function networkActiveCount(tx: Transaction, input: AcceptanceInput): Promise<number> {
+async function networkActiveCount(tx: Transaction, input: EmbedAcceptance): Promise<number> {
 	const [row] = await tx
 		.select({ value: count() })
 		.from(generationAttempt)
@@ -283,7 +332,18 @@ async function networkActiveCount(tx: Transaction, input: AcceptanceInput): Prom
 	return row?.value ?? 0
 }
 
-async function reserveDailyAllowance(tx: Transaction, input: AcceptanceInput): Promise<void> {
+async function operatorActiveCount(tx: Transaction, input: DashboardAcceptance): Promise<number> {
+	const [row] = await tx
+		.select({ value: count() })
+		.from(generationAttempt)
+		.innerJoin(conversation, eq(conversation.id, generationAttempt.conversationId))
+		.where(
+			and(eq(conversation.agentId, input.agentId), eq(conversation.operatorId, input.operatorId), activeUnexpired()),
+		)
+	return row?.value ?? 0
+}
+
+async function reserveDailyAllowance(tx: Transaction, input: EmbedAcceptance): Promise<void> {
 	const [counter] = await tx
 		.insert(conversationDailyCounter)
 		.values({ agentId: input.agentId, networkHash: input.networkHash, day: DATABASE_DAY, count: 1 })
@@ -306,7 +366,7 @@ async function insertAcceptedGeneration(tx: Transaction, input: AcceptanceInput)
 			conversationId: input.conversationId,
 			requestId: input.requestId,
 			estimatedInputTokens: input.estimatedInputTokens,
-			networkHash: input.networkHash,
+			networkHash: input.origin === "embed" ? input.networkHash : null,
 			leaseToken,
 			leaseExpiresAt: DATABASE_LEASE_EXPIRY,
 		})
@@ -341,28 +401,38 @@ async function insertAcceptedGeneration(tx: Transaction, input: AcceptanceInput)
 
 async function assertAdmission(tx: Transaction, input: AcceptanceInput): Promise<void> {
 	if ((await conversationActiveCount(tx, input.conversationId)) > 0) throw new SessionBusyError()
+	if (input.origin === "dashboard") {
+		// Operators are authenticated, so only concurrency bounds them; no daily allowance.
+		if ((await operatorActiveCount(tx, input)) >= input.concurrencyLimit) throw new ConcurrentGenerationLimitError()
+		return
+	}
 	if ((await networkActiveCount(tx, input)) >= input.concurrencyLimit) throw new ConcurrentGenerationLimitError()
 	await reserveDailyAllowance(tx, input)
 }
 
+function admissionLockKey(input: AcceptanceInput): string {
+	return input.origin === "embed"
+		? `network:${input.agentId}:${input.networkHash}`
+		: `operator:${input.agentId}:${input.operatorId}`
+}
+
+function admissionScope(input: AcceptanceInput) {
+	return input.origin === "embed"
+		? and(
+				eq(generationAttempt.networkHash, input.networkHash),
+				sql`EXISTS (SELECT 1 FROM ${conversation} c WHERE c.id = ${generationAttempt.conversationId} AND c.agent_id = ${input.agentId})`,
+			)
+		: sql`EXISTS (SELECT 1 FROM ${conversation} c WHERE c.id = ${generationAttempt.conversationId} AND c.agent_id = ${input.agentId} AND c.operator_id = ${input.operatorId})`
+}
+
 export async function acceptGenerationAttempt(input: AcceptanceInput): Promise<AcceptedGenerationAttempt> {
 	return db.transaction(async (tx) => {
-		await acquireAcceptanceLocks(
-			tx,
-			`conversation:${input.conversationId}`,
-			`network:${input.agentId}:${input.networkHash}`,
-		)
-		await lockValidEmbed(tx, input)
+		await acquireAcceptanceLocks(tx, `conversation:${input.conversationId}`, admissionLockKey(input))
+		if (input.origin === "embed") await lockValidEmbed(tx, input)
 		await ensureConversation(tx, input)
 		await interruptExpiredGenerationAttempts(
 			tx,
-			or(
-				eq(generationAttempt.conversationId, input.conversationId),
-				and(
-					eq(generationAttempt.networkHash, input.networkHash),
-					sql`EXISTS (SELECT 1 FROM ${conversation} c WHERE c.id = ${generationAttempt.conversationId} AND c.agent_id = ${input.agentId})`,
-				),
-			),
+			or(eq(generationAttempt.conversationId, input.conversationId), admissionScope(input)),
 		)
 		const duplicate = await findAcceptedDuplicate(tx, input)
 		if (duplicate) return duplicate
@@ -615,6 +685,8 @@ export type AgentDailyCount = {
 	date: string
 }
 
+// Dashboard test chats stay out of every visitor-facing listing and count; their usage does not.
+const fromEmbed = isNotNull(conversation.embedAccessVersion)
 const conversationDay = sql<string>`to_char(${conversation.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 const messageDay = sql<string>`to_char(${message.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 
@@ -627,7 +699,11 @@ export async function getDailyConversationCountsByAgent(
 		.select({ agentId: conversation.agentId, date: conversationDay, count: count() })
 		.from(conversation)
 		.where(
-			and(gte(conversation.createdAt, since), scope === "all" ? undefined : inArray(conversation.agentId, [...scope])),
+			and(
+				fromEmbed,
+				gte(conversation.createdAt, since),
+				scope === "all" ? undefined : inArray(conversation.agentId, [...scope]),
+			),
 		)
 		.groupBy(conversation.agentId, conversationDay)
 		.orderBy(conversation.agentId, conversationDay)
@@ -641,7 +717,13 @@ export async function getDailyMessageCountsByAgent(
 		.select({ agentId: conversation.agentId, date: messageDay, count: count() })
 		.from(message)
 		.innerJoin(conversation, eq(message.conversationId, conversation.id))
-		.where(and(gte(message.createdAt, since), scope === "all" ? undefined : inArray(conversation.agentId, [...scope])))
+		.where(
+			and(
+				fromEmbed,
+				gte(message.createdAt, since),
+				scope === "all" ? undefined : inArray(conversation.agentId, [...scope]),
+			),
+		)
 		.groupBy(conversation.agentId, messageDay)
 		.orderBy(conversation.agentId, messageDay)
 }
@@ -660,7 +742,13 @@ export async function getActiveConversationCountsByAgent(
 		.select({ agentId: conversation.agentId, count: countDistinct(message.conversationId) })
 		.from(message)
 		.innerJoin(conversation, eq(message.conversationId, conversation.id))
-		.where(and(gte(message.createdAt, cutoff), scope === "all" ? undefined : inArray(conversation.agentId, [...scope])))
+		.where(
+			and(
+				fromEmbed,
+				gte(message.createdAt, cutoff),
+				scope === "all" ? undefined : inArray(conversation.agentId, [...scope]),
+			),
+		)
 		.groupBy(conversation.agentId)
 		.orderBy(conversation.agentId)
 }
@@ -679,7 +767,7 @@ export async function listConversations(input: {
 	offset: number
 	previewLength: number
 }): Promise<{ rows: ConversationSummaryRow[]; total: number }> {
-	const where = input.agentIds ? inArray(conversation.agentId, input.agentIds) : undefined
+	const where = and(fromEmbed, input.agentIds ? inArray(conversation.agentId, input.agentIds) : undefined)
 	const [rows, [counted]] = await Promise.all([
 		db
 			.select({
@@ -712,7 +800,7 @@ export async function findConversationByReference(
 			createdAt: conversation.createdAt,
 		})
 		.from(conversation)
-		.where(eq(conversation.referenceId, referenceId))
+		.where(and(fromEmbed, eq(conversation.referenceId, referenceId)))
 		.limit(1)
 	return row
 }

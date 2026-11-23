@@ -5,7 +5,7 @@ import type {
 	WidgetScheme,
 } from "@talqo/shared/widget-appearance"
 
-import { type ChatClient, type ChatClientOptions, createChatClient } from "@talqo/sdk"
+import { type ChatClient, createChatClient } from "@talqo/sdk"
 import logoUrl from "@talqo/ui/assets/logo.svg"
 
 import { activeScheme, resolveAppearance } from "./lib/appearance"
@@ -16,7 +16,7 @@ import { launcherText } from "./lib/launcher-text"
 import "./launcher.css"
 
 export type MountTarget = string | HTMLElement
-export type ChatClientFactory = (options: Pick<ChatClientOptions, "apiUrl" | "embedToken">) => ChatClient
+export type ChatClientFactory = (options: { apiUrl: string; embedToken: string }) => ChatClient
 export type MountOptions = { createClient?: ChatClientFactory }
 
 const DEFAULT_TARGET = "#talqo-widget"

@@ -31,6 +31,7 @@ import { EMBED_FORM_DEFAULTS } from "@/features/embeds/embed-appearance-form"
 import { McpConnectionsCard } from "@/features/mcp/mcp-connections-card"
 import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { requirePermission } from "@/features/permissions/require-permission"
+import { TestChatCard } from "@/features/test-chat/test-chat-card"
 import { nextDefaultName } from "@/lib/default-name"
 import { getProblemMessage } from "@/lib/problem-message"
 import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
@@ -58,7 +59,7 @@ import { useTranslation } from "react-i18next"
 
 import { EmbedEnabledSwitch } from "./-embed-enabled-switch"
 
-const AGENT_TABS = ["configuration", "context", "embeds", "mcp"] as const
+const AGENT_TABS = ["configuration", "context", "embeds", "mcp", "test-chat"] as const
 const LIGHT_PALETTE_KEYS = ["primary", "background", "surface", "text", "textOnPrimary"] as const
 type AgentTab = (typeof AGENT_TABS)[number]
 type EmbedsQuery = UseQueryResult<ListEmbedsQueryResult, ListEmbedsQueryError>
@@ -672,13 +673,16 @@ function AgentDetailTabs(props: {
 	refetch: () => Promise<unknown>
 }) {
 	const { t } = useTranslation()
+	// Shared links can name a tab the viewer cannot open; show the default one instead of a blank panel.
+	const tab = props.tab === "test-chat" && !props.canManage ? "configuration" : props.tab
 	return (
-		<Tabs value={props.tab} onValueChange={(value) => isAgentTab(value) && props.setTab(value)}>
+		<Tabs value={tab} onValueChange={(value) => isAgentTab(value) && props.setTab(value)}>
 			<TabsList>
 				<TabsTrigger value="configuration">{t("agentConfig.tabConfiguration")}</TabsTrigger>
 				<TabsTrigger value="context">{t("agentConfig.tabContext")}</TabsTrigger>
 				<TabsTrigger value="embeds">{t("agentConfig.tabEmbeds")}</TabsTrigger>
 				<TabsTrigger value="mcp">{t("agentConfig.tabMcp")}</TabsTrigger>
+				{props.canManage && <TabsTrigger value="test-chat">{t("agentConfig.tabTestChat")}</TabsTrigger>}
 			</TabsList>
 			<TabsContent value="configuration" keepMounted>
 				<AgentConfigurationTab
@@ -699,6 +703,11 @@ function AgentDetailTabs(props: {
 			<TabsContent value="mcp">
 				<McpConnectionsCard agentId={props.agentId} canManage={props.canManage} />
 			</TabsContent>
+			{props.canManage && (
+				<TabsContent value="test-chat">
+					<TestChatCard agentId={props.agentId} />
+				</TabsContent>
+			)}
 		</Tabs>
 	)
 }

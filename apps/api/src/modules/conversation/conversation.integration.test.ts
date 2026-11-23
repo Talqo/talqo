@@ -44,6 +44,7 @@ const REQUEST_2 = "22222222-2222-4222-8222-222222222222"
 const REQUEST_3 = "33333333-3333-4333-8333-333333333333"
 const CREDENTIAL_1 = "44444444-4444-4444-8444-444444444444"
 const CREDENTIAL_2 = "55555555-5555-4555-8555-555555555555"
+const CREDENTIAL_3 = "66666666-6666-4666-8666-666666666666"
 
 async function fixture(wordBlacklist: string[] = []) {
 	const createdAgent = await agent.createAgent({
@@ -1961,5 +1962,172 @@ describe("operator conversation reads", () => {
 
 		expect(response.status).toBe(403)
 		expect(await response.json()).toMatchObject({ code: "permission-denied" })
+	})
+})
+
+async function testChat(
+	instance: ReturnType<typeof customService>,
+	input: { agentId: string; conversationId?: string; operatorId: string; requestId?: string; text?: string },
+) {
+	const events: ChatEvent[] = []
+	const sent = await instance.sendFromDashboard(
+		{
+			agentId: input.agentId,
+			conversationId: input.conversationId ?? CREDENTIAL_1,
+			operatorId: input.operatorId,
+			requestId: input.requestId ?? crypto.randomUUID(),
+			text: input.text ?? "hello",
+		},
+		(event) => events.push(event),
+	)
+	return { events, sent }
+}
+
+async function agentManager(agentId: string): Promise<string> {
+	const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+	await giveRole(operator.id, [roles.AgentPermission.AgentManage], [agentId])
+	return operator.id
+}
+
+describe("dashboard test chat", () => {
+	it("runs the agent pipeline with history and usage, without counting as a visitor conversation", async () => {
+		const { createdAgent } = await fixture()
+		const operatorId = await agentManager(createdAgent.id)
+		const { prompts, service: instance } = service(["first", "second"])
+
+		const first = await testChat(instance, { agentId: createdAgent.id, operatorId, text: "one" })
+		await first.sent.done
+		await (
+			await testChat(instance, { agentId: createdAgent.id, operatorId, text: "two" })
+		).sent.done
+
+		expect(first.events.map((event) => event.type)).toEqual(["accepted", "delta", "terminal"])
+		expect(prompts[1]?.map((item) => item.content).slice(1)).toEqual(["one", "first", "two"])
+		const session = await instance.getDashboardSession({
+			agentId: createdAgent.id,
+			conversationId: CREDENTIAL_1,
+			operatorId,
+		})
+		expect(session.messages.map((item) => [item.role, item.text])).toEqual([
+			["user", "one"],
+			["assistant", "first"],
+			["user", "two"],
+			["assistant", "second"],
+		])
+		expect((await sql`SELECT count(*)::int AS value FROM usage_record`)[0]?.value).toBe(2)
+		expect((await sql`SELECT count(*)::int AS value FROM conversation_daily_counter`)[0]?.value).toBe(0)
+		const since = new Date(Date.now() - 86_400_000)
+		expect((await listConversations({ page: 1 }, await testAdminId())).total).toBe(0)
+		expect(await repository.getDailyConversationCountsByAgent(since, "all")).toEqual([])
+		expect(await repository.getDailyMessageCountsByAgent(since, "all")).toEqual([])
+		expect(await repository.getActiveConversationCountsByAgent(since, "all")).toEqual([])
+		const [stored] = await sql`SELECT reference_id FROM conversation`
+		await expect(getConversationTranscript(String(stored?.reference_id), await testAdminId())).rejects.toBeInstanceOf(
+			ConversationNotFoundError,
+		)
+	})
+
+	it("keeps each test chat private to its operator and agent", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		const other = await fixture()
+		const operatorId = await agentManager(createdAgent.id)
+		const colleagueId = await agentManager(createdAgent.id)
+		const instance = service().service
+		await (
+			await testChat(instance, { agentId: createdAgent.id, operatorId })
+		).sent.done
+		await chat(createdEmbed.embedToken, CREDENTIAL_2, "visitor")
+
+		const lookup = { agentId: createdAgent.id, conversationId: CREDENTIAL_1, operatorId: colleagueId }
+		await expect(instance.getDashboardSession(lookup)).rejects.toBeInstanceOf(ConversationNotFoundError)
+		await expect(instance.cancelFromDashboard(lookup)).rejects.toBeInstanceOf(ConversationNotFoundError)
+		await expect(testChat(instance, { agentId: createdAgent.id, operatorId: colleagueId })).rejects.toBeInstanceOf(
+			ConversationNotFoundError,
+		)
+		await expect(
+			testChat(instance, { agentId: createdAgent.id, conversationId: CREDENTIAL_2, operatorId }),
+		).rejects.toBeInstanceOf(ConversationNotFoundError)
+		await expect(
+			testChat(instance, { agentId: other.createdAgent.id, operatorId: await testAdminId() }),
+		).rejects.toBeInstanceOf(ConversationNotFoundError)
+		await expect(instance.getSession(CREDENTIAL_1)).rejects.toBeInstanceOf(SessionUnauthorizedError)
+		const reader = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		await giveRole(reader.id, [roles.AgentPermission.AgentRead], [createdAgent.id])
+		await expect(
+			testChat(instance, { agentId: createdAgent.id, conversationId: CREDENTIAL_3, operatorId: reader.id }),
+		).rejects.toMatchObject({ status: 403 })
+	})
+
+	it("bounds concurrency per operator instead of the visitor network allowance", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		const operatorId = await agentManager(createdAgent.id)
+		const gate = deferred()
+		const instance = customService(
+			async function* () {
+				yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
+				await gate.promise
+			},
+			{ concurrencyLimit: 1, dailyLimit: 1 },
+		)
+		const running = await testChat(instance, { agentId: createdAgent.id, operatorId })
+
+		await expect(
+			testChat(instance, { agentId: createdAgent.id, conversationId: CREDENTIAL_2, operatorId }),
+		).rejects.toBeInstanceOf(ConcurrentGenerationLimitError)
+		const visitor = await instance.send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_3,
+			requestId: REQUEST_1,
+			text: "visitor",
+			networkHash: "network-a",
+		})
+		await instance.cancelFromDashboard({ agentId: createdAgent.id, conversationId: CREDENTIAL_1, operatorId })
+		await instance.cancel(CREDENTIAL_3)
+		gate.resolve()
+		await Promise.all([running.sent.done, visitor.done])
+
+		expect(running.events.at(-1)).toMatchObject({ type: "terminal", outcome: "cancelled" })
+	})
+
+	it("keeps usage after the operator is deleted and makes the chat unreachable", async () => {
+		const { createdAgent } = await fixture()
+		const operatorId = await agentManager(createdAgent.id)
+		await (
+			await testChat(service().service, { agentId: createdAgent.id, operatorId })
+		).sent.done
+
+		await sql`DELETE FROM "user" WHERE id = ${operatorId}`
+
+		expect([...(await sql`SELECT embed_access_version, operator_id FROM conversation`)]).toEqual([
+			{ embed_access_version: null, operator_id: null },
+		])
+		expect((await sql`SELECT count(*)::int AS value FROM usage_record`)[0]?.value).toBe(1)
+	})
+
+	it("serves test chat over HTTP only to operators who can manage the agent", async () => {
+		const { createdAgent } = await fixture()
+		const base = `/api/agents/${createdAgent.id}/test-chat`
+		const reader = await operatorSession(roles.AgentPermission.AgentRead)
+		const managerCookie = await operatorSession(roles.AgentPermission.AgentManage)
+
+		const denied = await app.request(`${base}/conversations/${CREDENTIAL_1}`, { headers: { Cookie: reader } })
+		const missing = await app.request(`${base}/conversations/${CREDENTIAL_1}`, { headers: { Cookie: managerCookie } })
+		const invalid = await app.request(`${base}/messages`, {
+			method: "POST",
+			headers: { Cookie: managerCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ conversationId: "not-a-uuid", requestId: REQUEST_1, text: "hi" }),
+		})
+		// Beyond the default JSON ceiling, so only the chat-sized allowance lets it reach validation.
+		const long = await app.request(`${base}/messages`, {
+			method: "POST",
+			headers: { Cookie: managerCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ conversationId: "not-a-uuid", requestId: REQUEST_1, text: "a".repeat(300_000) }),
+		})
+
+		expect(denied.status).toBe(403)
+		expect(missing.status).toBe(404)
+		expect(await missing.json()).toMatchObject({ code: "conversation-not-found" })
+		expect(invalid.status).toBe(400)
+		expect(long.status).toBe(400)
 	})
 })

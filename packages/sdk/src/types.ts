@@ -103,7 +103,8 @@ export type ChatEvent =
 
 export type TransportContext = {
 	apiUrl: string
-	embedToken: string
+	/** Absent when a custom transport addresses the agent itself. */
+	embedToken?: string
 	signal: AbortSignal
 }
 
@@ -125,15 +126,19 @@ export type ChatTransport = {
 	): Promise<void>
 }
 
-export type ChatClientOptions = {
+type ChatClientBaseOptions = {
 	apiUrl: string
-	embedToken: string
-	storage?: AsyncStorage
-	transport?: ChatTransport
 	randomUUID?: () => string
 	now?: () => Date
 	recoveryDelays?: readonly number[]
 }
+
+/** Without an embed token the transport owns addressing, and sessions live in memory only. */
+export type ChatClientOptions = ChatClientBaseOptions &
+	(
+		| { embedToken: string; storage?: AsyncStorage; transport?: ChatTransport }
+		| { embedToken?: undefined; storage?: undefined; transport: ChatTransport }
+	)
 
 export type ChatClient = {
 	subscribe(listener: () => void): () => void

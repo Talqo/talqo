@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { Hono } from "hono"
 
-import { rejectMalformedJson, rejectOversizedBody } from "./json-body.ts"
+import { allowChatSizedBody, rejectMalformedJson, rejectOversizedBody } from "./json-body.ts"
 
 // Mirrors TALQO_CHAT_MAX_INPUT_CHARACTERS in apps/api/.env.example.
 const CHAT_LIMIT_CODE_POINTS = 400_000
@@ -11,7 +11,8 @@ function app() {
 	return new Hono()
 		.use(rejectOversizedBody)
 		.use(rejectMalformedJson)
-		.post("/api/chat/embed/messages", (c) => c.json({ ok: true }))
+		.post("/api/chat/embed/messages", allowChatSizedBody, (c) => c.json({ ok: true }))
+		.post("/api/agents/:agentId/test-chat/messages", allowChatSizedBody, (c) => c.json({ ok: true }))
 		.post("/api/agents", (c) => c.json({ ok: true }))
 }
 
@@ -36,16 +37,16 @@ function escapedChatBody(escapePairs: number) {
 }
 
 describe("rejectOversizedBody", () => {
-	it("accepts a fully escaped chat message at the advertised allowance", async () => {
-		const response = await app().fetch(
-			new Request("http://localhost/api/chat/embed/messages", escapedChatBody(CHAT_LIMIT_CODE_POINTS)),
-		)
+	const chatSendPaths = ["/api/chat/embed/messages", "/api/agents/agent-id/test-chat/messages"]
+
+	it.each(chatSendPaths)("accepts a fully escaped chat message at the advertised allowance on %s", async (path) => {
+		const response = await app().fetch(new Request(`http://localhost${path}`, escapedChatBody(CHAT_LIMIT_CODE_POINTS)))
 		expect(response.status).toBe(200)
 	})
 
-	it("rejects a chat body beyond the transport ceiling", async () => {
+	it.each(chatSendPaths)("rejects a chat body beyond the transport ceiling on %s", async (path) => {
 		const response = await app().fetch(
-			new Request("http://localhost/api/chat/embed/messages", escapedChatBody(CHAT_LIMIT_CODE_POINTS + 1_000)),
+			new Request(`http://localhost${path}`, escapedChatBody(CHAT_LIMIT_CODE_POINTS + 1_000)),
 		)
 		expect(response.status).toBe(413)
 	})
