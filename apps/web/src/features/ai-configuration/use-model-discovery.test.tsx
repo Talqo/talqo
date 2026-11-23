@@ -36,7 +36,7 @@ type Request = ReturnType<typeof Promise.withResolvers<Response>> & {
 	signal: AbortSignal | null | undefined
 }
 
-let requests: Request[]
+let requests: Array<Request>
 let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
@@ -90,7 +90,7 @@ async function advance(milliseconds: number): Promise<void> {
 	await act(async () => jest.advanceTimersByTime(milliseconds))
 }
 
-async function answer(request: Request | undefined, models: string[]): Promise<void> {
+async function answer(request: Request | undefined, models: Array<string>): Promise<void> {
 	if (!request) throw new Error("Discovery request missing")
 	await act(async () => request.resolve(new Response(JSON.stringify({ models }), { status: 200 })))
 }

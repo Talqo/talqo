@@ -7,7 +7,7 @@ import { expect } from "bun:test"
 export const DEFAULT_PASSWORD = "correct-horse-battery-staple"
 
 export function uniqueUsername(): string {
-	return `user_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`
+	return `user_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`
 }
 
 export async function login(username: string, password = DEFAULT_PASSWORD): Promise<string> {
@@ -44,29 +44,29 @@ export async function createAdminSession(): Promise<{ cookie: string; userId: st
 }
 
 export async function testAdminId(): Promise<string> {
-	const [admin] = await sql<{ user_id: string }[]>`SELECT user_id FROM permission_grant WHERE permission = 'admin'`
+	const [admin] = await sql<Array<{ user_id: string }>>`SELECT user_id FROM permission_grant WHERE permission = 'admin'`
 	if (admin) return admin.user_id
 	return (await roles.bootstrapAdmin({ username: uniqueUsername(), password: DEFAULT_PASSWORD })).id
 }
 
 export async function giveRole(
 	userId: string,
-	permissions: (roles.GrantablePermission | roles.AgentPermission)[],
-	agentIds?: string[],
+	permissions: Array<roles.GrantablePermission | roles.AgentPermission>,
+	agentIds?: Array<string>,
 ): Promise<void> {
 	const adminId = await testAdminId()
 	const globalPermissions = permissions.filter((permission): permission is roles.GrantablePermission =>
-		(roles.GRANTABLE_PERMISSIONS as readonly string[]).includes(permission),
+		(roles.GRANTABLE_PERMISSIONS as ReadonlyArray<string>).includes(permission),
 	)
 	const scopedPermissions = permissions.filter((permission): permission is roles.AgentPermission =>
-		(roles.AGENT_PERMISSIONS as readonly string[]).includes(permission),
+		(roles.AGENT_PERMISSIONS as ReadonlyArray<string>).includes(permission),
 	)
 	const role = await roles.createRole(
 		{ name: `Test role ${crypto.randomUUID()}`, permissions: globalPermissions },
 		adminId,
 	)
 	if (scopedPermissions.length > 0) {
-		const ids = agentIds ?? (await sql<{ id: string }[]>`SELECT id FROM agent`).map(({ id }) => id)
+		const ids = agentIds ?? (await sql<Array<{ id: string }>>`SELECT id FROM agent`).map(({ id }) => id)
 		await Promise.all(ids.map((agentId) => roles.setRoleAgentAccess(adminId, role.id, agentId, scopedPermissions)))
 	}
 	await roles.assignRoles(userId, [role.id], adminId)

@@ -3,7 +3,10 @@ import { createGetUrl } from "fumadocs-core/source"
 export const DOCS_ROUTE = "/"
 const getDocsUrl = createGetUrl(DOCS_ROUTE)
 
-export function getPageMarkdownUrl(page: { slugs: string[]; locale?: string }): { segments: string[]; url: string } {
+export function getPageMarkdownUrl(page: { slugs: Array<string>; locale?: string }): {
+	segments: Array<string>
+	url: string
+} {
 	const segments = [...page.slugs]
 	if (segments.length === 0) {
 		segments.push("index.md")
@@ -14,7 +17,7 @@ export function getPageMarkdownUrl(page: { slugs: string[]; locale?: string }): 
 	return { segments, url: getDocsUrl(segments, page.locale) }
 }
 
-export function decodeMarkdownUrl(segments: string[]): string[] {
+export function decodeMarkdownUrl(segments: Array<string>): Array<string> {
 	if (segments.length === 0) return []
 
 	const out = [...segments]

@@ -44,14 +44,14 @@ export const AgentPermission = {
 } as const satisfies Record<string, AgentPermission>
 
 // "admin" is the first entry only for display stability; it implies every other permission.
-const IMPLIED_BY: Partial<Record<Permission, Permission[]>> = {
+const IMPLIED_BY: Partial<Record<Permission, Array<Permission>>> = {
 	admin: PERMISSIONS.filter((permission) => permission !== "admin"),
 	// Mutating grants imply read access to the same capability; keep this a DAG, never a cycle.
 	"users:manage": ["users:read"],
 	"roles:manage": ["users:read"],
 }
 
-function expandPermissions(granted: Permission[]): Permission[] {
+function expandPermissions(granted: Array<Permission>): Array<Permission> {
 	const effective = new Set<Permission>(granted)
 	for (const permission of granted) {
 		for (const implied of IMPLIED_BY[permission] ?? []) effective.add(implied)
@@ -62,7 +62,7 @@ function expandPermissions(granted: Permission[]): Permission[] {
 // One permission from the admin grant or from an assigned role.
 type PermissionSource = { permission: string }
 
-export function effectivePermissions(sources: PermissionSource[]): Permission[] {
+export function effectivePermissions(sources: Array<PermissionSource>): Array<Permission> {
 	const granted = new Set(sources.map(({ permission }) => permission))
 	return expandPermissions(PERMISSIONS.filter((permission) => granted.has(permission)))
 }
@@ -112,7 +112,7 @@ export async function bootstrapAdmin(input: { password: string; username: string
 
 export async function createInvitation(
 	invitedBy: string,
-	roleIds: string[] = [],
+	roleIds: Array<string> = [],
 ): Promise<{ expiresAt: Date; token: string }> {
 	assertUnique(roleIds, "Role ids")
 	if (roleIds.length > ROLE_IDS_MAX) throw new InvalidRoleInputError(`At most ${ROLE_IDS_MAX} roles per user`)
@@ -133,7 +133,7 @@ export async function createInvitation(
 	})
 }
 
-async function validateInvitationRoles(invitedBy: string, roleIds: string[]): Promise<void> {
+async function validateInvitationRoles(invitedBy: string, roleIds: Array<string>): Promise<void> {
 	const held = await managementPermissions(invitedBy, Permission.UsersManage)
 	if (roleIds.length === 0) return
 	if (!held.includes(Permission.RolesManage)) throw new PermissionDeniedError(`Missing ${Permission.RolesManage}`)
@@ -181,27 +181,27 @@ export async function redeemInvitation(input: {
 }
 
 // Fetched fresh on every call, never cached, so a removed role denies the next request (ADR-0008/0009).
-export async function listEffectivePermissions(userId: string): Promise<Permission[]> {
+export async function listEffectivePermissions(userId: string): Promise<Array<Permission>> {
 	return effectivePermissions(await repo.findPermissionsForUsers([userId]))
 }
 
-export async function listAssignedRoles(userId: string): Promise<RoleSummary[]> {
+export async function listAssignedRoles(userId: string): Promise<Array<RoleSummary>> {
 	return repo.findRolesOfUser(userId)
 }
 
-export function effectiveAgentPermissions(permissions: readonly string[]): AgentPermission[] {
+export function effectiveAgentPermissions(permissions: ReadonlyArray<string>): Array<AgentPermission> {
 	const held = new Set(permissions)
 	if (held.has(AgentPermission.AgentManage) || held.has(AgentPermission.AgentDelete))
 		held.add(AgentPermission.AgentRead)
 	return AGENT_PERMISSIONS.filter((permission) => held.has(permission))
 }
 
-export async function listAgentPermissions(userId: string, agentId: string): Promise<AgentPermission[]> {
+export async function listAgentPermissions(userId: string, agentId: string): Promise<Array<AgentPermission>> {
 	const access = await agentPermissionsById(userId)
 	return access === "all" ? [...AGENT_PERMISSIONS] : (access.get(agentId) ?? [])
 }
 
-export async function agentPermissionsById(userId: string): Promise<Map<string, AgentPermission[]> | "all"> {
+export async function agentPermissionsById(userId: string): Promise<Map<string, Array<AgentPermission>> | "all"> {
 	if ((await listEffectivePermissions(userId)).includes(Permission.Admin)) return "all"
 	const rows = await repo.findAgentPermissionsForUsers([userId])
 	return new Map(
@@ -212,14 +212,14 @@ export async function agentPermissionsById(userId: string): Promise<Map<string, 
 	)
 }
 
-export async function agentScope(userId: string, permission?: AgentPermission): Promise<string[] | "all"> {
+export async function agentScope(userId: string, permission?: AgentPermission): Promise<Array<string> | "all"> {
 	const access = await agentPermissionsById(userId)
 	return access === "all"
 		? "all"
 		: [...access].filter(([, held]) => !permission || held.includes(permission)).map(([agentId]) => agentId)
 }
 
-export async function requireAgentScope(userId: string, permission: AgentPermission): Promise<string[] | "all"> {
+export async function requireAgentScope(userId: string, permission: AgentPermission): Promise<Array<string> | "all"> {
 	const scope = await agentScope(userId, permission)
 	if (scope !== "all" && scope.length === 0) throw new PermissionDeniedError(`Missing ${permission}`)
 	return scope
@@ -238,15 +238,15 @@ export async function requireAgentPermission(
 
 async function requireScopedAuthority(
 	actorId: string,
-	grants: readonly { agentId: string; permission: string }[],
+	grants: ReadonlyArray<{ agentId: string; permission: string }>,
 ): Promise<void> {
 	if (!holdsScopedPermissions(await agentPermissionsById(actorId), grants))
 		throw new PermissionExceedsOwnError("Cannot manage agent access beyond own permissions")
 }
 
 function holdsScopedPermissions(
-	held: Map<string, AgentPermission[]> | "all",
-	grants: readonly { agentId: string; permission: string }[],
+	held: Map<string, Array<AgentPermission>> | "all",
+	grants: ReadonlyArray<{ agentId: string; permission: string }>,
 ): boolean {
 	return (
 		held === "all" ||
@@ -258,7 +258,7 @@ function holdsScopedPermissions(
 	)
 }
 
-export async function listAgentGrantsOfRole(roleId: string): Promise<{ agentId: string; permission: string }[]> {
+export async function listAgentGrantsOfRole(roleId: string): Promise<Array<{ agentId: string; permission: string }>> {
 	await requireRole(roleId)
 	return repo.findAgentPermissionsOfRoles([roleId])
 }
@@ -267,10 +267,10 @@ export async function setRoleAgentAccess(
 	actorId: string,
 	roleId: string,
 	agentId: string,
-	permissions: AgentPermission[],
+	permissions: Array<AgentPermission>,
 ): Promise<void> {
 	assertUnique(permissions, "Agent permissions")
-	if (permissions.some((permission) => !(AGENT_PERMISSIONS as readonly string[]).includes(permission)))
+	if (permissions.some((permission) => !(AGENT_PERMISSIONS as ReadonlyArray<string>).includes(permission)))
 		throw new InvalidRoleInputError("Unknown agent permission")
 	await repo.withAccessLock(async () => {
 		await managementPermissions(actorId, Permission.RolesManage)
@@ -346,7 +346,7 @@ class PasswordChangeRequiredError extends ApiError {
 	}
 }
 
-async function managementPermissions(actorId: string, permission: Permission): Promise<Permission[]> {
+async function managementPermissions(actorId: string, permission: Permission): Promise<Array<Permission>> {
 	const held = await listEffectivePermissions(actorId)
 	if (!held.includes(permission)) throw new PermissionDeniedError(`Missing ${permission}`)
 	if ((await identity.getUser(actorId)).mustChangePassword) {
@@ -355,31 +355,31 @@ async function managementPermissions(actorId: string, permission: Permission): P
 	return held
 }
 
-function requireHeld(held: readonly Permission[], targeted: readonly Permission[]): void {
+function requireHeld(held: ReadonlyArray<Permission>, targeted: ReadonlyArray<Permission>): void {
 	if (targeted.some((permission) => !held.includes(permission))) {
 		throw new PermissionExceedsOwnError("Cannot manage access beyond own permissions")
 	}
 }
 
-export type Role = { id: string; memberCount: number; name: string; permissions: GrantablePermission[] }
-export type RoleInput = { name: string; permissions: Permission[] }
+export type Role = { id: string; memberCount: number; name: string; permissions: Array<GrantablePermission> }
+export type RoleInput = { name: string; permissions: Array<Permission> }
 export type RoleSummary = { id: string; name: string }
 
 function isGrantable(permission: string): permission is GrantablePermission {
-	return (GRANTABLE_PERMISSIONS as readonly string[]).includes(permission)
+	return (GRANTABLE_PERMISSIONS as ReadonlyArray<string>).includes(permission)
 }
 
 // Catalog order, so responses and comparisons never depend on insertion order.
-function inCatalogOrder<P extends Permission>(permissions: Iterable<string>, catalog: readonly P[]): P[] {
+function inCatalogOrder<P extends Permission>(permissions: Iterable<string>, catalog: ReadonlyArray<P>): Array<P> {
 	const wanted = new Set(permissions)
 	return catalog.filter((permission) => wanted.has(permission))
 }
 
-function assertUnique(values: string[], label: string): void {
+function assertUnique(values: Array<string>, label: string): void {
 	if (new Set(values).size !== values.length) throw new InvalidRoleInputError(`${label} must not repeat`)
 }
 
-function normalizeRoleInput(input: RoleInput): { name: string; permissions: GrantablePermission[] } {
+function normalizeRoleInput(input: RoleInput): { name: string; permissions: Array<GrantablePermission> } {
 	const name = input.name.trim()
 	if (name.length === 0) throw new InvalidRoleInputError("Role name is required")
 	if (name.length > ROLE_NAME_MAX_LENGTH) {
@@ -398,7 +398,7 @@ function normalizeRoleInput(input: RoleInput): { name: string; permissions: Gran
 	}
 }
 
-async function toRoles(rows: repo.Role[]): Promise<Role[]> {
+async function toRoles(rows: Array<repo.Role>): Promise<Array<Role>> {
 	const ids = rows.map((row) => row.id)
 	const [permissionRows, counts] = await Promise.all([repo.findPermissionsOfRoles(ids), repo.countMembersByRole(ids)])
 	return rows.map((row) => ({
@@ -424,11 +424,11 @@ async function getRole(id: string): Promise<Role> {
 	return { id: row.id, name: row.name, permissions, memberCount: counts[0]?.memberCount ?? 0 }
 }
 
-export async function listRoles(): Promise<Role[]> {
+export async function listRoles(): Promise<Array<Role>> {
 	return toRoles(await repo.findRoles())
 }
 
-export async function manageableRoleIds(actorId: string, roles: readonly Role[]): Promise<string[]> {
+export async function manageableRoleIds(actorId: string, roles: ReadonlyArray<Role>): Promise<Array<string>> {
 	const held = await listEffectivePermissions(actorId)
 	const scoped = await agentPermissionsById(actorId)
 	const grants = await repo.findAgentPermissionsOfRoles(roles.map((role) => role.id))
@@ -487,7 +487,11 @@ export async function deleteRole(id: string, actorId: string): Promise<void> {
 	})
 }
 
-export async function assignRoles(userId: string, roleIds: string[], actorId: string): Promise<RoleSummary[]> {
+export async function assignRoles(
+	userId: string,
+	roleIds: Array<string>,
+	actorId: string,
+): Promise<Array<RoleSummary>> {
 	assertUnique(roleIds, "Role ids")
 	if (roleIds.length > ROLE_IDS_MAX) throw new InvalidRoleInputError(`At most ${ROLE_IDS_MAX} roles per user`)
 	return repo.withAccessLock(async () => {
@@ -512,13 +516,13 @@ export async function assignRoles(userId: string, roleIds: string[], actorId: st
 }
 
 export type UserWithAccess = Omit<PublicUser, "mustChangePassword"> & {
-	permissions: Permission[]
+	permissions: Array<Permission>
 	canManage: boolean
 	mustChangePassword: boolean | null
-	roles: RoleSummary[]
+	roles: Array<RoleSummary>
 }
 
-export async function listUsersWithAccess(actorId: string): Promise<UserWithAccess[]> {
+export async function listUsersWithAccess(actorId: string): Promise<Array<UserWithAccess>> {
 	const users = await identity.listUsers()
 	const userIds = users.map(({ id }) => id)
 	const [roles, sources] = await Promise.all([
@@ -559,14 +563,17 @@ export async function listUsersWithAccess(actorId: string): Promise<UserWithAcce
 	})
 }
 
-export function listGrantablePermissions(): { implies: GrantablePermission[]; permission: GrantablePermission }[] {
+export function listGrantablePermissions(): Array<{
+	implies: Array<GrantablePermission>
+	permission: GrantablePermission
+}> {
 	return GRANTABLE_PERMISSIONS.map((permission) => ({
 		permission,
 		implies: (IMPLIED_BY[permission] ?? []).filter(isGrantable),
 	}))
 }
 
-async function permissionsOfRoles(roleIds: string[]): Promise<GrantablePermission[]> {
+async function permissionsOfRoles(roleIds: Array<string>): Promise<Array<GrantablePermission>> {
 	const rows = await repo.findPermissionsOfRoles(roleIds)
 	return inCatalogOrder(
 		rows.map(({ permission }) => permission),

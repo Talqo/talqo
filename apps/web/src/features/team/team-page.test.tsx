@@ -17,17 +17,17 @@ const { t } = await import("i18next")
 type ListedUser = {
 	id: string
 	mustChangePassword: boolean | null
-	permissions: string[]
+	permissions: Array<string>
 	canManage: boolean
-	roles: { id: string; name: string }[]
+	roles: Array<{ id: string; name: string }>
 	username: string
 }
 
 const EVERYTHING = ["admin", "users:read", "users:manage", "roles:manage", "ai_provider:manage"]
 
-let myPermissions: string[]
-let users: ListedUser[]
-let roles: Role[]
+let myPermissions: Array<string>
+let users: Array<ListedUser>
+let roles: Array<Role>
 let assignFailure: Response | undefined
 let assignPending: Promise<Response> | undefined
 let deleteFailure: Response | undefined
@@ -40,7 +40,7 @@ let rolesFailure: Response | undefined
 let rolesResponse: Promise<Response> | undefined
 let usersFailure: Response | undefined
 let usersResponse: Promise<Response> | undefined
-let requests: { body: unknown; method: string; url: string }[]
+let requests: Array<{ body: unknown; method: string; url: string }>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
@@ -81,7 +81,7 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (/^\/api\/users\/[^/]+\/roles$/.test(url) && method === "PUT") {
 		if (assignFailure) return assignFailure
 		if (assignPending) return assignPending
-		const { roleIds } = parseJsonBody(init?.body) as { roleIds: string[] }
+		const { roleIds } = parseJsonBody(init?.body) as { roleIds: Array<string> }
 		return json({ roles: roles.filter(({ id }) => roleIds.includes(id)).map(({ id, name }) => ({ id, name })) })
 	}
 	if (/^\/api\/users\/[^/]+\/password$/.test(url) && method === "PATCH") {
@@ -124,7 +124,7 @@ function requestCount(url: string): number {
 	return requests.filter((request) => request.url === url && request.method === "GET").length
 }
 
-function buttonNames(scope: ParentNode): string[] {
+function buttonNames(scope: ParentNode): Array<string> {
 	return [...scope.querySelectorAll("button")].map((element) => element.textContent?.trim() ?? "")
 }
 
@@ -185,7 +185,7 @@ async function submitResetPassword(password: string, confirmation = password) {
 	await click(button(t("team.resetPassword"), dialog()))
 }
 
-async function submitInvitation(roleIds: string[]) {
+async function submitInvitation(roleIds: Array<string>) {
 	await click(button(t("auth.invitations.create"), dialog()))
 	expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({ roleIds })
 }

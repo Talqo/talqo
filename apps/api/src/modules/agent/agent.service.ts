@@ -50,21 +50,21 @@ export type Agent = {
 	name: string
 	systemPrompt: string
 	updatedAt: Date
-	wordBlacklist: string[]
+	wordBlacklist: Array<string>
 }
 
 export type AgentInput = {
 	name: string
 	systemPrompt: string
-	wordBlacklist: string[]
+	wordBlacklist: Array<string>
 }
 
 export function composeSystemPrompt(systemPrompt: string): string {
 	return `${PLATFORM_SYSTEM_PROMPT}\n${systemPrompt}`
 }
 
-function normalizeWordBlacklist(words: string[]): string[] {
-	const wordBlacklist: string[] = []
+function normalizeWordBlacklist(words: Array<string>): Array<string> {
+	const wordBlacklist: Array<string> = []
 	const seen = new Set<string>()
 	for (const raw of words) {
 		const word = raw.trim()
@@ -102,7 +102,9 @@ export function normalizeAgentInput(input: AgentInput): AgentInput {
 
 export async function listAgents(
 	actorId: string,
-): Promise<(Pick<Agent, "id" | "name" | "createdAt" | "updatedAt"> & { permissions: roles.AgentPermission[] })[]> {
+): Promise<
+	Array<Pick<Agent, "id" | "name" | "createdAt" | "updatedAt"> & { permissions: Array<roles.AgentPermission> }>
+> {
 	const access = await roles.agentPermissionsById(actorId)
 	const agents = await repo.findAll(access === "all" ? "all" : [...access.keys()])
 	return agents.map(({ id, name, createdAt, updatedAt }) => ({
@@ -118,12 +120,12 @@ export async function listAgentsForRole(
 	actorId: string,
 	roleId: string,
 ): Promise<
-	{
+	Array<{
 		id: string
 		name: string
-		permissions: roles.AgentPermission[]
-		rolePermissions: roles.AgentPermission[]
-	}[]
+		permissions: Array<roles.AgentPermission>
+		rolePermissions: Array<roles.AgentPermission>
+	}>
 > {
 	const [agents, roleGrants] = await Promise.all([listAgents(actorId), roles.listAgentGrantsOfRole(roleId)])
 	const grants = Map.groupBy(roleGrants, ({ agentId }) => agentId)

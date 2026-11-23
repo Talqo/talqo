@@ -97,7 +97,7 @@ describe("knowledge embeddings", () => {
 			const retried = await repository.claim(claimKey)
 			if (!retried) throw new Error("Expected a retried job")
 			await repository.complete(retried, claimKey, [{ text: "First section", embedding: [0.1, 0.2, 0.3] }])
-			const chunks = await sql<{ text: string; embedding: string }[]>`
+			const chunks = await sql<Array<{ text: string; embedding: string }>>`
 				SELECT c.text, c.embedding::text AS embedding FROM agent_file_chunk c
 				JOIN agent_file f ON f.id = c.file_id WHERE f.agent_id = ${owner.id}`
 			expect(chunks.map(({ text, embedding }) => ({ text, embedding }))).toEqual([
@@ -317,14 +317,14 @@ describe("agent knowledge files", () => {
 		await sql`UPDATE agent_file SET status = 'failed', error = 'provider-error' WHERE agent_id = ${agentId}`
 		const listed = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: cookie } })
 		expect(
-			((await listed.json()) as { files: { embeddingStatus: string; embeddingError: string | null }[] }).files[0],
+			((await listed.json()) as { files: Array<{ embeddingStatus: string; embeddingError: string | null }> }).files[0],
 		).toMatchObject({
 			embeddingStatus: "failed",
 			embeddingError: "provider-error",
 		})
 		expect((await app.request(retryUrl, { method: "POST", headers: { Cookie: cookie } })).status).toBe(204)
 		const queued = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: cookie } })
-		expect(((await queued.json()) as { files: { embeddingStatus: string }[] }).files[0]?.embeddingStatus).toBe(
+		expect(((await queued.json()) as { files: Array<{ embeddingStatus: string }> }).files[0]?.embeddingStatus).toBe(
 			"pending",
 		)
 	})
@@ -343,7 +343,7 @@ describe("agent knowledge files", () => {
 		const listed = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: cookie } })
 		expect(listed.status).toBe(200)
 		const listBody = (await listed.json()) as {
-			files: { name: string; sizeBytes: number; createdAt: string }[]
+			files: Array<{ name: string; sizeBytes: number; createdAt: string }>
 			maxSizeBytes: number
 			maxNameLength: number
 		}
@@ -358,7 +358,7 @@ describe("agent knowledge files", () => {
 		expect(renamed.status).toBe(200)
 		expect(((await renamed.json()) as { file: { name: string } }).file.name).toBe("renamed.md")
 		expect(
-			((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId}`) as { name: string }[]).map(
+			((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId}`) as Array<{ name: string }>).map(
 				({ name }) => name,
 			),
 		).toEqual(["renamed.md"])
@@ -369,7 +369,7 @@ describe("agent knowledge files", () => {
 		})
 		expect(removed.status).toBe(204)
 		const after = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: cookie } })
-		expect(((await after.json()) as { files: unknown[] }).files).toEqual([])
+		expect(((await after.json()) as { files: Array<unknown> }).files).toEqual([])
 		expect((await sql`SELECT id FROM agent_file WHERE agent_id = ${agentId}`).length).toBe(0)
 	})
 
@@ -479,7 +479,7 @@ describe("agent knowledge files", () => {
 		expect(response.status).toBe(200)
 		expect(((await response.json()) as { file: { name: string } }).file.name).toBe("a.md")
 		expect(await readFile(join(UPLOAD_ROOT, agentId, "a.md"), "utf8")).toBe("hello")
-		expect((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId}`) as { name: string }[]).toEqual([
+		expect((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId}`) as Array<{ name: string }>).toEqual([
 			{ name: "a.md" },
 		])
 	})
@@ -500,9 +500,9 @@ describe("agent knowledge files", () => {
 		expect(await readFile(join(UPLOAD_ROOT, agentId, "a.md"), "utf8")).toBe("hello")
 		expect(await readFile(join(UPLOAD_ROOT, agentId, "b.md"), "utf8")).toBe("second")
 		expect(
-			((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId} ORDER BY name`) as { name: string }[]).map(
-				({ name }) => name,
-			),
+			(
+				(await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId} ORDER BY name`) as Array<{ name: string }>
+			).map(({ name }) => name),
 		).toEqual(["a.md", "b.md"])
 	})
 

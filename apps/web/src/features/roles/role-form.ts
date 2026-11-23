@@ -19,7 +19,7 @@ export function toRoleFormValues({ name, permissions }: Role): RoleFormValues {
 
 // Each permission included by another selected one, mapped to the first selected permission that includes it.
 export function includedPermissions(
-	selected: readonly GrantablePermission[],
+	selected: ReadonlyArray<GrantablePermission>,
 	catalog: PermissionCatalog,
 ): Map<GrantablePermission, GrantablePermission> {
 	const included = new Map<GrantablePermission, GrantablePermission>()
@@ -35,19 +35,19 @@ export function includedPermissions(
 type PermissionHolder = Pick<Role, "permissions">
 
 // The API refuses changes involving access the operator lacks, so the UI only offers what they hold.
-export function holdsAll(heldPermissions: readonly string[], permissions: readonly string[]): boolean {
+export function holdsAll(heldPermissions: ReadonlyArray<string>, permissions: ReadonlyArray<string>): boolean {
 	return permissions.every((permission) => heldPermissions.includes(permission))
 }
 
-function managesRoles(roles: readonly PermissionHolder[]): boolean {
+function managesRoles(roles: ReadonlyArray<PermissionHolder>): boolean {
 	return roles.some(({ permissions }) => permissions.includes("roles:manage"))
 }
 
 // True when the operator's roles give role management before a change and not after it.
 export function losesRoleManagement(input: {
-	heldPermissions: readonly string[]
-	rolesAfter: readonly PermissionHolder[]
-	rolesBefore: readonly PermissionHolder[]
+	heldPermissions: ReadonlyArray<string>
+	rolesAfter: ReadonlyArray<PermissionHolder>
+	rolesBefore: ReadonlyArray<PermissionHolder>
 }): boolean {
 	if (input.heldPermissions.includes("admin")) return false
 	return managesRoles(input.rolesBefore) && !managesRoles(input.rolesAfter)

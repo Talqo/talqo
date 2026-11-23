@@ -12,7 +12,7 @@ const USER_ID = "33333333-3333-4333-8333-333333333333"
 const ROLE_ID = "44444444-4444-4444-8444-444444444444"
 
 function probe(write?: (event: WideEvent) => void) {
-	const logged: WideEvent[] = []
+	const logged: Array<WideEvent> = []
 	const work = Promise.withResolvers<void>()
 	const app = new OpenAPIHono()
 	app.use("*", createWideEvents(write ?? ((event) => logged.push(event))))
@@ -50,7 +50,7 @@ describe("wide events", () => {
 			"user.id": "operator",
 		})
 		expect(logged[0]?.duration_ms).toBeGreaterThanOrEqual(0)
-		expect(logged[0]?.duration_ms).toBeLessThan(1_000)
+		expect(logged[0]?.duration_ms).toBeLessThan(1000)
 		expect(Object.keys(logged[0] ?? {}).toSorted()).toEqual([
 			"agent.id",
 			"duration_ms",

@@ -297,10 +297,10 @@ function MemberRoleEditor({
 	user,
 }: {
 	currentUserId: string | undefined
-	held: readonly string[]
-	manageableRoleIds: readonly string[]
-	ownRoles: readonly Role[]
-	roles: readonly Role[] | undefined
+	held: ReadonlyArray<string>
+	manageableRoleIds: ReadonlyArray<string>
+	ownRoles: ReadonlyArray<Role>
+	roles: ReadonlyArray<Role> | undefined
 	rolesFailed: boolean
 	rolesLoading: boolean
 	user: TeamMember
@@ -342,12 +342,12 @@ function MemberCard({
 }: {
 	confirmed: boolean
 	currentUserId: string | undefined
-	held: readonly string[]
-	manageableRoleIds: readonly string[]
+	held: ReadonlyArray<string>
+	manageableRoleIds: ReadonlyArray<string>
 	onDeleted: () => void
 	onReset: (userId: string) => void
-	ownRoles: readonly Role[]
-	roles: readonly Role[] | undefined
+	ownRoles: ReadonlyArray<Role>
+	roles: ReadonlyArray<Role> | undefined
 	rolesFailed: boolean
 	rolesLoading: boolean
 	user: TeamMember
@@ -393,10 +393,10 @@ function MemberCard({
 }
 
 function ownRolesOf(
-	users: readonly TeamMember[],
+	users: ReadonlyArray<TeamMember>,
 	currentUserId: string | undefined,
-	roles: readonly Role[] | undefined,
-): Role[] {
+	roles: ReadonlyArray<Role> | undefined,
+): Array<Role> {
 	const ownRoleIds = new Set(users.find(({ id }) => id === currentUserId)?.roles.map(({ id }) => id))
 	return roles?.filter(({ id }) => ownRoleIds.has(id)) ?? []
 }
@@ -421,7 +421,7 @@ function TeamLoadError({ error, forbidden, onRetry }: { error: unknown; forbidde
 	return <ProblemAlert error={error} onRetry={onRetry} />
 }
 
-function TeamList({ held }: { held: readonly string[] }) {
+function TeamList({ held }: { held: ReadonlyArray<string> }) {
 	const queryClient = useQueryClient()
 	const session = useGetSession()
 	const usersQuery = useListUsers()
@@ -493,10 +493,10 @@ function TeamList({ held }: { held: readonly string[] }) {
 }
 
 function defaultInviteRoleIds(
-	roles: readonly Role[] | undefined,
-	manageableRoleIds: readonly string[],
-	held: readonly string[],
-): string[] {
+	roles: ReadonlyArray<Role> | undefined,
+	manageableRoleIds: ReadonlyArray<string>,
+	held: ReadonlyArray<string>,
+): Array<string> {
 	return (roles ?? [])
 		.filter(
 			(role) => role.id === DEFAULT_ROLE_ID && manageableRoleIds.includes(role.id) && holdsAll(held, role.permissions),
@@ -516,12 +516,12 @@ function InviteRolesField({
 }: {
 	disabled: boolean
 	error: Error | null
-	held: readonly string[]
-	manageableRoleIds: readonly string[]
-	onChange: (selected: string[]) => void
+	held: ReadonlyArray<string>
+	manageableRoleIds: ReadonlyArray<string>
+	onChange: (selected: Array<string>) => void
 	onRetry: () => void
-	roles: readonly Role[] | undefined
-	selected: readonly string[]
+	roles: ReadonlyArray<Role> | undefined
+	selected: ReadonlyArray<string>
 }) {
 	const { t } = useTranslation()
 	return (
@@ -607,12 +607,12 @@ function InviteResult({
 	)
 }
 
-function InviteMemberDialog({ held }: { held: readonly string[] }) {
+function InviteMemberDialog({ held }: { held: ReadonlyArray<string> }) {
 	const { t } = useTranslation()
 	const createInvitation = useCreateInvitation()
 	const canAssignRoles = held.includes("roles:manage")
 	const rolesQuery = useListRoles({ query: { enabled: canAssignRoles } })
-	const [selected, setSelected] = useState<string[]>([])
+	const [selected, setSelected] = useState<Array<string>>([])
 	const [open, setOpen] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [copied, setCopied] = useState(false)

@@ -20,7 +20,7 @@ import { Plus, ShieldCheck } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 type RolesQuery = {
-	data?: { data: { roles: Role[] } }
+	data?: { data: { roles: Array<Role> } }
 	error: unknown
 	isError: boolean
 	isPending: boolean
@@ -48,7 +48,7 @@ function CreateRoleButton({ onCreate, pending }: { onCreate: () => void; pending
 	)
 }
 
-function RoleCards({ roles }: { roles: readonly Role[] }) {
+function RoleCards({ roles }: { roles: ReadonlyArray<Role> }) {
 	const { t } = useTranslation()
 	return (
 		<div className="space-y-3">

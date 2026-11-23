@@ -34,7 +34,7 @@ export const mcpServer = pgTable(
 		headers: jsonb("headers").$type<CredentialSecretMap>(),
 		command: text("command"),
 		args: jsonb("args")
-			.$type<string[]>()
+			.$type<Array<string>>()
 			.notNull()
 			.default(sql`'[]'::jsonb`),
 		env: jsonb("env")
@@ -42,7 +42,7 @@ export const mcpServer = pgTable(
 			.notNull()
 			.default(sql`'{}'::jsonb`),
 		tools: jsonb("tools")
-			.$type<McpToolSnapshot[]>()
+			.$type<Array<McpToolSnapshot>>()
 			.notNull()
 			.default(sql`'[]'::jsonb`),
 		isDisabled: boolean("is_disabled").notNull().default(false),

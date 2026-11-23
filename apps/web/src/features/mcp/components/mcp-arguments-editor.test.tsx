@@ -13,9 +13,9 @@ const { t } = await import("i18next")
 let host: HTMLDivElement
 let root: Root
 let harness: ReturnType<typeof createTestHarness>
-let emitted: ArgumentRow[][]
+let emitted: Array<Array<ArgumentRow>>
 
-function ControlledEditor({ initialArgs }: { initialArgs: ArgumentRow[] }) {
+function ControlledEditor({ initialArgs }: { initialArgs: Array<ArgumentRow> }) {
 	const [args, setArgs] = useState(initialArgs)
 	return (
 		<McpArgumentsEditor
@@ -28,7 +28,7 @@ function ControlledEditor({ initialArgs }: { initialArgs: ArgumentRow[] }) {
 	)
 }
 
-async function renderEditor(initialArgs: ArgumentRow[]) {
+async function renderEditor(initialArgs: Array<ArgumentRow>) {
 	emitted = []
 	await act(async () => root.render(<ControlledEditor initialArgs={initialArgs} />))
 }
@@ -39,7 +39,7 @@ function argumentInput(index: number): HTMLInputElement {
 	return input
 }
 
-function argumentValues(): string[] {
+function argumentValues(): Array<string> {
 	return [...host.querySelectorAll<HTMLInputElement>("input")].map((input) => input.value)
 }
 

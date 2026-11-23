@@ -13,13 +13,13 @@ type Behavior = {
 	connectError?: Error
 	closeCalls: number
 	execute?: (toolName: string) => unknown
-	listCalls: { cursor?: string }[]
+	listCalls: Array<{ cursor?: string }>
 	listError?: Error
-	pages?: ListToolsResult[]
+	pages?: Array<ListToolsResult>
 }
 
 const behaviors = new Map<string, Behavior>()
-const connections: MCPClientConfig[] = []
+const connections: Array<MCPClientConfig> = []
 await mock.module("@ai-sdk/mcp", () => ({
 	createMCPClient: async (config: MCPClientConfig) => {
 		connections.push(config)
@@ -33,7 +33,7 @@ await mock.module("@ai-sdk/mcp", () => ({
 				const index = options?.params?.cursor ? Number(options.params.cursor) : 0
 				return behavior.pages?.[index] ?? { tools: [] }
 			},
-			toolsFromDefinitions: ({ tools }: { tools: ListedTool[] }) =>
+			toolsFromDefinitions: ({ tools }: { tools: Array<ListedTool> }) =>
 				Object.fromEntries(
 					tools.map((tool) => [
 						tool.name,
@@ -156,7 +156,7 @@ describe("truncateResult", () => {
 				{ type: "text", text: "seen" },
 				{ type: "image", data: "x".repeat(20_000), mimeType: "image/png" },
 			],
-		}) as { content: unknown[] }
+		}) as { content: Array<unknown> }
 		expect(out.content).toHaveLength(2)
 		expect(out.content[0]).toEqual({ type: "text", text: "seen" })
 		expect(out.content[1]).toEqual({ type: "text", text: "…[truncated, the server returned more]" })
@@ -164,14 +164,14 @@ describe("truncateResult", () => {
 
 	it("marks truncation once across several over-budget text parts", () => {
 		// Every part shares one prod budget (MAX_TOOL_RESULT_CHARACTERS=8000 in mcp.types.ts).
-		const overBudget = MAX_TOOL_RESULT_CHARACTERS + 1_000
+		const overBudget = MAX_TOOL_RESULT_CHARACTERS + 1000
 		const out = truncateResult({
 			content: [
 				{ type: "text", text: "a".repeat(overBudget) },
 				{ type: "text", text: "b".repeat(overBudget) },
 			],
 		}) as {
-			content: { text: string }[]
+			content: Array<{ text: string }>
 		}
 		const markers = out.content.filter((part) => part.text.includes("truncated")).length
 		expect(markers).toBe(1)
@@ -206,7 +206,7 @@ describe("truncateResult", () => {
 				{ type: "text", text: first },
 				{ type: "text", text: "b" },
 			],
-		}) as { content: { text: string }[] }
+		}) as { content: Array<{ text: string }> }
 
 		expect(out.content).toHaveLength(2)
 		expect(out.content[0]?.text).toBe(first)
@@ -216,7 +216,7 @@ describe("truncateResult", () => {
 	it("charges non-text parts against the same budget", () => {
 		const image = { type: "image", data: "x".repeat(100), mimeType: "image/png" }
 		const text = "a".repeat(MAX_TOOL_RESULT_CHARACTERS - 10)
-		const out = truncateResult({ content: [image, { type: "text", text }] }) as { content: { text: string }[] }
+		const out = truncateResult({ content: [image, { type: "text", text }] }) as { content: Array<{ text: string }> }
 
 		expect(out.content[0] as unknown).toEqual(image)
 		expect(out.content[1]?.text).toContain("truncated")
@@ -272,7 +272,7 @@ describe("openTools", () => {
 				},
 			],
 		})
-		const degraded: string[] = []
+		const degraded: Array<string> = []
 		const row = serverRow({
 			name: "Shopify",
 			url,
@@ -308,7 +308,7 @@ describe("openTools", () => {
 		const second = "https://second.test/mcp"
 		behaviorFor(first, { pages: [{ tools: [{ name: "lookup", inputSchema: {} }] }] })
 		behaviorFor(second, { pages: [{ tools: [{ name: "lookup", inputSchema: {} }] }] })
-		const degraded: { name: string; error: unknown }[] = []
+		const degraded: Array<{ name: string; error: unknown }> = []
 
 		const result = await openTools(
 			[
@@ -332,7 +332,7 @@ describe("openTools", () => {
 		const working = "https://working.test/mcp"
 		behaviorFor(broken, { connectError: new Error("connection refused") })
 		behaviorFor(working, { pages: [{ tools: [{ name: "lookup", inputSchema: {} }] }] })
-		const degraded: string[] = []
+		const degraded: Array<string> = []
 
 		const result = await openTools(
 			[
@@ -378,7 +378,7 @@ describe("openTools", () => {
 	it("decrypts stored headers for the header purpose and never follows redirects", async () => {
 		const url = "https://shopify.test/mcp"
 		behaviorFor(url, { pages: [{ tools: [{ name: "lookup", inputSchema: {} }] }] })
-		const purposes: unknown[] = []
+		const purposes: Array<unknown> = []
 		const headerVault = {
 			decrypt: (envelope: CredentialEnvelope, context: unknown) => {
 				purposes.push(context)
@@ -441,7 +441,7 @@ describe("openTools", () => {
 		const { env } = await import("@/config/env.ts")
 		const descriptor = Object.getOwnPropertyDescriptor(env, "TALQO_MCP_ALLOW_STDIO")
 		Object.defineProperty(env, "TALQO_MCP_ALLOW_STDIO", { configurable: true, value: false })
-		const degraded: string[] = []
+		const degraded: Array<string> = []
 		try {
 			const result = await openTools([stdioRow()], {
 				...options,

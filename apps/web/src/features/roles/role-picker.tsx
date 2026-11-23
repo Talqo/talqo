@@ -10,11 +10,11 @@ import { holdsAll } from "./role-form"
 
 type RolePickerProps = {
 	disabled?: boolean
-	heldPermissions: readonly string[]
-	manageableRoleIds: readonly string[]
-	onChange: (selected: string[]) => void
-	roles: readonly Role[]
-	selected: readonly string[]
+	heldPermissions: ReadonlyArray<string>
+	manageableRoleIds: ReadonlyArray<string>
+	onChange: (selected: Array<string>) => void
+	roles: ReadonlyArray<Role>
+	selected: ReadonlyArray<string>
 }
 
 export function RolePicker({

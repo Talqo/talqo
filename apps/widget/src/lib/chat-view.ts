@@ -3,8 +3,8 @@ import type { ActiveTool, ChatError, ChatMessage, ChatSnapshot } from "@talqo/sd
 export type ChatAnnouncement = { id: number; text: string }
 
 export type ChatView = {
-	messages: readonly ChatMessage[]
-	activeTools: readonly ActiveTool[]
+	messages: ReadonlyArray<ChatMessage>
+	activeTools: ReadonlyArray<ActiveTool>
 	notices: ChatSnapshot["notices"]
 	activity: ChatSnapshot["activity"]
 	error: ChatError | undefined

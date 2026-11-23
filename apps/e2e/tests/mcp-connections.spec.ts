@@ -115,7 +115,7 @@ test("a stored header survives an edit that leaves its value blank", async ({ pa
 	await expect(page.getByText(name)).toBeVisible()
 
 	const servers = (await (await page.request.get(`/api/agents/${agentId}/mcp-servers`)).json()) as {
-		servers: { headers: { hasValue: boolean; name: string }[]; id: string; name: string }[]
+		servers: Array<{ headers: Array<{ hasValue: boolean; name: string }>; id: string; name: string }>
 	}
 	const server = servers.servers.find(({ name: candidate }) => candidate === name)
 	expect(server?.headers).toEqual([{ hasValue: true, name: "X-E2E-Key" }])
@@ -133,7 +133,7 @@ test("a stored header survives an edit that leaves its value blank", async ({ pa
 	await expect(page.getByText(name)).toBeVisible()
 
 	const reread = (await (await page.request.get(`/api/agents/${agentId}/mcp-servers`)).json()) as {
-		servers: { headers: { hasValue: boolean; name: string }[]; id: string; name: string }[]
+		servers: Array<{ headers: Array<{ hasValue: boolean; name: string }>; id: string; name: string }>
 	}
 	expect(reread.servers.find(({ name: candidate }) => candidate === name)?.headers).toEqual([
 		{ hasValue: true, name: "X-E2E-Key" },

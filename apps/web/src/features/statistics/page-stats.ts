@@ -17,11 +17,11 @@ export type PageStats = {
 	conversations: number
 	messages: number
 	tokens: number
-	daily: DailyStatsPoint[]
+	daily: Array<DailyStatsPoint>
 }
 
 // The wire keeps input/output tokens separate; the page tracks one token metric.
-export function toAgentDailyPoints(overview: StatsOverview): AgentDailyPoint[] {
+export function toAgentDailyPoints(overview: StatsOverview): Array<AgentDailyPoint> {
 	return overview.agentDaily.map((point) => ({
 		agentId: point.agentId,
 		date: point.date,
@@ -33,7 +33,7 @@ export function toAgentDailyPoints(overview: StatsOverview): AgentDailyPoint[] {
 
 // Re-aggregates the sparse per-agent series client-side over the selected agents,
 // zero-filled per axis date so empty days stay on the chart.
-export function toSelectedStats(overview: StatsOverview, selectedIds: string[]): PageStats {
+export function toSelectedStats(overview: StatsOverview, selectedIds: Array<string>): PageStats {
 	const selected = new Set(selectedIds)
 	const byDate = new Map<string, DailyStatsPoint>(
 		overview.daily.map((day) => [day.date, { date: day.date, conversations: 0, messages: 0, tokens: 0 }]),

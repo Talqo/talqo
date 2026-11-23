@@ -34,17 +34,17 @@ type StatsAgentDailyPoint = StatsDailyPoint & {
 }
 
 type StatsDailySeries = {
-	daily: StatsDailyPoint[]
+	daily: Array<StatsDailyPoint>
 	dayCount: number
 	totals: StatsOverview["totals"]
 }
 
 export type StatsOverview = {
-	active: StatsActiveConversations[]
+	active: Array<StatsActiveConversations>
 	activeWindowMinutes: number
-	agentDaily: StatsAgentDailyPoint[]
-	agents: StatsAgentTotals[]
-	daily: StatsDailyPoint[]
+	agentDaily: Array<StatsAgentDailyPoint>
+	agents: Array<StatsAgentTotals>
+	daily: Array<StatsDailyPoint>
 	days: number
 	totals: {
 		conversations: number
@@ -78,7 +78,7 @@ export async function getStatsOverview(query: StatsOverviewQuery, actorId: strin
 		conversationService.getActiveConversationCountsByAgent(activeCutoff, scope),
 		agentService.listAgents(actorId),
 	])
-	const active: StatsActiveConversations[] = activeCounts.map((row) => ({
+	const active: Array<StatsActiveConversations> = activeCounts.map((row) => ({
 		agentId: row.agentId,
 		conversations: row.count,
 	}))
@@ -103,7 +103,7 @@ export async function getStatsOverview(query: StatsOverviewQuery, actorId: strin
 		point.inputTokens += row.inputTokens
 		point.outputTokens += row.outputTokens
 	}
-	const agentDaily: StatsAgentDailyPoint[] = []
+	const agentDaily: Array<StatsAgentDailyPoint> = []
 	for (const byDay of byAgentDay.values()) {
 		agentDaily.push(...byDay.values())
 	}
@@ -125,10 +125,10 @@ export async function getStatsOverview(query: StatsOverviewQuery, actorId: strin
 
 function summarizeAgents(
 	byAgentDay: Map<string, Map<string, StatsAgentDailyPoint>>,
-	agents: { id: string; name: string }[],
-): StatsAgentTotals[] {
+	agents: Array<{ id: string; name: string }>,
+): Array<StatsAgentTotals> {
 	const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]))
-	const agentTotals: StatsAgentTotals[] = []
+	const agentTotals: Array<StatsAgentTotals> = []
 	for (const [agentId, byDay] of byAgentDay) {
 		const totalsRow: StatsAgentTotals = {
 			agentId,
@@ -151,7 +151,7 @@ function summarizeAgents(
 }
 
 // "all" spans recorded history, or today when no activity exists.
-function firstActivityDate(agentDaily: StatsAgentDailyPoint[]): Date {
+function firstActivityDate(agentDaily: Array<StatsAgentDailyPoint>): Date {
 	let earliest = utcDateKey(new Date())
 	for (const point of agentDaily) {
 		if (point.date < earliest) earliest = point.date
@@ -159,7 +159,7 @@ function firstActivityDate(agentDaily: StatsAgentDailyPoint[]): Date {
 	return new Date(`${earliest}T00:00:00Z`)
 }
 
-function dailySeries(agentDaily: StatsAgentDailyPoint[], axisSince: Date): StatsDailySeries {
+function dailySeries(agentDaily: Array<StatsAgentDailyPoint>, axisSince: Date): StatsDailySeries {
 	const axisTotals = new Map<string, StatsDailyPoint>()
 	for (const point of agentDaily) {
 		const day = axisTotals.get(point.date) ?? {
@@ -179,7 +179,7 @@ function dailySeries(agentDaily: StatsAgentDailyPoint[], axisSince: Date): Stats
 	today.setUTCHours(0, 0, 0, 0)
 	const dayCount = Math.round((today.getTime() - axisSince.getTime()) / MILLISECONDS_PER_DAY) + 1
 
-	const daily: StatsDailyPoint[] = []
+	const daily: Array<StatsDailyPoint> = []
 	const totals = {
 		conversations: 0,
 		messages: 0,

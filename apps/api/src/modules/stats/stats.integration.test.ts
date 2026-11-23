@@ -259,13 +259,13 @@ describe("stats overview aggregation", () => {
 
 		const allowed = await app.request("/api/stats?days=7", { headers: { Cookie: adminCookie } })
 		expect(allowed.status).toBe(200)
-		const body = (await allowed.json()) as { overview: { days: number; daily: unknown[] } }
+		const body = (await allowed.json()) as { overview: { days: number; daily: Array<unknown> } }
 		expect(body.overview.days).toBe(7)
 		expect(body.overview.daily).toHaveLength(7)
 
 		const bare = await app.request("/api/stats", { headers: { Cookie: adminCookie } })
 		expect(bare.status).toBe(200)
-		const bareBody = (await bare.json()) as { overview: { days: number; daily: unknown[] } }
+		const bareBody = (await bare.json()) as { overview: { days: number; daily: Array<unknown> } }
 		expect(bareBody.overview.days).toBe(30)
 		expect(bareBody.overview.daily).toHaveLength(30)
 

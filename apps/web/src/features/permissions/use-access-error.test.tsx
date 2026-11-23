@@ -27,9 +27,9 @@ function failure(status: number): Error & { status: number } {
 	return Object.assign(new Error("request failed"), { status })
 }
 
-type ErrorUpdate = (errors: unknown[]) => void
+type ErrorUpdate = (errors: Array<unknown>) => void
 
-function AccessErrorProbe({ errors }: { errors: unknown[] }) {
+function AccessErrorProbe({ errors }: { errors: Array<unknown> }) {
 	return <output>{String(useAccessError(...errors))}</output>
 }
 
@@ -37,7 +37,7 @@ function AccessErrorHarness({
 	initialErrors,
 	registerUpdate,
 }: {
-	initialErrors: unknown[]
+	initialErrors: Array<unknown>
 	registerUpdate: (update: ErrorUpdate) => void
 }) {
 	const [errors, setErrors] = useState(initialErrors)
@@ -53,7 +53,7 @@ async function settle() {
 	})
 }
 
-async function renderAccessError(...errors: unknown[]) {
+async function renderAccessError(...errors: Array<unknown>) {
 	const client = new QueryClient()
 	let updateProbe: ErrorUpdate | undefined
 	function registerUpdate(update: ErrorUpdate) {
@@ -89,7 +89,7 @@ async function renderAccessError(...errors: unknown[]) {
 	})
 	await settle()
 	await settle()
-	async function updateErrors(nextErrors: unknown[]) {
+	async function updateErrors(nextErrors: Array<unknown>) {
 		if (!updateProbe) throw new Error("access error harness did not initialize")
 		await act(async () => updateProbe?.(nextErrors))
 		await settle()
@@ -98,7 +98,7 @@ async function renderAccessError(...errors: unknown[]) {
 	return { queryClient: client, router, updateErrors }
 }
 
-function invalidationStates(client: NonNullable<typeof queryClient>): boolean[] {
+function invalidationStates(client: NonNullable<typeof queryClient>): Array<boolean> {
 	return CACHED_QUERY_KEYS.map((queryKey) => client.getQueryState(queryKey)?.isInvalidated ?? false)
 }
 

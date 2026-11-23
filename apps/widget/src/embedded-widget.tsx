@@ -86,8 +86,8 @@ function closeOnBackdropPointerDown(event: ReactPointerEvent<HTMLDialogElement>,
 	if (outside) onClose()
 }
 
-const EMPTY_MESSAGES: readonly ChatMessage[] = []
-const EMPTY_TOOLS: readonly ActiveTool[] = []
+const EMPTY_MESSAGES: ReadonlyArray<ChatMessage> = []
+const EMPTY_TOOLS: ReadonlyArray<ActiveTool> = []
 const EMPTY_NOTICES: ChatSnapshot["notices"] = []
 const EMPTY_ACTIONS: ChatSnapshot["actions"] = []
 

@@ -17,8 +17,8 @@ export function BlacklistTermsEditor({
 	disabled = false,
 	id,
 }: {
-	value: string[]
-	onChange: (terms: string[]) => void
+	value: Array<string>
+	onChange: (terms: Array<string>) => void
 	disabled?: boolean
 	id: string
 }) {

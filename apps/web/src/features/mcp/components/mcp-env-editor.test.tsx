@@ -13,7 +13,7 @@ const { t } = await import("i18next")
 let host: HTMLDivElement
 let root: Root
 let harness: ReturnType<typeof createTestHarness>
-let emitted: EnvVariable[][]
+let emitted: Array<Array<EnvVariable>>
 
 function ControlledEditor({
 	initialEnv,
@@ -21,7 +21,7 @@ function ControlledEditor({
 	invalidRowId,
 	errorId,
 }: {
-	initialEnv: EnvVariable[]
+	initialEnv: Array<EnvVariable>
 	kind?: "env" | "headers"
 	invalidRowId?: string
 	errorId?: string
@@ -41,7 +41,7 @@ function ControlledEditor({
 	)
 }
 
-function envRows(): EnvVariable[] {
+function envRows(): Array<EnvVariable> {
 	return [
 		{ id: "first", name: "API_URL", value: "https://example.test" },
 		{ id: "second", name: "API_KEY", value: "old-secret" },
@@ -50,7 +50,7 @@ function envRows(): EnvVariable[] {
 }
 
 async function renderEditor(
-	env: EnvVariable[],
+	env: Array<EnvVariable>,
 	options: { kind?: "env" | "headers"; invalidRowId?: string; errorId?: string } = {},
 ) {
 	emitted = []
@@ -65,7 +65,7 @@ async function renderEditor(
 	)
 }
 
-function inputs(label: string): HTMLInputElement[] {
+function inputs(label: string): Array<HTMLInputElement> {
 	return [...host.querySelectorAll<HTMLInputElement>(`input[aria-label="${label}"]`)]
 }
 
@@ -75,7 +75,7 @@ function input(index: number, label: string): HTMLInputElement {
 	return found
 }
 
-function inputValues(label: string): string[] {
+function inputValues(label: string): Array<string> {
 	return inputs(label).map((field) => field.value)
 }
 

@@ -4,9 +4,9 @@ export const BLACKLIST_TERM_LIMIT = 100
 export const BLACKLIST_TERM_MAX_LENGTH = 100
 
 export type AddTermResult =
-	{ ok: true; term: string; terms: string[] } | { ok: false; reason: "duplicate" | "empty" | "limit" | "tooLong" }
+	{ ok: true; term: string; terms: Array<string> } | { ok: false; reason: "duplicate" | "empty" | "limit" | "tooLong" }
 
-export function addBlacklistTerm(terms: string[], input: string): AddTermResult {
+export function addBlacklistTerm(terms: Array<string>, input: string): AddTermResult {
 	const term = input.trim()
 	if (term.length === 0) return { ok: false, reason: "empty" }
 	if (terms.some((existing) => existing.toLowerCase() === term.toLowerCase())) {
@@ -17,7 +17,7 @@ export function addBlacklistTerm(terms: string[], input: string): AddTermResult 
 	return { ok: true, term, terms: [...terms, term] }
 }
 
-export function removeBlacklistTerm(terms: string[], term: string): string[] {
+export function removeBlacklistTerm(terms: Array<string>, term: string): Array<string> {
 	const target = term.toLowerCase()
 	return terms.filter((existing) => existing.toLowerCase() !== target)
 }

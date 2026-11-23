@@ -16,10 +16,10 @@ const { t } = await import("i18next")
 
 let host: HTMLDivElement
 let root: Root
-let emitted: string[][]
+let emitted: Array<Array<string>>
 let submits: number
 
-function Editor({ initialTerms, disabled = false }: { initialTerms: string[]; disabled?: boolean }) {
+function Editor({ initialTerms, disabled = false }: { initialTerms: Array<string>; disabled?: boolean }) {
 	const [terms, setTerms] = useState(initialTerms)
 	return (
 		<form
@@ -41,7 +41,7 @@ function Editor({ initialTerms, disabled = false }: { initialTerms: string[]; di
 	)
 }
 
-async function renderEditor(terms: string[], disabled = false) {
+async function renderEditor(terms: Array<string>, disabled = false) {
 	emitted = []
 	submits = 0
 	await act(async () => root.render(<Editor key={terms.join("|")} initialTerms={terms} disabled={disabled} />))

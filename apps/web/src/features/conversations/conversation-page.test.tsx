@@ -104,7 +104,9 @@ describe("ConversationPage", () => {
 	})
 
 	test("offers a retry when the transcript request fails without a problem body", async () => {
-		transcript = async () => Promise.reject(new Error("offline"))
+		transcript = async () => {
+			throw new Error("offline")
+		}
 
 		await renderPage()
 

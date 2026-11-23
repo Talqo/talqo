@@ -87,7 +87,7 @@ describe("ColorField", () => {
 	})
 
 	test("falls back to black in the native picker and reports native changes", async () => {
-		const changes: string[] = []
+		const changes: Array<string> = []
 		await renderField("#12", "#ffffff", (value) => changes.push(value))
 		const picker = host.querySelector<HTMLInputElement>('input[type="color"]')
 		if (!picker) throw new Error("Native color picker not rendered")

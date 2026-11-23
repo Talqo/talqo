@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 const { TeamRolesSwitcher } = await import("./team-roles-switcher")
 const { createMemoryHistory, createRootRoute, createRouter } = await import("@tanstack/react-router")
 
-let permissions: string[]
+let permissions: Array<string>
 let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root

@@ -87,12 +87,12 @@ function PermissionRow({
 	locked: boolean
 	notHeld: boolean
 	onToggle: (permission: GrantablePermission) => void
-	selected: readonly GrantablePermission[]
+	selected: ReadonlyArray<GrantablePermission>
 }) {
 	const { t } = useTranslation()
 	const { permission } = entry
 	const copy = PERMISSION_COPY[permission]
-	const id = `${idPrefix}-${permission.replace(/[:_]/g, "-")}`
+	const id = `${idPrefix}-${permission.replaceAll(/[:_]/g, "-")}`
 	const hint = includedBy
 		? t("roles.includedWith", { permission: PERMISSION_COPY[includedBy].label(t) })
 		: notHeld
@@ -162,10 +162,10 @@ export function UpdateRoleForm({
 }: {
 	catalog: PermissionCatalog
 	disabled: boolean
-	heldPermissions: readonly string[]
+	heldPermissions: ReadonlyArray<string>
 	onDirtyChange: (dirty: boolean) => void
 	onSavingChange: (saving: boolean) => void
-	ownRoles: readonly Role[]
+	ownRoles: ReadonlyArray<Role>
 	role: Role
 }) {
 	const { t } = useTranslation()

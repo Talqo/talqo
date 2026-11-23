@@ -34,7 +34,7 @@ const noopAction = async () => {}
 function fakeClient(initial: ChatSnapshot = READY_SNAPSHOT) {
 	let snapshot = initial
 	const listeners = new Set<() => void>()
-	const calls = { cancel: 0, dispose: 0, initialize: 0, newChat: 0, retry: 0, sends: [] as string[] }
+	const calls = { cancel: 0, dispose: 0, initialize: 0, newChat: 0, retry: 0, sends: [] as Array<string> }
 	let initialize = noopAction
 	let sendMessage: (text: string) => Promise<void> = noopAction
 	let cancelResponse = noopAction
@@ -540,7 +540,7 @@ describe("ConnectedEmbeddedWidget", () => {
 			["provider-error", "response could not be completed"],
 			["chat-conversation-too-long", "conversation is full"],
 			["transport-error", "connection to chat failed"],
-		] as const satisfies readonly (readonly [ChatErrorCode, string])[]
+		] as const satisfies ReadonlyArray<readonly [ChatErrorCode, string]>
 		const store = fakeClient()
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()

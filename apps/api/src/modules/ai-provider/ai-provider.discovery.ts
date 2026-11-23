@@ -67,9 +67,9 @@ function assertDiscoveryStatus(response: Response): void {
 	if (!response.ok) throw new ModelDiscoveryError("provider-error", "Provider model discovery failed")
 }
 
-async function readBoundedBody(body: ReadableStream<Uint8Array>): Promise<Uint8Array[]> {
+async function readBoundedBody(body: ReadableStream<Uint8Array>): Promise<Array<Uint8Array>> {
 	let bytes = 0
-	const chunks: Uint8Array[] = []
+	const chunks: Array<Uint8Array> = []
 	const reader = body.getReader()
 	while (true) {
 		const { done, value } = await reader.read()
@@ -84,7 +84,7 @@ async function readBoundedBody(body: ReadableStream<Uint8Array>): Promise<Uint8A
 	return chunks
 }
 
-function parseResponseBody(chunks: Uint8Array[]): unknown {
+function parseResponseBody(chunks: Array<Uint8Array>): unknown {
 	try {
 		return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown
 	} catch {
@@ -164,7 +164,7 @@ function discoveryHeaders(providerId: AiProviderId, apiKey: string): Record<stri
 		: { Authorization: `Bearer ${apiKey}` }
 }
 
-async function discoverGoogleModels(apiKey: string, fetcher: ModelDiscoveryFetch): Promise<string[]> {
+async function discoverGoogleModels(apiKey: string, fetcher: ModelDiscoveryFetch): Promise<Array<string>> {
 	const response = await fetchJson(
 		"https://generativelanguage.googleapis.com/v1beta/models",
 		{ "x-goog-api-key": apiKey },
@@ -173,7 +173,10 @@ async function discoverGoogleModels(apiKey: string, fetcher: ModelDiscoveryFetch
 	return googleResponseSchema.parse(response).models.map(({ name }) => name.replace(/^models\//, ""))
 }
 
-export async function discoverModels(input: DiscoveryRequest, fetcher: ModelDiscoveryFetch = fetch): Promise<string[]> {
+export async function discoverModels(
+	input: DiscoveryRequest,
+	fetcher: ModelDiscoveryFetch = fetch,
+): Promise<Array<string>> {
 	assertDiscoverySupported(input)
 	const apiKey = requireApiKey(input)
 	if (input.providerId === "google") return discoverGoogleModels(apiKey, fetcher)

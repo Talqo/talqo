@@ -4,11 +4,10 @@ import { Hono } from "hono"
 import { hasMatchedRoute, matchedRoutePath } from "./route-match.ts"
 
 function probe() {
-	const seen: { matched: boolean; path: string | null }[] = []
+	const seen: Array<{ matched: boolean; path: string | null }> = []
 	const app = new Hono()
 	app.use("*", async (context, next) => {
 		await next()
-		// oxlint-disable-next-line typescript/no-unsafe-argument -- Hono's middleware context input is `any` by design
 		seen.push({ matched: hasMatchedRoute(context), path: matchedRoutePath(context) })
 	})
 	app.get("/known/:id", (context) => context.text("ok"))

@@ -37,7 +37,7 @@ function requestDetails(input: RequestInfo | URL, init?: RequestInit): RecordedR
 }
 
 export function recordRequest(
-	requests: RecordedRequest[],
+	requests: Array<RecordedRequest>,
 	input: RequestInfo | URL,
 	init?: RequestInit,
 ): RecordedRequest {

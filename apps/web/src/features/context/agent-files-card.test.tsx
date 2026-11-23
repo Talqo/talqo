@@ -25,14 +25,14 @@ const FILE: AgentFile = {
 type PendingUpload = ReturnType<typeof Promise.withResolvers<Response>> & { file: File }
 type FileOperation = { url: string; method: string; body: unknown }
 
-let files: AgentFile[]
-let allowedExtensions: string[]
+let files: Array<AgentFile>
+let allowedExtensions: Array<string>
 let fileListRequests: number
-let fileListFailures: Response[]
+let fileListFailures: Array<Response>
 let fileListResponses: Array<Response | Promise<Response>>
-let fileOperations: FileOperation[]
+let fileOperations: Array<FileOperation>
 let fileOperationResponses: Array<Response | Promise<Response>>
-let uploads: PendingUpload[]
+let uploads: Array<PendingUpload>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
@@ -90,7 +90,7 @@ async function renderCard(canManage = false) {
 	await settle()
 }
 
-async function selectFiles(selected: File[]): Promise<HTMLInputElement> {
+async function selectFiles(selected: Array<File>): Promise<HTMLInputElement> {
 	const input = host.querySelector<HTMLInputElement>("#agent-file-input")
 	if (!input) throw new Error("file input not rendered")
 	const transfer = new DataTransfer()
@@ -222,11 +222,11 @@ describe("AgentFilesCard for a managing operator", () => {
 		const ready: AgentFile = { ...FILE, name: "ready.md", embeddingStatus: "ready", embeddingError: null }
 		files = [ready, { ...FILE, name: "pending.md", embeddingStatus: "pending", embeddingError: null }]
 		await renderCard(true)
-		expect(currentRefetchInterval()).toBe(3_000)
+		expect(currentRefetchInterval()).toBe(3000)
 
 		files = [ready, { ...FILE, name: "processing.md", embeddingStatus: "processing", embeddingError: null }]
 		await act(() => queryClient.refetchQueries({ queryKey: [FILES_URL] }))
-		expect(currentRefetchInterval()).toBe(3_000)
+		expect(currentRefetchInterval()).toBe(3000)
 
 		files = [ready, FILE]
 		await act(() => queryClient.refetchQueries({ queryKey: [FILES_URL] }))
@@ -361,7 +361,7 @@ describe("AgentFilesCard for a managing operator", () => {
 
 	test("downloads a special file name under its original name and releases the object URL", async () => {
 		files = [{ ...FILE, name: SPECIAL_FILE_NAME }]
-		const downloaded: { name: string; url: string }[] = []
+		const downloaded: Array<{ name: string; url: string }> = []
 		const createObjectURL = spyOn(URL, "createObjectURL").mockReturnValue("blob:agent-file")
 		const revokeObjectURL = spyOn(URL, "revokeObjectURL").mockImplementation(() => {})
 		spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {

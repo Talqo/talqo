@@ -49,7 +49,7 @@ import { useTranslation } from "react-i18next"
 
 // eslint-disable-next-line no-magic-numbers
 const BYTES_PER_MB = 1024 * 1024
-const EMBEDDING_REFRESH_MS = 3_000
+const EMBEDDING_REFRESH_MS = 3000
 
 // The generated client interpolates path params unencoded; names may legally contain "#", "?", or "%".
 function pathName(name: string): string {
@@ -99,7 +99,7 @@ function EmbeddingStatusLine({ file, t }: { file: AgentFile; t: (key: string) =>
 	)
 }
 
-function hasUnfinishedFiles(files: AgentFile[] | undefined): boolean {
+function hasUnfinishedFiles(files: Array<AgentFile> | undefined): boolean {
 	return files?.some((file) => file.embeddingStatus === "pending" || file.embeddingStatus === "processing") ?? false
 }
 
@@ -316,7 +316,7 @@ function AgentFilesDropzone({
 	onDragChange: (dragging: boolean) => void
 	onDrop: (event: React.DragEvent<HTMLButtonElement>) => void
 	onSelect: (files: FileList | null) => void
-	allowedExtensions: string[] | undefined
+	allowedExtensions: Array<string> | undefined
 	showHint: boolean
 }) {
 	const { t } = useTranslation()
@@ -500,7 +500,7 @@ function AgentFileRow(props: {
 }
 
 type FilesListProps = {
-	files: AgentFile[]
+	files: Array<AgentFile>
 	canManage: boolean
 	retryingName: string | null
 	downloadingName: string | null

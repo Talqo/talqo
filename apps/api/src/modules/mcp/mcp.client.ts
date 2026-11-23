@@ -25,7 +25,7 @@ const HASH_HEX_LENGTH = 6
 
 /** Provider tool-name grammars reject `shopify.get_product`, so names are sanitized and namespaced. */
 export function namespaceToolName(serverName: string, toolName: string): string {
-	const joined = `${serverName.replace(/[^a-zA-Z0-9_-]/g, "_")}__${toolName.replace(/[^a-zA-Z0-9_-]/g, "_")}`
+	const joined = `${serverName.replaceAll(/[^a-zA-Z0-9_-]/g, "_")}__${toolName.replaceAll(/[^a-zA-Z0-9_-]/g, "_")}`
 	if (joined.length <= TOOL_NAME_MAX_LENGTH) return joined
 	const hash = createHash("sha256").update(joined).digest("hex").slice(0, HASH_HEX_LENGTH)
 	return `${joined.slice(0, TOOL_NAME_MAX_LENGTH - hash.length - 1)}_${hash}`
@@ -130,7 +130,7 @@ export async function withListTimeout<T>(listing: Promise<T>, signal?: AbortSign
 /**
  * Connects, lists tools, closes. Returns an empty list when unreachable. No tools counts as not working.
  */
-export async function discoverTools(row: McpServerRow, options: McpConnectOptions): Promise<McpToolSnapshot[]> {
+export async function discoverTools(row: McpServerRow, options: McpConnectOptions): Promise<Array<McpToolSnapshot>> {
 	let client: MCPClient | undefined
 	try {
 		client = await connect(row, options)
@@ -158,12 +158,12 @@ export type OpenToolsResult = {
  * broken integration cannot cost the agent every tool it has.
  */
 export async function openTools(
-	rows: McpServerRow[],
+	rows: Array<McpServerRow>,
 	options: McpConnectOptions & { onDegraded: (row: McpServerRow, error: unknown) => void },
 ): Promise<OpenToolsResult> {
 	const tools: ToolSet = {}
 	const names = new Map<string, { serverName: string; toolName: string }>()
-	const clients: MCPClient[] = []
+	const clients: Array<MCPClient> = []
 	await Promise.all(
 		rows.map(async (row) => {
 			const enabled = new Set(row.tools.filter((tool) => tool.enabled).map((tool) => tool.name))
@@ -224,7 +224,7 @@ function isTextPart(part: unknown): part is { type: "text"; text: string } {
 class ToolResultBudget {
 	remaining = MAX_TOOL_RESULT_CHARACTERS
 	marked = false
-	content: unknown[] = []
+	content: Array<unknown> = []
 
 	appendText(part: { type: "text"; text: string }): void {
 		const { text } = part
@@ -253,7 +253,7 @@ class ToolResultBudget {
 	}
 }
 
-function hasResultContent(result: unknown): result is { content: unknown[] } {
+function hasResultContent(result: unknown): result is { content: Array<unknown> } {
 	return result !== null && typeof result === "object" && "content" in result && Array.isArray(result.content)
 }
 

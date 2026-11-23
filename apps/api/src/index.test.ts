@@ -11,7 +11,7 @@ test("logs a failed ingestion worker and waits before restarting it", async () =
 		await expect(runIngestionLoop()).rejects.toBe(stopped)
 		const error: unknown = expect.any(Error)
 		expect(log).toHaveBeenCalledWith("agent-file.worker.stopped", { error })
-		expect(pause).toHaveBeenCalledWith(3_000)
+		expect(pause).toHaveBeenCalledWith(3000)
 	} finally {
 		pause.mockRestore()
 		log.mockRestore()

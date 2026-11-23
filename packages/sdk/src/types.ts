@@ -38,7 +38,7 @@ const API_CHAT_ERROR_CODES = [
 	"embed-disabled",
 	"embed-not-found",
 	"request-failed",
-] as const satisfies readonly ProblemDetails["code"][]
+] as const satisfies ReadonlyArray<ProblemDetails["code"]>
 
 const SDK_ERROR_CODES = [
 	"invalid-response",
@@ -71,17 +71,17 @@ export type ChatSnapshot = {
 	/** False before configuration loads or when the embed cannot reply. Turn errors do not change availability. */
 	readonly isAvailable: boolean
 	readonly configuration: ChatConfiguration | undefined
-	readonly messages: readonly ChatMessage[]
+	readonly messages: ReadonlyArray<ChatMessage>
 	readonly activity: "idle" | "loading" | "sending" | "responding" | "stopping" | "recovering" | "resetting" | "blocked"
-	readonly actions: readonly ("send" | "stop" | "retry" | "new-chat")[]
-	readonly notices: readonly ("storage-unavailable" | "recovery-unavailable")[]
+	readonly actions: ReadonlyArray<"send" | "stop" | "retry" | "new-chat">
+	readonly notices: ReadonlyArray<"storage-unavailable" | "recovery-unavailable">
 	readonly acceptedMessageId: string | undefined
-	readonly activeTools: readonly ActiveTool[]
+	readonly activeTools: ReadonlyArray<ActiveTool>
 	readonly error: ChatError | undefined
 }
 
 export type SessionState = {
-	readonly messages: readonly ChatMessage[]
+	readonly messages: ReadonlyArray<ChatMessage>
 	readonly activeGeneration: { readonly id: string } | undefined
 }
 
@@ -132,7 +132,7 @@ export type ChatClientOptions = {
 	transport?: ChatTransport
 	randomUUID?: () => string
 	now?: () => Date
-	recoveryDelays?: readonly number[]
+	recoveryDelays?: ReadonlyArray<number>
 }
 
 export type ChatClient = {

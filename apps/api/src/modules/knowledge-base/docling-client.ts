@@ -5,7 +5,7 @@ const MAX_CHUNKS = 20_000
 const CHUNK_TOKENS = 256
 const REQUEST_TIMEOUT_MS = 30_000
 const OVERALL_TIMEOUT_MS = 3_600_000
-const POLL_INTERVAL_MS = 2_000
+const POLL_INTERVAL_MS = 2000
 const responseSchema = z.object({ chunks: z.array(z.object({ text: z.string() })).max(MAX_CHUNKS) })
 const submitSchema = z.object({ task_id: z.string() })
 const pollSchema = z.object({ task_status: z.string() })
@@ -40,14 +40,14 @@ async function pollTask(taskId: string, baseUrl: string, fetcher: FetchDocling):
 	}
 }
 
-async function readChunks(taskId: string, baseUrl: string, fetcher: FetchDocling): Promise<string[]> {
+async function readChunks(taskId: string, baseUrl: string, fetcher: FetchDocling): Promise<Array<string>> {
 	const result = await fetcher(new URL(`/v1/result/${taskId}`, baseUrl), {
 		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 	})
 	if (!result.ok) throw new Error(`Docling Serve result fetch failed (${result.status})`)
 	const reader = result.body?.getReader() as ReadableStreamDefaultReader<Uint8Array> | undefined
 	if (!reader) throw new Error("Docling Serve returned no response")
-	const pieces: Uint8Array[] = []
+	const pieces: Array<Uint8Array> = []
 	let length = 0
 	// Read in order so the cap applies to the accumulated body.
 	while (true) {
@@ -72,7 +72,7 @@ export async function chunkFile(
 	data: Uint8Array,
 	baseUrl: string,
 	fetcher: FetchDocling = async (url, init) => fetch(url, init),
-): Promise<string[]> {
+): Promise<Array<string>> {
 	const taskId = await submitFile(name, data, baseUrl, fetcher)
 	await pollTask(taskId, baseUrl, fetcher)
 	return readChunks(taskId, baseUrl, fetcher)

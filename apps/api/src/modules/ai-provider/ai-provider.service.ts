@@ -49,7 +49,7 @@ export type ToolBinding = {
 }
 export type PrepareTextOperationInput = {
 	maxOutputTokens: number
-	messages: TextMessage[]
+	messages: Array<TextMessage>
 	timeoutMs: number
 }
 type RawGenerationEvent =
@@ -69,7 +69,7 @@ type Generate = (input: {
 	instructions?: string
 	maxOutputTokens: number
 	maxRetries: 0
-	messages: TextMessage[]
+	messages: Array<TextMessage>
 	model: LanguageModelV4
 	onToolEvent?: (event: ToolEvent) => void
 	signal: AbortSignal
@@ -79,7 +79,7 @@ type Generate = (input: {
 }) => AsyncIterable<RawGenerationEvent>
 
 type ServiceDependencies = {
-	discover(input: DiscoveryRequest): Promise<string[]>
+	discover(input: DiscoveryRequest): Promise<Array<string>>
 	generate?: Generate
 	repository: Repository
 	/** streamText is injectable so tests can observe the call options, particularly the step bound. */
@@ -128,7 +128,7 @@ async function* invokePreparedOperation(
 	generate: Generate,
 	input: PrepareTextOperationInput & {
 		instructions?: string
-		messages: TextMessage[]
+		messages: Array<TextMessage>
 		model: LanguageModelV4
 		modelId: string
 		onToolEvent?: (event: ToolEvent) => void
@@ -393,9 +393,9 @@ function decryptTextCredentials(stored: StoredTextConfiguration, vault: Vault): 
 	})
 }
 
-function splitInstructions(messages: TextMessage[]): {
+function splitInstructions(messages: Array<TextMessage>): {
 	instructions?: string
-	messages: TextMessage[]
+	messages: Array<TextMessage>
 } {
 	const [firstMessage, ...remainingMessages] = messages
 	if (firstMessage?.role === "system") return { instructions: firstMessage.content, messages: remainingMessages }
@@ -491,7 +491,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 			})
 			return redact(saved, dependencies.vault)
 		},
-		async discoverModels(input: DiscoverModelsInput): Promise<string[]> {
+		async discoverModels(input: DiscoverModelsInput): Promise<Array<string>> {
 			let credentials = input.authMode === "static" ? input.credentials : undefined
 			if (!credentials && input.authMode === "static" && input.storedCredentialRole) {
 				credentials = await resolveStoredDiscoveryCredentials(
@@ -620,6 +620,6 @@ export async function prepareTextOperation(input: PrepareTextOperationInput) {
 
 export async function prepareEmbeddingOperation(options?: {
 	timeoutMs?: number
-}): Promise<{ key: string; embed(text: string, signal?: AbortSignal): Promise<number[]> }> {
+}): Promise<{ key: string; embed(text: string, signal?: AbortSignal): Promise<Array<number>> }> {
 	return (await getDefaultService()).prepareEmbeddingOperation(options)
 }

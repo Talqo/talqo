@@ -11,7 +11,7 @@ import { hasCompleteCredentials, isDiscoveryReady, requiredCredentials } from ".
 const DISCOVERY_DEBOUNCE_MS = 400
 
 export type ModelDiscoveryState = {
-	models: string[] | null
+	models: Array<string> | null
 	loading: boolean
 	failed: boolean
 	retry: () => void
@@ -20,7 +20,7 @@ export type ModelDiscoveryState = {
 type DiscoveryResult = {
 	request: DiscoverAiProviderModelsMutationBody
 	attempt: number
-	models: string[] | null
+	models: Array<string> | null
 	failed: boolean
 }
 

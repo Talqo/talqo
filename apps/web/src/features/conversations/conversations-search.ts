@@ -1,7 +1,7 @@
 import { parseAgentsParam } from "@/features/statistics/agents-search"
 
 export type ConversationsSearch = {
-	agents?: string[]
+	agents?: Array<string>
 	page?: number
 }
 

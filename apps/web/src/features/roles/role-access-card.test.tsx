@@ -11,12 +11,12 @@ const { t } = await import("i18next")
 
 type Agent = ListRoleAgents200["agents"][number]
 type Permission = Agent["permissions"][number]
-const ALL: Permission[] = ["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]
-let agents: Agent[]
-let agentsAfterRefresh: Agent[] | undefined
-let dirtyCalls: boolean[]
-let mutations: { method: string; body?: string }[]
-let gets: string[]
+const ALL: Array<Permission> = ["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]
+let agents: Array<Agent>
+let agentsAfterRefresh: Array<Agent> | undefined
+let dirtyCalls: Array<boolean>
+let mutations: Array<{ method: string; body?: string }>
+let gets: Array<string>
 let failure: Response | undefined
 let getFailure: Response | undefined
 let refreshResponse: Promise<Response> | undefined
@@ -32,7 +32,7 @@ function agentAt(index: number): Agent {
 	return agent
 }
 
-async function render(permissions: Permission[] = ALL) {
+async function render(permissions: Array<Permission> = ALL) {
 	if (agents.length > 0) agents[0] = { ...agentAt(0), permissions }
 	const route = createRootRoute({
 		component: () => <RoleAccessCard roleId="role" onDirtyChange={(dirty) => dirtyCalls.push(dirty)} />,
@@ -127,7 +127,7 @@ async function pressEscape() {
 	await settle()
 }
 
-function optionLabels(): (string | undefined)[] {
+function optionLabels(): Array<string | undefined> {
 	return [...document.querySelectorAll("[role=option]")].map((option) => option.textContent?.trim())
 }
 
@@ -165,7 +165,7 @@ beforeEach(() => {
 			if (method === "DELETE") selected.rolePermissions = []
 			else {
 				if (typeof init?.body !== "string") throw new Error("Missing body")
-				const body = JSON.parse(init.body) as { permissions: Permission[] }
+				const body = JSON.parse(init.body) as { permissions: Array<Permission> }
 				selected.rolePermissions = body.permissions
 			}
 			return new Response(null, { status: 204 })
@@ -571,7 +571,7 @@ describe("RoleAccessCard", () => {
 		await click(permissionSwitch(permission, "observers"))
 		await click(button(t("agentAccess.save")))
 
-		const body = JSON.parse(mutations[0]?.body ?? "{}") as { permissions: Permission[] }
+		const body = JSON.parse(mutations[0]?.body ?? "{}") as { permissions: Array<Permission> }
 		const byName = (a: Permission, b: Permission) => a.localeCompare(b)
 		expect(body.permissions.toSorted(byName)).toEqual(expected.toSorted(byName))
 	})

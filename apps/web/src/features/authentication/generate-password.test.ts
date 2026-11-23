@@ -2,7 +2,7 @@ import { afterEach, describe, expect, mock, spyOn, test } from "bun:test"
 
 import { generateRandomPassword } from "./generate-password"
 
-function stubRandomBytes(bytes: number[]) {
+function stubRandomBytes(bytes: Array<number>) {
 	let draw = 0
 	return spyOn(crypto, "getRandomValues").mockImplementation(<T extends ArrayBufferView | null>(array: T): T => {
 		if (!(array instanceof Uint8Array)) throw new Error("Expected a byte array")

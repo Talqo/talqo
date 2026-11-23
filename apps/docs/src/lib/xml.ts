@@ -1,5 +1,5 @@
 export function escapeXml(value: string): string {
-	return value.replace(/[<>&'"]/g, (character) => {
+	return value.replaceAll(/[<>&'"]/g, (character) => {
 		switch (character) {
 			case "<":
 				return "&lt;"

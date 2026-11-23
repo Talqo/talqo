@@ -58,9 +58,9 @@ const SCENARIOS = [
 ] as const
 
 let currentEmbed: Embed
-let mutationFailures: Response[]
+let mutationFailures: Array<Response>
 let mutationResponse: Promise<Response> | undefined
-let requests: RequestRecord[]
+let requests: Array<RequestRecord>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>

@@ -16,7 +16,7 @@ test("admin grants a role access to one agent and removal revokes it immediately
 	await createInvitedMember(page.request, account)
 	await logInThroughApi(page, ADMIN)
 	const { users } = (await (await page.request.get("/api/users")).json()) as {
-		users: { id: string; username: string; roles: { id: string }[] }[]
+		users: Array<{ id: string; username: string; roles: Array<{ id: string }> }>
 	}
 	const user = users.find(({ username }) => username === account.username)
 	assert.ok(user, "Missing invited operator")
@@ -44,12 +44,12 @@ test("admin grants a role access to one agent and removal revokes it immediately
 		await access.getByRole("switch", { name: web("agentAccess.statistics"), exact: true }).check()
 		await access.getByRole("switch", { name: web("agentAccess.conversations"), exact: true }).check()
 		const beforeSave = await page.request.get(`/api/roles/${role.id}/agents`)
-		const before = (await beforeSave.json()) as { agents: { id: string; rolePermissions: string[] }[] }
+		const before = (await beforeSave.json()) as { agents: Array<{ id: string; rolePermissions: Array<string> }> }
 		expect(before.agents.find((entry) => entry.id === agent.id)?.rolePermissions).toEqual([])
 		await access.getByRole("button", { name: web("agentAccess.save"), exact: true }).click()
 		await expect(access.getByRole("status")).toHaveText(web("agentAccess.saved"))
 		const afterSave = await page.request.get(`/api/roles/${role.id}/agents`)
-		const after = (await afterSave.json()) as { agents: { id: string; rolePermissions: string[] }[] }
+		const after = (await afterSave.json()) as { agents: Array<{ id: string; rolePermissions: Array<string> }> }
 		expect(after.agents.find((entry) => entry.id === agent.id)?.rolePermissions).toEqual([
 			"stats:read",
 			"conversations:read",

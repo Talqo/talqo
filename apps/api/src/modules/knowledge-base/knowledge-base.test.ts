@@ -63,7 +63,7 @@ describe("validateUpload", () => {
 
 describe("validateName", () => {
 	it("rejects traversal and separators that arrive URL-decoded", () => {
-		for (const name of ["../x", "a/b", "a\\b", "..", "a\0b"]) {
+		for (const name of ["../x", "a/b", String.raw`a\b`, "..", "a\0b"]) {
 			expect(() => validateName(name)).toThrow(InvalidFileError)
 		}
 	})

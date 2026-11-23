@@ -7,11 +7,11 @@ import { useMemo } from "react"
 export type BreakdownAgent = AgentLine & { conversations: number; messages: number; tokens: number }
 
 type DashboardUsage = {
-	breakdownAgents: BreakdownAgent[]
-	dailyPoints: AgentDailyPoint[]
+	breakdownAgents: Array<BreakdownAgent>
+	dailyPoints: Array<AgentDailyPoint>
 	rangeIsEmpty: boolean
-	selectedIds: string[]
-	selectedLines: AgentLine[]
+	selectedIds: Array<string>
+	selectedLines: Array<AgentLine>
 	stats: PageStats | undefined
 }
 
@@ -23,9 +23,9 @@ export function useDashboardUsage({
 	allIds,
 }: {
 	overview: StatsOverview | undefined
-	agentLines: AgentLine[]
-	selection: string[] | undefined
-	allIds: string[]
+	agentLines: Array<AgentLine>
+	selection: Array<string> | undefined
+	allIds: Array<string>
 }): DashboardUsage {
 	const selectedIds = useMemo(
 		() => [...new Set((selection ?? allIds).filter((id) => allIds.includes(id)))],

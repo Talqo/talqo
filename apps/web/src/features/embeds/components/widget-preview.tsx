@@ -9,7 +9,7 @@ const FRAME_WIDTH = 336
 const FRAME_HEIGHT = 420
 
 function escapeAttribute(value: string): string {
-	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+	return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
 }
 
 /** A CDN-only deployment does not need to publish a separate preview document. */

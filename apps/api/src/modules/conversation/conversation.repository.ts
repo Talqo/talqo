@@ -20,7 +20,7 @@ import {
 } from "./conversation.schema.ts"
 
 const LEASE_MS = 15_000
-const DAILY_COUNTER_PRUNE_BATCH_SIZE = 1_000
+const DAILY_COUNTER_PRUNE_BATCH_SIZE = 1000
 const DATABASE_NOW = sql`now()`
 const DATABASE_DAY = sql<string>`to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 const DATABASE_LEASE_EXPIRY = sql`now() + ${LEASE_MS} * interval '1 millisecond'`
@@ -59,7 +59,7 @@ export class StaleHistoryRepositoryError extends Error {}
 
 export type HistorySnapshot = {
 	latestCompletedMessageId: string | null
-	messages: (typeof message.$inferSelect)[]
+	messages: Array<typeof message.$inferSelect>
 	revision: number
 }
 
@@ -116,7 +116,7 @@ export async function findConversationById(conversationId: string): Promise<Conv
 	return { ...row, embedId: row.embedId }
 }
 
-export async function listMessages(conversationId: string): Promise<(typeof message.$inferSelect)[]> {
+export async function listMessages(conversationId: string): Promise<Array<typeof message.$inferSelect>> {
 	return db
 		.select()
 		.from(message)
@@ -216,7 +216,7 @@ async function ensureConversation(tx: Transaction, input: AcceptanceInput): Prom
 	})
 }
 
-function findMessagePair(messages: (typeof message.$inferSelect)[]): {
+function findMessagePair(messages: Array<typeof message.$inferSelect>): {
 	assistantMessage: typeof message.$inferSelect
 	userMessage: typeof message.$inferSelect
 } {
@@ -419,9 +419,9 @@ export async function setAttribution(
 }
 
 export async function pollRunningAttempts(
-	owned: { id: string; leaseToken: string }[],
+	owned: Array<{ id: string; leaseToken: string }>,
 	renewLease: boolean,
-): Promise<{ id: string; cancelled: boolean }[]> {
+): Promise<Array<{ id: string; cancelled: boolean }>> {
 	if (owned.length === 0) return []
 	const matches = sql`(${generationAttempt.id}, ${generationAttempt.leaseToken}) IN (${sql.join(
 		owned.map(({ id, leaseToken }) => sql`(${id}, ${leaseToken})`),
@@ -496,7 +496,10 @@ export async function stageFinalization(input: {
 	})
 }
 
-export async function listPendingUsageFinalizations(limit: number, id?: string): Promise<PendingUsageFinalization[]> {
+export async function listPendingUsageFinalizations(
+	limit: number,
+	id?: string,
+): Promise<Array<PendingUsageFinalization>> {
 	return db
 		.select({
 			generationAttemptId: generationAttempt.id,
@@ -522,7 +525,7 @@ export async function listPendingUsageFinalizations(limit: number, id?: string):
 			),
 		)
 		.orderBy(asc(generationAttempt.id))
-		.limit(limit) as Promise<PendingUsageFinalization[]>
+		.limit(limit) as Promise<Array<PendingUsageFinalization>>
 }
 
 export async function stageRecoveredUsageCandidate(
@@ -566,7 +569,10 @@ export async function markUsageRecorded(input: {
 		)
 }
 
-export async function requestCancellation(conversationId: string, generationAttemptId?: string): Promise<string[]> {
+export async function requestCancellation(
+	conversationId: string,
+	generationAttemptId?: string,
+): Promise<Array<string>> {
 	const conditions = [eq(generationAttempt.conversationId, conversationId), activeUnexpired()]
 	if (generationAttemptId) conditions.push(eq(generationAttempt.id, generationAttemptId))
 	const rows = await db
@@ -621,8 +627,8 @@ const messageDay = sql<string>`to_char(${message.createdAt} AT TIME ZONE 'UTC', 
 // Sparse per-agent daily series: days without activity have no row, the consumer zero-fills.
 export async function getDailyConversationCountsByAgent(
 	since: Date,
-	scope: readonly string[] | "all",
-): Promise<AgentDailyCount[]> {
+	scope: ReadonlyArray<string> | "all",
+): Promise<Array<AgentDailyCount>> {
 	return db
 		.select({ agentId: conversation.agentId, date: conversationDay, count: count() })
 		.from(conversation)
@@ -635,8 +641,8 @@ export async function getDailyConversationCountsByAgent(
 
 export async function getDailyMessageCountsByAgent(
 	since: Date,
-	scope: readonly string[] | "all",
-): Promise<AgentDailyCount[]> {
+	scope: ReadonlyArray<string> | "all",
+): Promise<Array<AgentDailyCount>> {
 	return db
 		.select({ agentId: conversation.agentId, date: messageDay, count: count() })
 		.from(message)
@@ -654,8 +660,8 @@ export type AgentConversationCount = {
 // Conversations touched by any message since the cutoff, counted per owning agent.
 export async function getActiveConversationCountsByAgent(
 	cutoff: Date,
-	scope: readonly string[] | "all",
-): Promise<AgentConversationCount[]> {
+	scope: ReadonlyArray<string> | "all",
+): Promise<Array<AgentConversationCount>> {
 	return db
 		.select({ agentId: conversation.agentId, count: countDistinct(message.conversationId) })
 		.from(message)
@@ -674,11 +680,11 @@ export type ConversationSummaryRow = {
 }
 
 export async function listConversations(input: {
-	agentIds: string[] | undefined
+	agentIds: Array<string> | undefined
 	limit: number
 	offset: number
 	previewLength: number
-}): Promise<{ rows: ConversationSummaryRow[]; total: number }> {
+}): Promise<{ rows: Array<ConversationSummaryRow>; total: number }> {
 	const where = input.agentIds ? inArray(conversation.agentId, input.agentIds) : undefined
 	const [rows, [counted]] = await Promise.all([
 		db

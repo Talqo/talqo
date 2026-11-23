@@ -19,7 +19,7 @@ function eventParser(value: unknown, eventName: string | undefined): Event | und
 	return undefined
 }
 
-async function* chunks(bytes: Uint8Array, boundaries: number[]): AsyncIterable<Uint8Array> {
+async function* chunks(bytes: Uint8Array, boundaries: Array<number>): AsyncIterable<Uint8Array> {
 	let offset = 0
 	for (const boundary of boundaries) {
 		yield bytes.slice(offset, boundary)

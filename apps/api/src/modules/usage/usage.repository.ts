@@ -60,8 +60,8 @@ const usageOutputTokens = sql<number>`coalesce(sum(${usageRecord.outputTokens}),
 // Sparse per-agent daily series: days without activity have no row, the consumer zero-fills.
 export async function getDailyUsageTotalsByAgent(
 	since: Date,
-	scope: readonly string[] | "all",
-): Promise<AgentDailyUsageTotals[]> {
+	scope: ReadonlyArray<string> | "all",
+): Promise<Array<AgentDailyUsageTotals>> {
 	return db
 		.select({
 			agentId: usageRecord.agentId,

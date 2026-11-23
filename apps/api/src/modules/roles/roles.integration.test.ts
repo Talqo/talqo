@@ -53,11 +53,11 @@ async function resetMemberPassword(password: string) {
 	return { memberUsername, memberCookie: await login(memberUsername, password) }
 }
 
-async function createRole(permissions: service.Permission[], name = `Role ${crypto.randomUUID()}`) {
+async function createRole(permissions: Array<service.Permission>, name = `Role ${crypto.randomUUID()}`) {
 	return service.createRole({ name, permissions }, await testAdminId())
 }
 
-async function assignRoles(userId: string, roleIds: string[]): Promise<service.RoleSummary[]> {
+async function assignRoles(userId: string, roleIds: Array<string>): Promise<Array<service.RoleSummary>> {
 	return service.assignRoles(userId, roleIds, await testAdminId())
 }
 
@@ -80,7 +80,9 @@ async function expectInvalidInvitation(token: string, username: string): Promise
 	expect((await identity.listUsers()).some((user) => user.username === username)).toBe(false)
 }
 
-async function memberWith(permissions: service.GrantablePermission[]): Promise<{ cookie: string; userId: string }> {
+async function memberWith(
+	permissions: Array<service.GrantablePermission>,
+): Promise<{ cookie: string; userId: string }> {
 	const member = await createMember()
 	await giveRole(member.id, permissions)
 	const { token } = await identity.createSession(member.id)
@@ -226,7 +228,7 @@ describe("agent-scoped access", () => {
 
 		const response = await call(cookie, "GET", `/roles/${role.id}/agents`)
 		expect(response.status).toBe(200)
-		const body = (await response.json()) as { agents: unknown[] }
+		const body = (await response.json()) as { agents: Array<unknown> }
 		expect(body.agents).toEqual([
 			{
 				id: a.id,
@@ -241,7 +243,7 @@ describe("agent-scoped access", () => {
 		const privateAgent = await agents.createAgent({ name: "Private", systemPrompt: "Private", wordBlacklist: [] })
 		await service.setRoleAgentAccess(admin, hidden.id, privateAgent.id, ["agents:read"])
 		const hiddenBody = (await (await call(cookie, "GET", `/roles/${hidden.id}/agents`)).json()) as {
-			agents: { id: string }[]
+			agents: Array<{ id: string }>
 		}
 		expect(hiddenBody.agents.map(({ id }) => id)).toEqual([a.id, b.id])
 
@@ -999,7 +1001,7 @@ describe("role assignment", () => {
 	})
 })
 
-function roleBody(permissions: service.Permission[], name = `Role ${crypto.randomUUID()}`) {
+function roleBody(permissions: Array<service.Permission>, name = `Role ${crypto.randomUUID()}`) {
 	return { name, permissions }
 }
 
@@ -1023,7 +1025,7 @@ describe("role routes", () => {
 		const { role } = (await created.json()) as { role: service.Role }
 		expect(role).toEqual({ id: role.id, name: "Readers", permissions: ["users:read"], memberCount: 0 })
 
-		const listed = (await (await call(manager.cookie, "GET", "/roles")).json()) as { roles: service.Role[] }
+		const listed = (await (await call(manager.cookie, "GET", "/roles")).json()) as { roles: Array<service.Role> }
 		expect(listed.roles).toContainEqual(role)
 
 		const updated = await call(manager.cookie, "PUT", `/roles/${role.id}`, roleBody(["users:manage"], "Editors"))
@@ -1140,7 +1142,7 @@ describe("role routes", () => {
 		const manager = await memberWith(["roles:manage", "users:read"])
 		const member = await createMember()
 		const [powerful, reader] = await Promise.all([createRole(["ai_provider:manage"]), createRole(["users:read"])])
-		const assign = (roleIds: string[]) => call(manager.cookie, "PUT", `/users/${member.id}/roles`, { roleIds })
+		const assign = (roleIds: Array<string>) => call(manager.cookie, "PUT", `/users/${member.id}/roles`, { roleIds })
 
 		await expectCode(await assign([powerful.id]), 403, "permission-exceeds-own")
 
@@ -1160,7 +1162,7 @@ describe("user management routes", () => {
 		const response = await call(reader.cookie, "GET", "/users")
 
 		expect(response.status).toBe(200)
-		const { users } = (await response.json()) as { users: service.UserWithAccess[] }
+		const { users } = (await response.json()) as { users: Array<service.UserWithAccess> }
 		expect(users.find(({ id }) => id === member.id)).toEqual({
 			id: member.id,
 			username: member.username,
@@ -1337,7 +1339,7 @@ describe("admin user deletion", () => {
 		expect(await replayedSession.json()).toEqual({ user: null })
 		expect((await loginResponse(memberUsername, DEFAULT_PASSWORD)).status).toBe(401)
 		const listed = await app.request("/api/users", { headers: { Cookie: adminCookie } })
-		const { users } = (await listed.json()) as { users: { id: string }[] }
+		const { users } = (await listed.json()) as { users: Array<{ id: string }> }
 		expect(users.map((user) => user.id)).not.toContain(member.id)
 	})
 
@@ -1416,7 +1418,7 @@ describe("list users", () => {
 		const response = await app.request("/api/users", { headers: { Cookie: adminCookie } })
 
 		expect(response.status).toBe(200)
-		const { users } = (await response.json()) as { users: service.UserWithAccess[] }
+		const { users } = (await response.json()) as { users: Array<service.UserWithAccess> }
 		const ids = users.map((user) => user.id)
 		expect(ids).toContain(adminId)
 		expect(ids).toContain(member.id)

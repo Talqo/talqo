@@ -64,7 +64,7 @@ export const test = base.extend<
 		const embedList: unknown = await embedsResponse.json()
 		if (!embedList || typeof embedList !== "object" || !("embeds" in embedList) || !Array.isArray(embedList.embeds))
 			throw new Error("Embed list response is missing its embeds")
-		const embeds: unknown[] = embedList.embeds
+		const embeds: Array<unknown> = embedList.embeds
 		await Promise.all(
 			embeds.map(async (embed) => {
 				if (!embed || typeof embed !== "object" || !("id" in embed) || typeof embed.id !== "string")
@@ -86,7 +86,7 @@ export const test = base.extend<
 			const server = createTestServer()
 			const providerOrigin = server.url.origin
 			let api: Subprocess | undefined
-			const errors: unknown[] = []
+			const errors: Array<unknown> = []
 			try {
 				const address = (await $`docker port ${container} 5432`.quiet().text()).trim()
 				await $`docker exec ${container} psql -U talqo -d postgres -v ON_ERROR_STOP=1 -c ${`CREATE DATABASE ${database}`}`.quiet()

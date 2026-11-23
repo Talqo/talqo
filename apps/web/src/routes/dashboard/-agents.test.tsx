@@ -12,12 +12,12 @@ const { t } = await import("i18next")
 
 const AgentsPage = Route.options.component ?? (() => null)
 
-let permissions: string[]
+let permissions: Array<string>
 let permissionsResponse: Promise<Response> | undefined
 let createResponse: Response | Promise<Response> | undefined
-let createRequests: unknown[]
-let listedAgentNames: string[]
-let unreadableAgentNames: string[]
+let createRequests: Array<unknown>
+let listedAgentNames: Array<string>
+let unreadableAgentNames: Array<string>
 let listRequests: number
 let listResponse: Response | undefined
 let listRequestsAtNavigation: number | undefined
@@ -66,7 +66,7 @@ async function click(button: HTMLButtonElement | undefined) {
 	await settle()
 }
 
-function buttons(label: string): HTMLButtonElement[] {
+function buttons(label: string): Array<HTMLButtonElement> {
 	return [...host.querySelectorAll("button")].filter((element) => element.textContent?.trim() === label)
 }
 

@@ -215,7 +215,7 @@ export async function getUser(userId: string): Promise<PublicUser> {
 	return toPublicUser(user)
 }
 
-export async function listUsers(): Promise<PublicUser[]> {
+export async function listUsers(): Promise<Array<PublicUser>> {
 	const users = await repo.listUsers()
 	return users.map(toPublicUser)
 }

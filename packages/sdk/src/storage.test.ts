@@ -16,7 +16,7 @@ describe("chat storage", () => {
 			setItem: () => Promise.reject(new Error("denied")),
 			removeItem: () => Promise.reject(new Error("denied")),
 		}
-		const failures: unknown[] = []
+		const failures: Array<unknown> = []
 		const storage = createResilientStorage(primary, createMemoryStorage(), (error) => failures.push(error))
 
 		expect(await storage.getItem("session")).toBeNull()
@@ -41,7 +41,7 @@ describe("chat storage", () => {
 
 	test("surfaces a failing fallback instead of switching to it again", async () => {
 		let fallbackAttempts = 0
-		const notifications: unknown[] = []
+		const notifications: Array<unknown> = []
 		const primary: AsyncStorage = {
 			getItem: () => Promise.reject(new Error("denied")),
 			setItem: () => Promise.reject(new Error("denied")),

@@ -46,7 +46,7 @@ const CREATED_AGENT = {
 	updatedAt: "2026-10-20T00:00:00.000Z",
 }
 
-let requested: string[]
+let requested: Array<string>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
@@ -55,7 +55,7 @@ let permissionResponse: () => Response | Promise<Response>
 let agentsResponse: () => Response | Promise<Response>
 let statsResponse: (days: string | null) => Response | Promise<Response>
 let createResponse: () => Response | Promise<Response>
-let createBody: { name?: string; systemPrompt?: string; wordBlacklist?: string[] } | undefined
+let createBody: { name?: string; systemPrompt?: string; wordBlacklist?: Array<string> } | undefined
 let createdAgent = false
 
 function emptyOverview(days: number): { overview: StatsOverview } {
@@ -218,7 +218,7 @@ function cardValue(label: string): string | undefined {
 	return description?.parentElement?.querySelector("p")?.textContent ?? undefined
 }
 
-function breakdownRows(): string[][] {
+function breakdownRows(): Array<Array<string>> {
 	return [...host.querySelectorAll("tbody tr")].map((row) =>
 		[...row.querySelectorAll("th, td")].map((cell) => cell.textContent ?? ""),
 	)
@@ -306,7 +306,7 @@ test("summarizes usage and lists per-agent totals for selected agents in name or
 
 test("filters the summary to the chosen agents and restores all agents", async () => {
 	statsResponse = (days) => json(usageOverview(days === "all" ? 0 : Number(days)))
-	const searches: DashboardSearch[] = []
+	const searches: Array<DashboardSearch> = []
 	await renderPage({}, undefined, (search) => searches.push(search))
 
 	await click(combobox(t("dashboard.agentsLabel")))
@@ -365,7 +365,7 @@ test("shows zero averages for a selected agent without activity", async () => {
 
 test("requests the selected time range and omits the default", async () => {
 	statsResponse = (days) => json(usageOverview(days === "all" ? 0 : Number(days)))
-	const searches: DashboardSearch[] = []
+	const searches: Array<DashboardSearch> = []
 	await renderPage({ days: 7 }, undefined, (search) => searches.push(search))
 
 	await choose(t("dashboard.rangeLabel"), t("dashboard.range30d"))
@@ -434,7 +434,7 @@ test("shows a retryable load error when statistics cannot be loaded", async () =
 
 test("invites the operator to create the first agent and opens it", async () => {
 	agentsResponse = () => json({ agents: [] })
-	const opened: string[] = []
+	const opened: Array<string> = []
 	await renderPage({}, (agentId) => opened.push(agentId))
 
 	expect(host.textContent).toContain(t("dashboard.noAgentsTitle"))

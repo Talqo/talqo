@@ -513,7 +513,7 @@ describe("EmbeddedWidget resize", () => {
 		}
 	}
 
-	async function keyboardCases(cases: readonly { key: string; width: string; height: string }[]) {
+	async function keyboardCases(cases: ReadonlyArray<{ key: string; width: string; height: string }>) {
 		await openChat()
 		mockPanelRect()
 		for (const { key, width, height } of cases) {

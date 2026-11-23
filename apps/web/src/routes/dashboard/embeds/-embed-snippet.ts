@@ -6,7 +6,7 @@ export type EmbedConfig = {
 
 /** The snippet is shown for copy-paste, so it has to survive as literal text. */
 function escapeAttribute(value: string): string {
-	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+	return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
 }
 
 /** Identity only: a baked-in color would pin the embed to the palette it was copied with. */

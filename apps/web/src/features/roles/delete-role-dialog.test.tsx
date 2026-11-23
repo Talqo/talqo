@@ -17,7 +17,7 @@ let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let deleteResponse: Response
-let requests: { method: string; url: string }[]
+let requests: Array<{ method: string; url: string }>
 let router: ReturnType<typeof makeRouter>
 
 function makeRouter(role: Role, locksOut: boolean, disabled: boolean) {

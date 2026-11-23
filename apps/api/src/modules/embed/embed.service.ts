@@ -102,7 +102,7 @@ function toColumns(appearance: WidgetAppearance) {
 	}
 }
 
-export async function listVisibleEmbeds(actorId: string, agentId?: string): Promise<Embed[]> {
+export async function listVisibleEmbeds(actorId: string, agentId?: string): Promise<Array<Embed>> {
 	const scope = await roles.agentScope(actorId, roles.AgentPermission.AgentRead)
 	if (!agentId) return (await repo.listEmbeds(scope)).map(toEmbed)
 	const allowed = scope === "all" || scope.includes(agentId)

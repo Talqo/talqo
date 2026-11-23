@@ -72,7 +72,7 @@ const roleSchema = z
 	})
 	.openapi("Role")
 
-function hasNoRepeats(values: string[]): boolean {
+function hasNoRepeats(values: Array<string>): boolean {
 	return new Set(values).size === values.length
 }
 

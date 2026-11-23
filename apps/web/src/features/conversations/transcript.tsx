@@ -16,7 +16,7 @@ function outcomeKey(outcome: Message["outcome"]) {
 	return outcome === "completed" ? undefined : OUTCOME_KEYS[outcome]
 }
 
-export function Transcript({ messages }: { messages: Message[] }) {
+export function Transcript({ messages }: { messages: Array<Message> }) {
 	const { t } = useTranslation()
 	return (
 		<ol className="bg-foreground/8 rounded-surface p-surface-padding space-y-4 border">

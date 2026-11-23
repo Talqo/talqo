@@ -42,7 +42,7 @@ async function renderCard(canManage: boolean) {
 	})
 }
 
-function addButtons(): HTMLButtonElement[] {
+function addButtons(): Array<HTMLButtonElement> {
 	return [...host.querySelectorAll("button")].filter((element) => element.textContent?.trim() === t("mcp.add"))
 }
 

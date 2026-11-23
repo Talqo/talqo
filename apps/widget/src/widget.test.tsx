@@ -304,7 +304,7 @@ describe("embed snippet discovery", () => {
 		snippet({ "data-talqo-embed-token": "first", "data-talqo-api": "https://api.example.com" })
 		snippet({ "data-talqo-embed-token": "second", "data-talqo-api": "https://api.example.com" })
 		using warning = spyOn(console, "warn").mockImplementation(() => {})
-		const tokens: string[] = []
+		const tokens: Array<string> = []
 
 		widget = await importWidgetPaused("duplicate-snippets")
 		await act(async () =>

@@ -16,7 +16,7 @@ type UpdateAssembly = Pick<McpServer, "name" | "revision"> & {
 	server: UpdateMcpServerBody["server"]
 }
 
-function toUpdateBody(base: UpdateAssembly, tools?: { enabled: boolean; name: string }[]): UpdateMcpServerBody {
+function toUpdateBody(base: UpdateAssembly, tools?: Array<{ enabled: boolean; name: string }>): UpdateMcpServerBody {
 	return {
 		name: base.name,
 		expectedRevision: base.revision,
@@ -54,9 +54,9 @@ export type ConnectionDraft = {
 	url: string
 	authMode: "none" | "headers"
 	command: string
-	args: ArgumentRow[]
-	headers: EnvVariable[]
-	env: EnvVariable[]
+	args: Array<ArgumentRow>
+	headers: Array<EnvVariable>
+	env: Array<EnvVariable>
 }
 
 export const EMPTY_DRAFT: ConnectionDraft = {
@@ -73,13 +73,13 @@ export const EMPTY_DRAFT: ConnectionDraft = {
 export type DraftReason =
 	"nameRequired" | "nameAscii" | "nameTooLong" | "addressRequired" | "commandRequired" | "secretRequired"
 
-type StoredSecrets = { env: { name: string }[]; headers: { name: string }[] }
+type StoredSecrets = { env: Array<{ name: string }>; headers: Array<{ name: string }> }
 
 /**
  * Rows are typed in place, so only entered values are sent and a stored name missing from the
  * rows is forgotten. Blanks are filtered and repeats collapse here rather than at save time.
  */
-function secretsDiff(rows: EnvVariable[], stored: { name: string }[]) {
+function secretsDiff(rows: Array<EnvVariable>, stored: Array<{ name: string }>) {
 	const record = toEnvRecord(rows)
 	const present = new Set(rows.map(({ name }) => name.trim()).filter(Boolean))
 	const removed = stored.map(({ name }) => name).filter((name) => !present.has(name))
@@ -87,8 +87,8 @@ function secretsDiff(rows: EnvVariable[], stored: { name: string }[]) {
 }
 
 function secretFields(
-	rows: EnvVariable[],
-	stored: { name: string }[],
+	rows: Array<EnvVariable>,
+	stored: Array<{ name: string }>,
 	recordKey: "env" | "headers",
 	deleteKey: "deleteEnv" | "deleteHeaders",
 ) {
@@ -121,18 +121,18 @@ export type UpdateResult = { ok: true; body: UpdateMcpServerBody } | { ok: false
  * Rows are added empty, so untouched rows never block saving. A value without a name goes nowhere
  * on either path; a name without a value only blocks creating, where there is nothing stored to keep.
  */
-export function invalidSecretRow(rows: EnvVariable[], requireSecretValue: boolean): EnvVariable | undefined {
+export function invalidSecretRow(rows: Array<EnvVariable>, requireSecretValue: boolean): EnvVariable | undefined {
 	return rows.find(({ name, value }) => (name.trim() ? requireSecretValue && !value : Boolean(value)))
 }
 
-function secretRefused(rows: EnvVariable[], requireSecretValue: boolean): boolean {
+function secretRefused(rows: Array<EnvVariable>, requireSecretValue: boolean): boolean {
 	return invalidSecretRow(rows, requireSecretValue) !== undefined
 }
 
 function nameReason(draft: ConnectionDraft): DraftReason | undefined {
 	if (!draft.name.trim()) return "nameRequired"
 	// The name becomes part of provider tool names, whose grammars accept printable ASCII only.
-	if (!/^[\x20-\x7E]+$/.test(draft.name)) return "nameAscii"
+	if (!/^[\u0020-\u007E]+$/.test(draft.name)) return "nameAscii"
 	// Mirrors the API limit; the server re-checks and answers invalid-mcp-server-name.
 	if (draft.name.trim().length > MCP_SERVER_NAME_LIMIT) return "nameTooLong"
 	return undefined

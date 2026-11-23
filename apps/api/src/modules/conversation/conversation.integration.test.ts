@@ -45,7 +45,7 @@ const REQUEST_3 = "33333333-3333-4333-8333-333333333333"
 const CREDENTIAL_1 = "44444444-4444-4444-8444-444444444444"
 const CREDENTIAL_2 = "55555555-5555-4555-8555-555555555555"
 
-async function fixture(wordBlacklist: string[] = []) {
+async function fixture(wordBlacklist: Array<string> = []) {
 	const createdAgent = await agent.createAgent({
 		name: `Agent ${crypto.randomUUID()}`,
 		systemPrompt: "System",
@@ -65,8 +65,8 @@ async function fixture(wordBlacklist: string[] = []) {
 async function sendAndCollectEvents(
 	instance: ReturnType<typeof customService>,
 	embedToken: string,
-): Promise<ChatEvent[]> {
-	const events: ChatEvent[] = []
+): Promise<Array<ChatEvent>> {
+	const events: Array<ChatEvent> = []
 	const sent = await instance.send(
 		{ embedToken, credential: CREDENTIAL_1, requestId: REQUEST_1, text: "hello", networkHash: "network-a" },
 		(event) => events.push(event),
@@ -82,9 +82,9 @@ async function expectSafeTail(instance: ReturnType<typeof customService>, assist
 	expect((await sql`SELECT output_tokens FROM usage_record`)[0]?.output_tokens).toBe(1)
 }
 
-function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; concurrencyLimit?: number } = {}) {
+function service(outputs: Array<string> = ["answer"], policy: { dailyLimit?: number; concurrencyLimit?: number } = {}) {
 	let call = 0
-	const prompts: TextMessage[][] = []
+	const prompts: Array<Array<TextMessage>> = []
 	return {
 		prompts,
 		service: createConversationService({
@@ -96,7 +96,7 @@ function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; 
 			prepare: async (input) => ({
 				provider: "openai-compatible",
 				model: "fake-model",
-				invoke: async function* () {
+				async *invoke() {
 					prompts.push(input.messages)
 					yield { type: "text", text: outputs[call] ?? "answer" } as const
 					call += 1
@@ -116,7 +116,7 @@ function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; 
 function customService(
 	generate: (input: {
 		maxOutputTokens: number
-		messages: TextMessage[]
+		messages: Array<TextMessage>
 		signal: AbortSignal
 		timeoutMs: number
 	}) => AsyncIterable<
@@ -342,7 +342,7 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await first.done
-		const duplicateEvents: { type: string }[] = []
+		const duplicateEvents: Array<{ type: string }> = []
 		const duplicate = await instance.service.send(
 			{
 				embedToken: createdEmbed.embedToken,
@@ -727,7 +727,7 @@ describe("conversation lifecycle", () => {
 	it("emits a typed error after acceptance when provider generation fails", async () => {
 		const { createdEmbed } = await fixture()
 		const instance = customService(failingGeneration)
-		const events: { type: string }[] = []
+		const events: Array<{ type: string }> = []
 		const sent = await instance.send(
 			{
 				embedToken: createdEmbed.embedToken,
@@ -984,7 +984,7 @@ describe("conversation lifecycle", () => {
 				await release.promise
 			}
 		})
-		const events: { outcome?: string; type: string }[] = []
+		const events: Array<{ outcome?: string; type: string }> = []
 		const sent = await instance.send(
 			{
 				embedToken: createdEmbed.embedToken,
@@ -1038,7 +1038,7 @@ describe("conversation lifecycle", () => {
 
 	it("rejects a fresh conversation over the provider context without offering a new chat", async () => {
 		const { createdEmbed } = await fixture()
-		const errors: { error?: { code: string; newChatAvailable: boolean }; type: string }[] = []
+		const errors: Array<{ error?: { code: string; newChatAvailable: boolean }; type: string }> = []
 		const fresh = customService(contextLimitGeneration)
 		const first = await fresh.send(
 			{
@@ -1070,7 +1070,7 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await first.done
-		const events: { error?: { code: string; newChatAvailable: boolean }; type: string }[] = []
+		const events: Array<{ error?: { code: string; newChatAvailable: boolean }; type: string }> = []
 		const second = await instance.send(
 			{
 				embedToken: createdEmbed.embedToken,
@@ -1195,7 +1195,7 @@ describe("conversation lifecycle", () => {
 		try {
 			const instance = customService(async function* () {
 				for (let index = 0; index < 40; index += 1) yield { type: "text", text: "x" } as const
-				yield { type: "text", text: "y".repeat(2_048) } as const
+				yield { type: "text", text: "y".repeat(2048) } as const
 				yield {
 					type: "finish",
 					outcome: "completed",
@@ -1204,7 +1204,7 @@ describe("conversation lifecycle", () => {
 					usage: {},
 				} as const
 			})
-			const events: { type: string; text?: string }[] = []
+			const events: Array<{ type: string; text?: string }> = []
 			const sent = await instance.send(
 				{
 					embedToken: createdEmbed.embedToken,
@@ -1218,15 +1218,15 @@ describe("conversation lifecycle", () => {
 			await sent.done
 			// Intentional: fewer writes than deltas plus the chunk cap is the batching contract under test.
 			expect(append.mock.calls.length).toBeLessThan(40)
-			expect(append.mock.calls.every(([, , text]) => text.length <= 1_024)).toBe(true)
+			expect(append.mock.calls.every(([, , text]) => text.length <= 1024)).toBe(true)
 			expect(
 				events
 					.filter((event) => event.type === "delta")
 					.map((event) => event.text)
 					.join(""),
-			).toBe("x".repeat(40) + "y".repeat(2_048))
+			).toBe("x".repeat(40) + "y".repeat(2048))
 			expect(events.at(-1)?.type).toBe("terminal")
-			expect((await instance.getSession(CREDENTIAL_1)).messages.at(-1)?.text).toBe("x".repeat(40) + "y".repeat(2_048))
+			expect((await instance.getSession(CREDENTIAL_1)).messages.at(-1)?.text).toBe("x".repeat(40) + "y".repeat(2048))
 		} finally {
 			append.mockRestore()
 		}
@@ -1364,7 +1364,7 @@ describe("conversation lifecycle", () => {
 			await agent.deleteAgent(createdAgent.id)
 			await writeUsage(input)
 		})
-		const events: { outcome?: string; type: string }[] = []
+		const events: Array<{ outcome?: string; type: string }> = []
 		try {
 			const sent = await instance.service.send(
 				{
@@ -1392,7 +1392,7 @@ describe("conversation lifecycle", () => {
 		const instance = service()
 		const recordUsage = spyOn(usage, "recordUsage").mockRejectedValue(new Error("usage database down"))
 		const logged = spyOn(console, "error").mockImplementation(() => undefined)
-		const events: { error?: { code: string }; outcome?: string; type: string }[] = []
+		const events: Array<{ error?: { code: string }; outcome?: string; type: string }> = []
 		try {
 			const sent = await instance.service.send(
 				{
@@ -1436,7 +1436,7 @@ describe("conversation lifecycle", () => {
 		})
 		await initial.done
 		const rival = service(["raced"]).service
-		const prompts: TextMessage[][] = []
+		const prompts: Array<Array<TextMessage>> = []
 		const main = customService(
 			async function* (input) {
 				prompts.push(input.messages)
@@ -1526,7 +1526,7 @@ describe("conversation lifecycle", () => {
 			await testAdminId(),
 		)
 		const outputs = ["fine", "lost", "poison", "afterwards", "again"]
-		const calls: TextMessage[][] = []
+		const calls: Array<Array<TextMessage>> = []
 		let call = 0
 		const svc = customService(async function* (input) {
 			calls.push(input.messages)
@@ -1569,7 +1569,7 @@ describe("chat retrieval", () => {
 		const { createdEmbed } = await fixture()
 		const instance = service(["answer"], { concurrencyLimit: 1 })
 		const started = Promise.withResolvers<void>()
-		const release = Promise.withResolvers<string[]>()
+		const release = Promise.withResolvers<Array<string>>()
 		const search = spyOn(knowledge, "searchKnowledge").mockImplementation(async () => {
 			started.resolve()
 			return release.promise
@@ -1610,7 +1610,7 @@ describe("chat retrieval", () => {
 		const search = spyOn(knowledge, "searchKnowledge").mockImplementation(async (_agentId, _text, signal) => {
 			if (!signal) throw new Error("Expected retrieval cancellation signal")
 			started.resolve()
-			return new Promise<string[]>((_resolve, reject) =>
+			return new Promise<Array<string>>((_resolve, reject) =>
 				signal.addEventListener("abort", () => reject(signal.reason), { once: true }),
 			)
 		})
@@ -1775,7 +1775,7 @@ describe("chat retrieval", () => {
 		const { createdEmbed } = await fixture()
 		const instance = service()
 		using _ = spyOn(repository, "stageFinalization").mockRejectedValue(new Error("database down"))
-		const events: { type: string }[] = []
+		const events: Array<{ type: string }> = []
 		const sent = await instance.service.send(
 			{
 				embedToken: createdEmbed.embedToken,
@@ -1927,7 +1927,7 @@ describe("operator conversation reads", () => {
 
 		const list = await get(`?agentId=${createdAgent.id}`)
 		const listBody = await list.text()
-		const id = (JSON.parse(listBody) as { conversations: { id: string }[] }).conversations[0]?.id
+		const id = (JSON.parse(listBody) as { conversations: Array<{ id: string }> }).conversations[0]?.id
 		const transcript = await get(`/${id}`)
 		const missing = await get(`/${crypto.randomUUID()}`)
 		const otherAgents = await get(`?agentId=${crypto.randomUUID()}&agentId=${crypto.randomUUID()}`)

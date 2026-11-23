@@ -1,6 +1,6 @@
 export const MCP_SERVER_NAME_MAX_LENGTH = 80
-export const MAX_TOOL_DESCRIPTION_CHARACTERS = 1_000
-export const MAX_TOOL_RESULT_CHARACTERS = 8_000
+export const MAX_TOOL_DESCRIPTION_CHARACTERS = 1000
+export const MAX_TOOL_RESULT_CHARACTERS = 8000
 export const MAX_STDIO_CONNECT_MS = 10_000
 export const TOOL_LIST_TIMEOUT_MS = 15_000
 
@@ -15,16 +15,16 @@ export type McpToolSnapshot = {
 
 export type McpHttpInput = {
 	authMode: McpAuthMode
-	deleteHeaders?: string[]
+	deleteHeaders?: Array<string>
 	headers?: Record<string, string>
 	transport: "http"
 	url: string
 }
 
 export type McpStdioInput = {
-	args?: string[]
+	args?: Array<string>
 	command: string
-	deleteEnv?: string[]
+	deleteEnv?: Array<string>
 	env?: Record<string, string>
 	transport: "stdio"
 }
@@ -32,7 +32,7 @@ export type McpStdioInput = {
 export type McpCreateInput = { name: string } & (McpHttpInput | McpStdioInput)
 export type McpUpdateInput = McpCreateInput & {
 	expectedRevision: number
-	tools?: { enabled: boolean; name: string }[]
+	tools?: Array<{ enabled: boolean; name: string }>
 }
 
 /** Secrets never leave the service; responses carry names and a presence flag instead. */
@@ -42,18 +42,18 @@ type McpTransport = "http" | "stdio"
 type McpAuthMode = "none" | "headers"
 
 export type McpServerView = {
-	args: string[]
+	args: Array<string>
 	authMode: McpAuthMode | null
 	command: string | null
-	env: McpSecretName[]
-	headers: McpSecretName[]
+	env: Array<McpSecretName>
+	headers: Array<McpSecretName>
 	isWorking: boolean
 	id: string
 	isDisabled: boolean
 	name: string
 	revision: number
 	toolCount: number
-	tools: McpToolSnapshot[]
+	tools: Array<McpToolSnapshot>
 	transport: McpTransport
 	url: string | null
 }

@@ -13,9 +13,9 @@ export class IngestionError extends Error {
 
 type Dependencies<T extends Job> = {
 	claim(): Promise<T | undefined>
-	convert(job: T): Promise<string[]>
-	embed(text: string): Promise<number[]>
-	complete(job: T, chunks: { text: string; embedding: number[] }[]): Promise<void>
+	convert(job: T): Promise<Array<string>>
+	embed(text: string): Promise<Array<number>>
+	complete(job: T, chunks: Array<{ text: string; embedding: Array<number> }>): Promise<void>
 	fail(job: T, error: unknown): Promise<void>
 }
 
@@ -25,7 +25,7 @@ export async function processPendingFiles<T extends Job>(dependencies: Dependenc
 		try {
 			const texts = await dependencies.convert(job)
 			if (!texts.length) throw new IngestionError("empty-document")
-			const chunks: { text: string; embedding: number[] }[] = []
+			const chunks: Array<{ text: string; embedding: Array<number> }> = []
 			for (const text of texts) chunks.push({ text, embedding: await dependencies.embed(text) })
 			await dependencies.complete(job, chunks)
 		} catch (error) {

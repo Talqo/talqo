@@ -21,7 +21,12 @@ const SEED_ROLES = [
 		permissions: ["users:manage", "roles:manage"],
 		agentPermissions: [],
 	},
-] satisfies { id: string; name: string; permissions: GrantablePermission[]; agentPermissions: AgentPermission[] }[]
+] satisfies Array<{
+	id: string
+	name: string
+	permissions: Array<GrantablePermission>
+	agentPermissions: Array<AgentPermission>
+}>
 
 export async function seed(): Promise<void> {
 	await repo.withAccessLock(async () => {
@@ -36,7 +41,7 @@ export async function seed(): Promise<void> {
 
 export const hasAdmin = repo.adminGrantExists
 
-export async function seedAgentAccess(agentIds: readonly string[]): Promise<void> {
+export async function seedAgentAccess(agentIds: ReadonlyArray<string>): Promise<void> {
 	await repo.withAccessLock(async () => {
 		const roles = await repo.findRoles()
 		const desired = SEED_ROLES.filter(({ agentPermissions }) => agentPermissions.length > 0).map(

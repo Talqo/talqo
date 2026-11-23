@@ -13,8 +13,8 @@ export function RoleDangerZone({
 	role,
 }: {
 	disabled: boolean
-	heldPermissions: readonly string[]
-	ownRoles: readonly Role[]
+	heldPermissions: ReadonlyArray<string>
+	ownRoles: ReadonlyArray<Role>
 	role: Role
 }) {
 	const { t } = useTranslation()

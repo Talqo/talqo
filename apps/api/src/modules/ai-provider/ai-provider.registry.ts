@@ -22,14 +22,14 @@ const CREDENTIAL_FIELDS = ["apiKey", "accessKeyId", "secretAccessKey", "sessionT
 type CredentialField = (typeof CREDENTIAL_FIELDS)[number]
 
 export type ProviderDefinition = {
-	authModes: readonly AuthMode[]
-	credentialFields: readonly CredentialField[]
+	authModes: ReadonlyArray<AuthMode>
+	credentialFields: ReadonlyArray<CredentialField>
 	discovery: boolean
 	id: AiProviderId
-	requiredCredentialFields: readonly CredentialField[]
-	requiredSettingFields: readonly SettingField[]
-	roles: readonly AiProviderRole[]
-	settingFields: readonly SettingField[]
+	requiredCredentialFields: ReadonlyArray<CredentialField>
+	requiredSettingFields: ReadonlyArray<SettingField>
+	roles: ReadonlyArray<AiProviderRole>
+	settingFields: ReadonlyArray<SettingField>
 }
 
 export const PROVIDER_DEFINITIONS = [
@@ -103,7 +103,7 @@ export const PROVIDER_DEFINITIONS = [
 		requiredCredentialFields: ["apiKey"],
 		discovery: true,
 	},
-] as const satisfies readonly ProviderDefinition[]
+] as const satisfies ReadonlyArray<ProviderDefinition>
 
 export function getProviderDefinition(id: string): ProviderDefinition {
 	const provider = PROVIDER_DEFINITIONS.find((definition) => definition.id === id)

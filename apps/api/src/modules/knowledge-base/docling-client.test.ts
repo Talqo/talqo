@@ -8,7 +8,7 @@ function chunk(name: string, fetcher: (url: URL, init: RequestInit) => Promise<R
 	return chunkFile(name, new Uint8Array([72, 105]), BASE_URL, fetcher)
 }
 
-function successful(statuses: string[], chunks: { text: string }[], resultBody?: ReadableStream<Uint8Array>) {
+function successful(statuses: Array<string>, chunks: Array<{ text: string }>, resultBody?: ReadableStream<Uint8Array>) {
 	let polls = 0
 	return async (input: URL) => {
 		const url = String(input)
@@ -32,7 +32,7 @@ describe("Docling Serve chunking", () => {
 	afterEach(() => setSystemTime())
 
 	it("submits, polls, and returns contextualized text", async () => {
-		const requests: { url: string; form?: FormData }[] = []
+		const requests: Array<{ url: string; form?: FormData }> = []
 		const chunks = await chunkFile("notes.txt", new Uint8Array([72, 105]), BASE_URL, async (input, init) => {
 			const url = String(input)
 			requests.push({ url, form: init?.body as FormData | undefined })
@@ -65,7 +65,7 @@ describe("Docling Serve chunking", () => {
 	})
 
 	it("fails when the conversion reports failure", async () => {
-		const requests: string[] = []
+		const requests: Array<string> = []
 		await expect(
 			chunk("notes.txt", async (input) => {
 				const url = String(input)

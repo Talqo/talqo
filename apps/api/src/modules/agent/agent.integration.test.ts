@@ -15,11 +15,11 @@ type AgentPayload = {
 		name: string
 		systemPrompt: string
 		updatedAt: string
-		wordBlacklist: string[]
+		wordBlacklist: Array<string>
 	}
 }
 
-async function createMemberSession(grantedBy: string, permissions: roles.AgentPermission[] = []): Promise<string> {
+async function createMemberSession(grantedBy: string, permissions: Array<roles.AgentPermission> = []): Promise<string> {
 	const username = uniqueUsername()
 	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	await giveRole(member.id, permissions)
@@ -69,7 +69,7 @@ describe("agent CRUD", () => {
 		expect(((await updated.json()) as AgentPayload).agent.systemPrompt).toBe("Help more.")
 
 		const listed = await app.request("/api/agents", { headers: { Cookie: cookie } })
-		const { agents } = (await listed.json()) as { agents: { name: string }[] }
+		const { agents } = (await listed.json()) as { agents: Array<{ name: string }> }
 		expect(agents.map((row) => row.name)).toEqual(["Support 2"])
 
 		const deleted = await app.request(`/api/agents/${agent.id}`, {
@@ -114,7 +114,7 @@ describe("agent CRUD", () => {
 		})
 
 		const response = await app.request("/api/agents", { headers: { Cookie: cookie } })
-		const { agents } = (await response.json()) as { agents: { name: string }[] }
+		const { agents } = (await response.json()) as { agents: Array<{ name: string }> }
 		expect(agents.map((row) => row.name)).toEqual(["Apple", "zebra"])
 	})
 
@@ -139,7 +139,7 @@ describe("agent CRUD", () => {
 		expect(wordCount[0]?.count).toBe(1)
 
 		const listed = await app.request("/api/agents", { headers: { Cookie: cookie } })
-		const { agents: listedAgents } = (await listed.json()) as { agents: { name: string }[] }
+		const { agents: listedAgents } = (await listed.json()) as { agents: Array<{ name: string }> }
 		expect(listedAgents.map((row) => row.name)).toEqual(["Support"])
 	})
 

@@ -64,7 +64,7 @@ type AgentTab = (typeof AGENT_TABS)[number]
 type EmbedsQuery = UseQueryResult<ListEmbedsQueryResult, ListEmbedsQueryError>
 
 function isAgentTab(value: unknown): value is AgentTab {
-	return (AGENT_TABS as readonly unknown[]).includes(value)
+	return (AGENT_TABS as ReadonlyArray<unknown>).includes(value)
 }
 
 export const Route = createFileRoute("/dashboard/agent/$agentId")({
@@ -159,7 +159,7 @@ function useAgentSettingsForm(agentId: string, agent: Agent | undefined) {
 		resolver: zodResolver(agentFormSchema),
 		defaultValues: { name: "", systemPrompt: "" },
 	})
-	const [editedTerms, setEditedTerms] = useState<{ agentId: string; terms: string[] } | null>(null)
+	const [editedTerms, setEditedTerms] = useState<{ agentId: string; terms: Array<string> } | null>(null)
 	useEffect(() => {
 		// keepDirtyValues so a background refetch never discards the operator's typing.
 		if (agent) reset({ name: agent.name, systemPrompt: agent.systemPrompt }, { keepDirtyValues: true })
@@ -183,7 +183,7 @@ function useAgentSettingsForm(agentId: string, agent: Agent | undefined) {
 		dirty: isDirty || termsChanged,
 		dirtyGuard,
 		clearEditedTerms: () => setEditedTerms(null),
-		updateTerms: (next: string[]) => setEditedTerms({ agentId, terms: next }),
+		updateTerms: (next: Array<string>) => setEditedTerms({ agentId, terms: next }),
 	}
 }
 
@@ -198,7 +198,7 @@ function agentSaveError(caught: unknown, t: (key: string) => string): string {
 function useAgentSave(props: {
 	agentId: string
 	canManage: boolean
-	terms: string[]
+	terms: Array<string>
 	reset: (values: AgentFormValues) => void
 	refetch: () => Promise<unknown>
 	onSaved: () => void
@@ -553,7 +553,7 @@ function AgentEmbedsSkeleton() {
 }
 
 function AgentEmbedsContent(props: {
-	embeds: Embed[] | undefined
+	embeds: Array<Embed> | undefined
 	isLoading: boolean
 	isError: boolean
 	error: unknown

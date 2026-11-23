@@ -30,12 +30,12 @@ function summary(id: string, startedAt: string, overrides: Record<string, unknow
 	}
 }
 
-function list(conversations: unknown[], total = conversations.length, page = 1) {
+function list(conversations: Array<unknown>, total = conversations.length, page = 1) {
 	return json({ conversations, page, pageSize: 25, total })
 }
 
 let responses: Record<string, () => Response | Promise<Response>>
-let requested: string[]
+let requested: Array<string>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>

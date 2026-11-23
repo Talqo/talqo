@@ -7,7 +7,7 @@ import { useEffect } from "react"
 const UNAUTHORIZED_STATUS = 401
 const FORBIDDEN_STATUS = 403
 
-export function useAccessError(...errors: unknown[]): boolean {
+export function useAccessError(...errors: Array<unknown>): boolean {
 	const navigate = useNavigate()
 	const queryClient = useQueryClient()
 	const statuses = new Set(

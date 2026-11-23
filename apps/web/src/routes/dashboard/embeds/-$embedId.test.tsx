@@ -61,13 +61,13 @@ const SAVED_EMBED: Embed = {
 }
 
 let currentEmbed: Embed
-let agentPermissions: string[]
+let agentPermissions: Array<string>
 let includeEmbedAgent: boolean
-let detailFailures: Response[]
-let agentsFailures: Response[]
-let updateFailures: Response[]
-let deleteFailures: Response[]
-let updates: unknown[]
+let detailFailures: Array<Response>
+let agentsFailures: Array<Response>
+let updateFailures: Array<Response>
+let deleteFailures: Array<Response>
+let updates: Array<unknown>
 let requests: Array<{ url: string; method: string }>
 let detailGate: Promise<void> | undefined
 let agentsGate: Promise<void> | undefined
@@ -511,7 +511,7 @@ describe("embed detail loading", () => {
 
 describe("embed snippet copying", () => {
 	test("shows one feedback window that restarts on repeat copies and clears on failure", async () => {
-		const writes: string[] = []
+		const writes: Array<string> = []
 		let reject = false
 		const restoreClipboard = stubClipboard(async (text) => {
 			writes.push(text)
@@ -554,7 +554,7 @@ describe("embed snippet copying", () => {
 		const env = import.meta.env as Record<string, string | undefined>
 		const configured = env.VITE_WIDGET_CDN_URL
 		env.VITE_WIDGET_CDN_URL = ""
-		const writes: string[] = []
+		const writes: Array<string> = []
 		const restoreClipboard = stubClipboard(async (text) => {
 			writes.push(text)
 		})
@@ -572,7 +572,7 @@ describe("embed snippet copying", () => {
 	})
 
 	test("writes the current snippet and recovers after a rejected clipboard write", async () => {
-		const writes: string[] = []
+		const writes: Array<string> = []
 		let reject = true
 		const restoreClipboard = stubClipboard(async (text) => {
 			writes.push(text)

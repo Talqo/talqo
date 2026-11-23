@@ -32,7 +32,7 @@ const INITIAL_EMBED: Embed = {
 
 let currentEmbed: Embed
 let rotationFailures: number
-let requests: RequestRecord[]
+let requests: Array<RequestRecord>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>

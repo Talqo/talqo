@@ -2,7 +2,7 @@ import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 
 const WINDOW_MS = 60_000
-const SECOND_MS = 1_000
+const SECOND_MS = 1000
 const MAX_CREDENTIAL_OPERATIONS = 4
 const GLOBAL_LIMIT = 300
 const NETWORK_LIMIT = 30
@@ -18,8 +18,8 @@ export class CredentialRateLimitError extends ApiError {
 	}
 }
 
-function credentialBudgets(network: string | null, username: string): [string, number][] {
-	const budgets: [string, number][] = [["global", GLOBAL_LIMIT]]
+function credentialBudgets(network: string | null, username: string): Array<[string, number]> {
+	const budgets: Array<[string, number]> = [["global", GLOBAL_LIMIT]]
 	if (network) budgets.push([`network:${network}`, NETWORK_LIMIT])
 	budgets.push([`username:${username.toLowerCase()}`, USERNAME_LIMIT])
 	return budgets

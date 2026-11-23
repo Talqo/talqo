@@ -12,10 +12,10 @@ import { useTranslation } from "react-i18next"
 
 import type { ConversationsSearch } from "./conversations-search"
 
-type DayGroup = { day: string; conversations: ConversationSummary[] }
+type DayGroup = { day: string; conversations: Array<ConversationSummary> }
 
-function groupByDay(conversations: ConversationSummary[], language: string): DayGroup[] {
-	const groups: DayGroup[] = []
+function groupByDay(conversations: Array<ConversationSummary>, language: string): Array<DayGroup> {
+	const groups: Array<DayGroup> = []
 	for (const conversation of conversations) {
 		const day = formatDay(conversation.startedAt, language)
 		const last = groups.at(-1)
@@ -73,7 +73,7 @@ function ConversationGroups({
 	language,
 	search,
 }: {
-	groups: DayGroup[]
+	groups: Array<DayGroup>
 	agentNames: Map<string, string>
 	language: string
 	search: ConversationsSearch

@@ -31,7 +31,7 @@ type SessionUser = typeof REGULAR_USER
 type SubmitScenario = {
 	name: string
 	initialPath: string
-	fields: readonly (readonly [string, string])[]
+	fields: ReadonlyArray<readonly [string, string]>
 	apiUrl: string
 	method: string
 	expectedBody: Record<string, string>
@@ -95,9 +95,9 @@ const SUBMIT_SCENARIOS = [
 		successResponse: () => json({ user: REGULAR_USER }, 201),
 		clearsCache: true,
 	},
-] satisfies readonly SubmitScenario[]
+] satisfies ReadonlyArray<SubmitScenario>
 
-let requests: { body: unknown; method: string; url: string }[]
+let requests: Array<{ body: unknown; method: string; url: string }>
 let setupNeeded: boolean
 let sessionUser: SessionUser | null
 let mutationResponse: Response | undefined

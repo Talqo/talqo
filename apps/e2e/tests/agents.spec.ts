@@ -88,7 +88,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 	await expect(await page.request.post("/api/auth/login", { data: ADMIN })).toBeOK()
 	const usersResponse = await page.request.get("/api/users")
 	await expect(usersResponse).toBeOK()
-	const { users } = (await usersResponse.json()) as { users: { id: string; username: string }[] }
+	const { users } = (await usersResponse.json()) as { users: Array<{ id: string; username: string }> }
 	const user = users.find(({ username }) => username === viewer.username)
 	assert(user, "Invited viewer is missing")
 	const roleResponse = await page.request.post("/api/roles", {
@@ -100,7 +100,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 	try {
 		const agentsResponse = await page.request.get("/api/agents")
 		await expect(agentsResponse).toBeOK()
-		const { agents } = (await agentsResponse.json()) as { agents: { id: string; name: string }[] }
+		const { agents } = (await agentsResponse.json()) as { agents: Array<{ id: string; name: string }> }
 		const hidden = agents.find(({ name }) => name === "Product Advisor")
 		assert(hidden, "Missing reporting-only agent")
 		await expect(

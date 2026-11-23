@@ -42,7 +42,7 @@ function RoleLoading() {
 	)
 }
 
-function FailedRoleQuery({ failed, queries }: { failed: RoleQueryState; queries: readonly RoleQueryState[] }) {
+function FailedRoleQuery({ failed, queries }: { failed: RoleQueryState; queries: ReadonlyArray<RoleQueryState> }) {
 	return (
 		<ProblemAlert
 			error={failed.error}
@@ -57,10 +57,10 @@ type RolePageData = {
 	catalog: PermissionCatalog | undefined
 	changeable: boolean | undefined
 	forbidden: boolean
-	held: readonly string[] | undefined
-	ownRoles: readonly Role[]
+	held: ReadonlyArray<string> | undefined
+	ownRoles: ReadonlyArray<Role>
 	role: Role | undefined
-	roles: readonly Role[] | undefined
+	roles: ReadonlyArray<Role> | undefined
 }
 
 type RolePageCallbacks = {
@@ -77,7 +77,7 @@ function RoleContent({
 }: {
 	callbacks: RolePageCallbacks
 	data: RolePageData
-	queries: readonly RoleQueryState[]
+	queries: ReadonlyArray<RoleQueryState>
 	saving: boolean
 }): ReactNode {
 	const { t } = useTranslation()

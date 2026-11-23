@@ -16,7 +16,7 @@ export async function* parseSseStream<T>(
 	parseEvent: SseEventParser<T>,
 ): AsyncGenerator<T> {
 	const decoder = new TextDecoder()
-	const events: T[] = []
+	const events: Array<T> = []
 	const parser = createParser({
 		maxBufferSize: MAX_EVENT_BUFFER_SIZE,
 		onError(error) {

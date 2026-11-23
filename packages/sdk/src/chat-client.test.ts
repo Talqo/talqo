@@ -42,7 +42,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void; reje
 	return { promise, resolve, reject }
 }
 
-function streamFrom(events: ChatEvent[]): AsyncIterable<ChatEvent> {
+function streamFrom(events: Array<ChatEvent>): AsyncIterable<ChatEvent> {
 	return {
 		async *[Symbol.asyncIterator]() {
 			for (const event of events) yield event
@@ -367,7 +367,7 @@ describe("createChatClient", () => {
 			randomUUID: () => values.shift()!,
 		})
 		await client.initialize()
-		const observed: string[][] = []
+		const observed: Array<Array<string>> = []
 		client.subscribe(() => observed.push(client.getSnapshot().messages.map(({ text }) => text)))
 
 		await client.sendMessage("hello")
@@ -545,7 +545,7 @@ describe("createChatClient", () => {
 	test("polls an uncertain first session to completion without regenerating", async () => {
 		const storage = createMemoryStorage()
 		let loads = 0
-		const sends: { credential: string; requestId: string; text: string }[] = []
+		const sends: Array<{ credential: string; requestId: string; text: string }> = []
 		const credential = "22222222-2222-4222-8222-222222222222"
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
@@ -605,7 +605,7 @@ describe("createChatClient", () => {
 			createChatStorageKey("https://api.example.test", "embed"),
 			JSON.stringify({ version: 1, credential }),
 		)
-		const sends: { credential: string; requestId: string; text: string }[] = []
+		const sends: Array<{ credential: string; requestId: string; text: string }> = []
 		let loads = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
@@ -881,7 +881,7 @@ describe("createChatClient", () => {
 	})
 
 	test("retries the latest retriable failed turn as a new attempt", async () => {
-		const sent: string[] = []
+		const sent: Array<string> = []
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
@@ -938,7 +938,7 @@ describe("createChatClient", () => {
 
 	// Without an explicit branch, tool events fall into the terminal case and end every stream early.
 	test("treats tool activity as progress rather than the end of the stream", async () => {
-		const observed: string[][] = []
+		const observed: Array<Array<string>> = []
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
@@ -1217,7 +1217,7 @@ describe("createChatClient", () => {
 		const storage = createMemoryStorage()
 		const key = createChatStorageKey("https://api.example.test", "embed")
 		await storage.setItem(key, JSON.stringify({ version: 1, credential: "credential" }))
-		const order: string[] = []
+		const order: Array<string> = []
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
@@ -1939,7 +1939,7 @@ describe("chat send lifecycle", () => {
 			JSON.stringify({ version: 1, credential: CREDENTIAL }),
 		)
 		const rejection = new ChatTransportError({ code: "invalid-request", status: 400 })
-		const credentials: string[] = []
+		const credentials: Array<string> = []
 		const client = testClient({
 			storage,
 			transport: baseTransport({
@@ -2045,7 +2045,7 @@ describe("chat send lifecycle", () => {
 			}),
 		})
 		await client.initialize()
-		const observed: { serverName: string; toolName: string }[][] = []
+		const observed: Array<Array<{ serverName: string; toolName: string }>> = []
 		client.subscribe(() => observed.push([...client.getSnapshot().activeTools]))
 
 		await client.sendMessage("is it in stock?")
@@ -2095,7 +2095,7 @@ describe("chat cancellation", () => {
 	})
 
 	test("passes the active generation and allows cancelling a later response", async () => {
-		const cancellations: { credential: string; generationId?: string }[] = []
+		const cancellations: Array<{ credential: string; generationId?: string }> = []
 		let sends = 0
 		const client = testClient({
 			transport: baseTransport({

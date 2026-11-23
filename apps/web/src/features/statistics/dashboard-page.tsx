@@ -39,7 +39,7 @@ const FORBIDDEN_STATUS = 403
 // metric's own granularity.
 const STATS_REFRESH_MS = 60_000
 
-export type DashboardSearch = { agents?: string[]; days?: StatsDays }
+export type DashboardSearch = { agents?: Array<string>; days?: StatsDays }
 
 function metricLabels(t: (key: string) => string): Record<StatsMetric, string> {
 	return {
@@ -100,11 +100,11 @@ function DashboardFilters({
 	onSelectionChange,
 	onRangeChange,
 }: {
-	agentLines: AgentLine[]
-	selectedIds: string[]
+	agentLines: Array<AgentLine>
+	selectedIds: Array<string>
 	days: StatsDays
 	updatedAt: string
-	onSelectionChange: (ids: string[]) => void
+	onSelectionChange: (ids: Array<string>) => void
 	onRangeChange: (next: StatsDays) => void
 }) {
 	const { t } = useTranslation()
@@ -179,15 +179,15 @@ function DashboardUsage({
 }: {
 	overview: StatsOverview
 	stats: PageStats
-	selectedIds: string[]
-	selectedLines: AgentLine[]
-	dailyPoints: AgentDailyPoint[]
-	breakdownAgents: BreakdownAgent[]
+	selectedIds: Array<string>
+	selectedLines: Array<AgentLine>
+	dailyPoints: Array<AgentDailyPoint>
+	breakdownAgents: Array<BreakdownAgent>
 }) {
 	const { t } = useTranslation()
 	const compactNumber = useCompactNumber()
 	const labels = useMemo(() => metricLabels(t), [t])
-	const cardGroups = useMemo<{ primary: StatsCard[]; secondary: StatsCard[] }>(() => {
+	const cardGroups = useMemo<{ primary: Array<StatsCard>; secondary: Array<StatsCard> }>(() => {
 		const activeByAgent = new Map(overview.active.map((row) => [row.agentId, row.conversations]))
 		const activeTotal = selectedIds.reduce((sum, id) => sum + (activeByAgent.get(id) ?? 0), 0)
 		const perConversation = (value: number) => (stats.conversations === 0 ? 0 : value / stats.conversations)
@@ -303,16 +303,16 @@ function DashboardReady({
 	stats,
 	updatedAt,
 }: {
-	agentLines: AgentLine[]
-	breakdownAgents: BreakdownAgent[]
-	dailyPoints: AgentDailyPoint[]
+	agentLines: Array<AgentLine>
+	breakdownAgents: Array<BreakdownAgent>
+	dailyPoints: Array<AgentDailyPoint>
 	days: StatsDays
 	onRangeChange: (next: StatsDays) => void
-	onSelectionChange: (ids: string[]) => void
+	onSelectionChange: (ids: Array<string>) => void
 	overview: StatsOverview
 	rangeIsEmpty: boolean
-	selectedIds: string[]
-	selectedLines: AgentLine[]
+	selectedIds: Array<string>
+	selectedLines: Array<AgentLine>
 	stats: PageStats
 	updatedAt: string
 }) {
@@ -428,7 +428,7 @@ export function DashboardIndexPage({
 	const allAgents = agentsQuery.data?.data.agents.filter((agent) => agent.permissions.includes("stats:read"))
 	// Agents without activity still belong in the permitted statistics filter.
 	const allIds = useMemo(() => (allAgents ?? []).map((agent) => agent.id), [allAgents])
-	const agentLines = useMemo<AgentLine[]>(
+	const agentLines = useMemo<Array<AgentLine>>(
 		() =>
 			(allAgents ?? []).map((agent, index) => ({
 				color: agentLineColor(index),
@@ -447,7 +447,7 @@ export function DashboardIndexPage({
 		},
 	})
 	const selection = search.agents
-	const setSelection = (ids: string[]) => {
+	const setSelection = (ids: Array<string>) => {
 		onSearchChange({ ...search, agents: ids.length === allIds.length ? undefined : ids })
 	}
 	const setRange = (next: StatsDays) => {

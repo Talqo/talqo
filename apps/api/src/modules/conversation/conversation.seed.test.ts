@@ -10,7 +10,7 @@ const AGENT_IDS = [
 	"44444444-4444-4444-8444-444444444444",
 ] as const
 
-function countBy(items: { agentId: string }[]): Record<string, number> {
+function countBy(items: Array<{ agentId: string }>): Record<string, number> {
 	return items.reduce<Record<string, number>>((counts, item) => {
 		counts[item.agentId] = (counts[item.agentId] ?? 0) + 1
 		return counts
@@ -23,7 +23,7 @@ describe("conversation seed traffic", () => {
 
 		expect(rows.conversations).toHaveLength(362)
 		expect(rows.attempts).toHaveLength(362)
-		expect(rows.messages).toHaveLength(1_448)
+		expect(rows.messages).toHaveLength(1448)
 		expect(rows.usages).toHaveLength(362)
 		expect(countBy(rows.conversations)).toEqual({
 			[AGENT_IDS[0]]: 181,
@@ -38,7 +38,7 @@ describe("conversation seed traffic", () => {
 			true,
 		)
 		expect(
-			rows.attempts.every((attempt) => attempt.usageInputTokens === 1_280 && attempt.usageOutputTokens === 320),
+			rows.attempts.every((attempt) => attempt.usageInputTokens === 1280 && attempt.usageOutputTokens === 320),
 		).toBe(true)
 	})
 

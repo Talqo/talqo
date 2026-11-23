@@ -21,7 +21,7 @@ const OVERVIEW: StatsOverview = {
 	active: [],
 	activeWindowMinutes: 5,
 }
-const LINES: AgentLine[] = [{ id: "a", name: "A", color: "#000" }]
+const LINES: Array<AgentLine> = [{ id: "a", name: "A", color: "#000" }]
 
 let usage: ReturnType<typeof useDashboardUsage>
 let host: HTMLDivElement

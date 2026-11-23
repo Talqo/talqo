@@ -7,7 +7,7 @@ type ModelAutocompleteProps = {
 	id: string
 	value: string
 	onChange: (value: string) => void
-	models: string[] | null
+	models: Array<string> | null
 	loading?: boolean
 	disabled?: boolean
 	placeholder?: string

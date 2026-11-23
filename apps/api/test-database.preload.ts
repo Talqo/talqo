@@ -17,7 +17,7 @@ const database = `talqo_file_${crypto.randomUUID().replaceAll("-", "")}`
 const admin = postgres(templateUrl, { database: "postgres", max: 1 })
 try {
 	// A killed run cannot drop its database, so reclaim ones left idle by earlier runs.
-	const stale = await admin<{ datname: string }[]>`
+	const stale = await admin<Array<{ datname: string }>>`
 		SELECT datname FROM pg_database d
 		WHERE starts_with(datname, 'talqo_file_')
 			AND NOT EXISTS (SELECT 1 FROM pg_stat_activity a WHERE a.datname = d.datname)

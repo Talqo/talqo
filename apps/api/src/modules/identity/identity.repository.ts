@@ -24,7 +24,7 @@ export async function findUserById(id: string): Promise<User | undefined> {
 	return row
 }
 
-export async function listUsers(): Promise<User[]> {
+export async function listUsers(): Promise<Array<User>> {
 	return db.select().from(user).orderBy(asc(user.username))
 }
 

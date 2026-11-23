@@ -18,7 +18,7 @@ import {
 const APP_SECRET = Buffer.alloc(32, 5).toString("base64url")
 
 const actualAi = await import("ai")
-const embedCalls: Parameters<typeof actualAi.embed>[0][] = []
+const embedCalls: Array<Parameters<typeof actualAi.embed>[0]> = []
 await mock.module("ai", () => ({
 	...actualAi,
 	embed: async (options: Parameters<typeof actualAi.embed>[0]) => {
@@ -77,7 +77,7 @@ function createMemoryService(
 	streamText?: Parameters<typeof createAiProviderService>[0]["streamText"],
 ) {
 	let stored: StoredConfiguration | undefined
-	const discoverRequests: DiscoveryRequest[] = []
+	const discoverRequests: Array<DiscoveryRequest> = []
 	const service = createAiProviderService({
 		vault: createCredentialVault(APP_SECRET, "talqo:ai-provider-credentials:v1"),
 		generate,
@@ -108,7 +108,7 @@ async function prepareText(service: ReturnType<typeof createMemoryService>["serv
 }
 
 async function prepareStreamingText(maxOutputTokens: number, timeoutMs: number) {
-	const streamCalls: StreamTextOptions[] = []
+	const streamCalls: Array<StreamTextOptions> = []
 	const { service } = createMemoryService(
 		undefined,
 		fakeStreamText({ textStream: (async function* () {})(), usage: Promise.resolve({}) }, streamCalls),
@@ -138,7 +138,7 @@ type StreamTextOptions = Record<string, unknown> & {
 
 function fakeStreamText(
 	result: { textStream: AsyncIterable<string>; usage: Promise<Record<string, unknown>> },
-	calls: StreamTextOptions[] = [],
+	calls: Array<StreamTextOptions> = [],
 ) {
 	return ((options: StreamTextOptions) => {
 		calls.push(options)
@@ -154,7 +154,7 @@ function callEnd(options: StreamTextOptions | undefined, toolName: string, toolC
 	options?.onToolExecutionEnd?.({ toolCall: { toolName, toolCallId }, toolOutput })
 }
 
-const changedSettingsCases: { name: string; settings: Record<string, string> }[] = [
+const changedSettingsCases: Array<{ name: string; settings: Record<string, string> }> = [
 	{ name: "a different setting value", settings: { baseURL: "https://example.com", apiVersion: "2024-11-01" } },
 	{ name: "a different set of setting keys", settings: { baseURL: "https://example.com" } },
 ]
@@ -175,7 +175,7 @@ describe("AI provider service", () => {
 
 	it("reports whether a save changes the embedding index key", async () => {
 		const { service } = createMemoryService()
-		const changed: (boolean | undefined)[] = []
+		const changed: Array<boolean | undefined> = []
 		const report = (fields: { "ai.embedding.changed"?: boolean }) => changed.push(fields["ai.embedding.changed"])
 
 		await service.saveConfiguration(input, report)
@@ -207,7 +207,7 @@ describe("AI provider service", () => {
 
 	it("reuses stored credentials when settings arrive in a different key order", async () => {
 		const { service } = createMemoryService()
-		const changed: (boolean | undefined)[] = []
+		const changed: Array<boolean | undefined> = []
 		const report = (fields: { "ai.embedding.changed"?: boolean }) => changed.push(fields["ai.embedding.changed"])
 		await service.saveConfiguration(azureInput({ apiVersion: "2024-06-01", baseURL: "https://example.com" }), report)
 
@@ -461,7 +461,7 @@ describe("AI provider service", () => {
 	})
 
 	it("lets a tool result reach the model for five steps, then stops", async () => {
-		const calls: Record<string, unknown>[] = []
+		const calls: Array<Record<string, unknown>> = []
 		const { service } = createMemoryService(undefined, ((options: unknown) => {
 			calls.push(options as Record<string, unknown>)
 			return { textStream: (async function* () {})(), usage: Promise.resolve({}) }
@@ -475,7 +475,7 @@ describe("AI provider service", () => {
 
 		await Array.fromAsync(prepared.invoke(new AbortController().signal))
 
-		const stopWhen = calls[0]?.["stopWhen"] as (state: { steps: never[] }) => boolean
+		const stopWhen = calls[0]?.["stopWhen"] as (state: { steps: Array<never> }) => boolean
 		expect(stopWhen({ steps: Array.from({ length: 4 }) })).toBe(false)
 		expect(stopWhen({ steps: Array.from({ length: 5 }) })).toBe(true)
 	})
@@ -540,7 +540,7 @@ describe("AI provider service", () => {
 	})
 
 	it("normalizes the AI SDK stream into text events and one completed finish event", async () => {
-		const streamCalls: StreamTextOptions[] = []
+		const streamCalls: Array<StreamTextOptions> = []
 		const { service } = createMemoryService(
 			undefined,
 			fakeStreamText(
@@ -636,7 +636,7 @@ describe("AI provider service", () => {
 
 	it("emits tool activity with the server identity and the failure envelope", async () => {
 		const { prepared, streamCalls } = await prepareStreamingText(10, 1000)
-		const toolEvents: ToolEvent[] = []
+		const toolEvents: Array<ToolEvent> = []
 		const tools = { lookup: { description: "Looks a product up" } }
 		const names = new Map([["lookup", { serverName: "Shopify", toolName: "lookup" }]])
 

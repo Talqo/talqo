@@ -5,8 +5,8 @@ type CompletionRequest = { messages?: unknown; model?: unknown; stream?: unknown
 type PendingStream = { release(): void }
 
 type ProviderState = {
-	requests: { messages: ChatMessage[]; model: string }[]
-	pendingStreams: PendingStream[]
+	requests: Array<{ messages: Array<ChatMessage>; model: string }>
+	pendingStreams: Array<PendingStream>
 }
 const encoder = new TextEncoder()
 
@@ -38,7 +38,7 @@ function completionChunk(id: string, content: string, finishReason: string | nul
 	}
 }
 
-function waitForRelease(signal: AbortSignal, pendingStreams: PendingStream[]): Promise<"aborted" | "released"> {
+function waitForRelease(signal: AbortSignal, pendingStreams: Array<PendingStream>): Promise<"aborted" | "released"> {
 	return new Promise((resolve) => {
 		let settled = false
 		const pending: PendingStream = {
@@ -62,7 +62,7 @@ function waitForRelease(signal: AbortSignal, pendingStreams: PendingStream[]): P
 	})
 }
 
-function answerFor(messages: ChatMessage[]): { chunks: string[]; delayed: boolean } {
+function answerFor(messages: Array<ChatMessage>): { chunks: Array<string>; delayed: boolean } {
 	const latest = text(messages.at(-1))
 	if (latest === "Give me the first answer") return { chunks: ["First streame", "d answer", "."], delayed: true }
 	if (latest === "Where is my order?") return { chunks: ["It ships **tomorrow**."], delayed: false }
@@ -76,7 +76,7 @@ function answerFor(messages: ChatMessage[]): { chunks: string[]; delayed: boolea
 	return { chunks: ["Unexpected fake provider request."], delayed: false }
 }
 
-function streamCompletion(request: Request, messages: ChatMessage[], state: ProviderState): Response {
+function streamCompletion(request: Request, messages: Array<ChatMessage>, state: ProviderState): Response {
 	const requestIndex = state.requests.length
 	const id = `chatcmpl-e2e-${requestIndex}`
 	const answer = answerFor(messages)
