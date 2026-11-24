@@ -63,7 +63,7 @@
 		"typescript/no-unsafe-return": "error",
 		"typescript/no-unsafe-unary-minus": "error",
 		"typescript/non-nullable-type-assertion-style": "error",
-		// "typescript/only-throw-error": "error",
+		"typescript/only-throw-error": "error",
 		// "typescript/unbound-method": "error",
 		"typescript/use-unknown-in-catch-callback-variable": "error",
 
@@ -387,6 +387,13 @@
 			"rules": {
 				"@tanstack/router/create-route-property-order": "error",
 				"@tanstack/router/route-param-names": "error"
+			}
+		},
+		{
+			// The router aborts navigation by throwing redirect() and notFound(), which are not Errors.
+			"files": ["apps/{web,docs}/src/routes/**/*.{ts,tsx}"],
+			"rules": {
+				"typescript/only-throw-error": "off"
 			}
 		},
 		{
