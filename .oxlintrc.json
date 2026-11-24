@@ -49,7 +49,7 @@
 		"typescript/no-unsafe-function-type": "error",
 
 		// Values need proven types before they cross a boundary.
-		// "quality/no-chained-type-assertions": "error",
+		"quality/no-chained-type-assertions": "error",
 		// "quality/no-known-value-widening": "error",
 		// "quality/no-unknown-returns": "error",
 		"quality/no-unknown-type-aliases": "error",
@@ -259,6 +259,7 @@
 			// Tests read fixtures and stub modules; keep the strict type rules for product code.
 			"files": ["**/*.{test,spec,integration,e2e}.{ts,tsx,mts,cts}", "**/__tests__/**/*.{ts,tsx,mts,cts}"],
 			"rules": {
+				"quality/no-chained-type-assertions": "off",
 				"typescript/no-explicit-any": "off",
 				"typescript/no-non-null-assertion": "off",
 				"typescript/no-unsafe-argument": "off",

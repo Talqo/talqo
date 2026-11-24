@@ -212,6 +212,7 @@ describe("createChatClient", () => {
 				JSON.stringify({
 					version: 1,
 					name: "Support",
+					isAvailable: true,
 					appearance: {
 						light: {
 							primary: "#111111",

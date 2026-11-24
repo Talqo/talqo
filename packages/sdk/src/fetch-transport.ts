@@ -1,7 +1,6 @@
 import type {
 	CancelChatGenerationBody,
 	ChatEventV1,
-	EmbedConfig,
 	GetChatSession200,
 	GetChatSession200MessagesItem,
 	GetChatSession200MessagesItemOutcome as MessageOutcome,
@@ -125,9 +124,22 @@ function isSession(value: unknown): value is GetChatSession200 {
 	)
 }
 
-function embedConfiguration(value: unknown): EmbedConfig | undefined {
-	if (!isRecord(value) || typeof value.name !== "string" || !isRecord(value.appearance)) return undefined
-	return value as unknown as EmbedConfig
+type EmbedConfiguration = {
+	appearance: Readonly<Record<string, unknown>>
+	isAvailable: boolean
+	name: string
+}
+
+function embedConfiguration(value: unknown): EmbedConfiguration | undefined {
+	if (
+		!isRecord(value) ||
+		typeof value.name !== "string" ||
+		typeof value.isAvailable !== "boolean" ||
+		!isRecord(value.appearance)
+	) {
+		return undefined
+	}
+	return { appearance: value.appearance, isAvailable: value.isAvailable, name: value.name }
 }
 
 function retryAt(response: Response, now: () => Date): string | undefined {
@@ -255,7 +267,7 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			if (configuration === undefined) throw invalidResponse(response.status)
 			return {
 				title: configuration.name,
-				appearance: configuration.appearance as unknown as Readonly<Record<string, unknown>>,
+				appearance: configuration.appearance,
 				isAvailable: configuration.isAvailable,
 			}
 		},
