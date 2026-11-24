@@ -51,10 +51,9 @@
 		// Values need proven types before they cross a boundary.
 		"quality/no-chained-type-assertions": "error",
 		"quality/no-unknown-type-aliases": "error",
-		"quality/no-unsafe-dictionary-type": "error",
 		"quality/no-widen-then-assert": "error",
 		"typescript/no-explicit-any": "error",
-		// "typescript/no-non-null-assertion": "error",
+		"typescript/no-non-null-assertion": "error",
 		"typescript/no-unsafe-argument": "error",
 		"typescript/no-unsafe-assignment": "error",
 		"typescript/no-unsafe-call": "error",
