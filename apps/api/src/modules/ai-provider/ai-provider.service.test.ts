@@ -1,3 +1,5 @@
+import type { ToolSet } from "ai"
+
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { createCredentialVault } from "@/lib/credential-vault.ts"
@@ -637,7 +639,7 @@ describe("AI provider service", () => {
 	it("emits tool activity with the server identity and the failure envelope", async () => {
 		const { prepared, streamCalls } = await prepareStreamingText(10, 1000)
 		const toolEvents: Array<ToolEvent> = []
-		const tools = { lookup: { description: "Looks a product up" } }
+		const tools = { lookup: { description: "Looks a product up" } } as unknown as ToolSet
 		const names = new Map([["lookup", { serverName: "Shopify", toolName: "lookup" }]])
 
 		await Array.fromAsync(

@@ -58,14 +58,10 @@ function build(
 	settings: Record<string, string>,
 	authMode: AuthMode = "static",
 ) {
-	return createProviderModel({
-		providerId,
-		role,
-		modelId: "model-id",
-		authMode,
-		settings,
-		credentials,
-	})
+	const configuration = { providerId, modelId: "model-id", authMode, settings, credentials }
+	return role === "text"
+		? createProviderModel({ ...configuration, role: "text" })
+		: createProviderModel({ ...configuration, role: "embedding" })
 }
 
 describe("createProviderModel", () => {

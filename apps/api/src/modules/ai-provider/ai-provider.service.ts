@@ -3,8 +3,8 @@ import type { createCredentialVault, CredentialEnvelope } from "@/lib/credential
 
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
-import { APICallError, type EmbeddingModelV4, type LanguageModelV4 } from "@ai-sdk/provider"
-import { embed as aiEmbed, isStepCount, streamText as aiStreamText } from "ai"
+import { APICallError, type LanguageModelV4 } from "@ai-sdk/provider"
+import { embed as aiEmbed, isStepCount, streamText as aiStreamText, type ToolSet } from "ai"
 
 import type { DiscoverModelsInput, SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration, StoredEmbeddingConfiguration, StoredTextConfiguration } from "./ai-provider.types.ts"
@@ -45,7 +45,7 @@ export type TextMessage = { content: string; role: "assistant" | "system" | "use
 /** What a caller hands `invoke`: the tool record plus the names behind each key. */
 export type ToolBinding = {
 	names: Map<string, ToolIdentity>
-	tools: Record<string, unknown>
+	tools: ToolSet
 }
 export type PrepareTextOperationInput = {
 	maxOutputTokens: number
@@ -75,7 +75,7 @@ type Generate = (input: {
 	signal: AbortSignal
 	timeoutMs: number
 	toolNames?: Map<string, ToolIdentity>
-	tools?: Record<string, unknown>
+	tools?: ToolSet
 }) => AsyncIterable<RawGenerationEvent>
 
 type ServiceDependencies = {
@@ -135,7 +135,7 @@ async function* invokePreparedOperation(
 		providerId: AiProviderId
 		signal: AbortSignal
 		toolNames?: Map<string, ToolIdentity>
-		tools?: Record<string, unknown>
+		tools?: ToolSet
 	},
 ) {
 	try {
@@ -171,7 +171,7 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 			timeout: input.timeoutMs,
 			stopWhen: isStepCount(MAX_TOOL_STEPS),
 			onError: () => undefined,
-			...(input.tools ? { tools: input.tools as never } : {}),
+			...(input.tools ? { tools: input.tools } : {}),
 			...toolCallbacks(input),
 		})
 		for await (const text of result.textStream) yield { type: "text", text }
@@ -524,7 +524,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 					...stored.embedding,
 					role: "embedding",
 					credentials,
-				}) as EmbeddingModelV4
+				})
 				return {
 					key: embeddingKey(stored.embedding),
 					async embed(text: string, signal?: AbortSignal) {
@@ -548,7 +548,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 			if (!stored) throw new UnusableConfigurationError("AI provider configuration is missing")
 			try {
 				const credentials = decryptTextCredentials(stored.text, dependencies.vault)
-				const model = createProviderModel({ ...stored.text, role: "text", credentials }) as LanguageModelV4
+				const model = createProviderModel({ ...stored.text, role: "text", credentials })
 				const { instructions, messages } = splitInstructions(input.messages)
 				const streamText = dependencies.streamText ?? aiStreamText
 				const generate = createGenerate(dependencies, streamText)

@@ -39,11 +39,11 @@ export async function* parseSseStream<T>(
 
 	for await (const chunk of source) {
 		parser.feed(decoder.decode(chunk, { stream: true }))
-		while (events.length > 0) yield events.shift() as T
+		yield* events.splice(0)
 	}
 	const finalText = decoder.decode()
 	if (finalText.length > 0) {
 		parser.feed(finalText)
-		while (events.length > 0) yield events.shift() as T
+		yield* events.splice(0)
 	}
 }

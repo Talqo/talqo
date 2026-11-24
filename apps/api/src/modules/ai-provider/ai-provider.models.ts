@@ -23,6 +23,8 @@ type ModelConfiguration = {
 	settings: Record<string, string>
 }
 
+type ModelDependencies = { defaultAzureCredential: () => DefaultAzureCredential }
+
 type ModelBuilderContext = {
 	baseUrl?: string
 	configuration: ModelConfiguration
@@ -152,8 +154,16 @@ const MODEL_BUILDERS: Record<AiProviderId, (context: ModelBuilderContext) => Lan
 }
 
 export function createProviderModel(
+	configuration: ModelConfiguration & { role: "embedding" },
+	dependencies?: ModelDependencies,
+): EmbeddingModelV4
+export function createProviderModel(
+	configuration: ModelConfiguration & { role: "text" },
+	dependencies?: ModelDependencies,
+): LanguageModelV4
+export function createProviderModel(
 	configuration: ModelConfiguration,
-	dependencies: { defaultAzureCredential: () => DefaultAzureCredential } = {
+	dependencies: ModelDependencies = {
 		defaultAzureCredential: () => (defaultAzureCredential ??= new DefaultAzureCredential()),
 	},
 ): LanguageModelV4 | EmbeddingModelV4 {

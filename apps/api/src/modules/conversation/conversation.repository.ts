@@ -500,7 +500,7 @@ export async function listPendingUsageFinalizations(
 	limit: number,
 	id?: string,
 ): Promise<Array<PendingUsageFinalization>> {
-	return db
+	const rows = await db
 		.select({
 			generationAttemptId: generationAttempt.id,
 			conversationId: generationAttempt.conversationId,
@@ -525,7 +525,23 @@ export async function listPendingUsageFinalizations(
 			),
 		)
 		.orderBy(asc(generationAttempt.id))
-		.limit(limit) as Promise<Array<PendingUsageFinalization>>
+		.limit(limit)
+	return rows.map((row): PendingUsageFinalization => {
+		// The query filters null outcomes; this keeps the row type honest if that filter changes.
+		if (row.outcome === null) throw new Error(`Generation attempt ${row.generationAttemptId} has no outcome`)
+		return {
+			agentId: row.agentId,
+			assistantText: row.assistantText,
+			conversationId: row.conversationId,
+			estimatedInputTokens: row.estimatedInputTokens,
+			generationAttemptId: row.generationAttemptId,
+			inputTokens: row.inputTokens,
+			model: row.model,
+			outcome: row.outcome,
+			outputTokens: row.outputTokens,
+			provider: row.provider,
+		}
+	})
 }
 
 export async function stageRecoveredUsageCandidate(
