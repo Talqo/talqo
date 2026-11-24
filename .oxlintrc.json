@@ -50,8 +50,7 @@
 
 		// Values need proven types before they cross a boundary.
 		"quality/no-chained-type-assertions": "error",
-		// "quality/no-known-value-widening": "error",
-		// "quality/no-unknown-returns": "error",
+		"quality/no-unknown-returns": "error",
 		"quality/no-unknown-type-aliases": "error",
 		// "quality/no-unsafe-dictionary-type": "error",
 		"quality/no-widen-then-assert": "error",
