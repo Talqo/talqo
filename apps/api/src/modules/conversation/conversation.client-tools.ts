@@ -1,8 +1,8 @@
 import type { ToolBinding } from "@/modules/ai-provider/ai-provider.service.ts"
 
-import { PAGE_TOOL_NAME } from "@talqo/shared/page-control"
 import { jsonSchema, type ModelMessage, tool, type ToolExecutionOptions } from "ai"
 
+export const PAGE_TOOL_NAME = "talqo_page"
 export const CLIENT_TOOL_LIMIT = 8
 const CLIENT_TOOL_CALL_LIMIT = 16
 const PAGE_TOOL_CALL_LIMIT = 64

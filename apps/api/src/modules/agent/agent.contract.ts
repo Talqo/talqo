@@ -3,10 +3,10 @@ import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/h
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
-import { APPROVAL_INSTRUCTIONS_MAX_LENGTH } from "@talqo/shared/page-control"
 
 import {
 	AGENT_NAME_MAX_LENGTH,
+	APPROVAL_INSTRUCTIONS_MAX_LENGTH,
 	BLACKLIST_MAX_WORDS,
 	BLACKLIST_WORD_MAX_LENGTH,
 	SYSTEM_PROMPT_MAX_LENGTH,

@@ -2,13 +2,13 @@ export const AGENT_NAME_MAX_LENGTH = 100
 export const SYSTEM_PROMPT_MAX_LENGTH = 20_000
 export const BLACKLIST_WORD_MAX_LENGTH = 100
 export const BLACKLIST_MAX_WORDS = 100
+export const APPROVAL_INSTRUCTIONS_MAX_LENGTH = 2000
 
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { isRestrictViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { APPROVAL_INSTRUCTIONS_MAX_LENGTH } from "@talqo/shared/page-control"
 
 import { PLATFORM_SYSTEM_PROMPT } from "./agent.platform-prompt.ts"
 import * as repo from "./agent.repository.ts"

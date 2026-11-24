@@ -1,10 +1,8 @@
-import type { Agent } from "@/api/generated/models/agent.zod.ts"
-
 import { getGetAgentQueryKey, useUpdateAgent } from "@/api/generated/agent/agent.ts"
+import { type Agent, agentPageControlApprovalInstructionsMax } from "@/api/generated/models/agent.zod.ts"
 import { getProblemMessage } from "@/lib/problem-message"
 import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { APPROVAL_INSTRUCTIONS_MAX_LENGTH } from "@talqo/shared/page-control"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { FormActions } from "@talqo/ui/components/form-actions"
@@ -26,7 +24,7 @@ import { z } from "zod"
 
 const schema = z.object({
 	enabled: z.boolean(),
-	approvalInstructions: z.string().trim().min(1).max(APPROVAL_INSTRUCTIONS_MAX_LENGTH),
+	approvalInstructions: z.string().trim().min(1).max(agentPageControlApprovalInstructionsMax),
 })
 type Values = z.infer<typeof schema>
 
@@ -57,14 +55,14 @@ function ApprovalInstructions({
 				id="website-approval"
 				rows={5}
 				readOnly={!canManage || pending}
-				maxLength={APPROVAL_INSTRUCTIONS_MAX_LENGTH}
+				maxLength={agentPageControlApprovalInstructionsMax}
 				aria-invalid={!!error}
 				aria-describedby={error ? "website-approval-error" : undefined}
 				{...register("approvalInstructions")}
 			/>
 			{error && (
 				<p id="website-approval-error" role="alert" className="text-destructive text-xs">
-					{t("pageControl.instructionsRequired", { max: APPROVAL_INSTRUCTIONS_MAX_LENGTH })}
+					{t("pageControl.instructionsRequired", { max: agentPageControlApprovalInstructionsMax })}
 				</p>
 			)}
 		</div>

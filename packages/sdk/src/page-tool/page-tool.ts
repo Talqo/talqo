@@ -1,7 +1,6 @@
 import type { BrowserState, PageController } from "@talqo/page-controller"
 import type { Tool } from "ai"
 
-import { PAGE_TOOL_NAME } from "@talqo/shared/page-control"
 import { tool } from "ai"
 import { z } from "zod"
 
@@ -9,7 +8,7 @@ import { anchorPageApproval } from "./page-tool-position.ts"
 
 import pageToolStyles from "./page-tool.css" with { type: "text" }
 
-export { PAGE_TOOL_NAME }
+export const PAGE_TOOL_NAME = "talqo_page"
 const DESCRIPTION_LIMIT = 300
 const APPROVAL_LIMIT = 2000
 const INPUT_LIMIT = 10_000

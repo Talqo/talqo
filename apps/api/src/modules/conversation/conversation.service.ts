@@ -10,7 +10,6 @@ import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.
 import * as mcp from "@/modules/mcp/mcp.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
-import { PAGE_TOOL_NAME } from "@talqo/shared/page-control"
 import { asSchema, convertToModelMessages, type ModelMessage, type UIMessage } from "ai"
 import { z } from "zod"
 
@@ -18,7 +17,7 @@ import type { ClientToolChannel } from "./conversation.client-tools.ts"
 import type { MessagePart } from "./conversation.messages.ts"
 
 import { createBlacklistFilter } from "./blacklist.ts"
-import { TOOL_PAYLOAD_BYTES } from "./conversation.client-tools.ts"
+import { PAGE_TOOL_NAME, TOOL_PAYLOAD_BYTES } from "./conversation.client-tools.ts"
 import {
 	ConversationNotFoundError,
 	ConversationTooLongError,
