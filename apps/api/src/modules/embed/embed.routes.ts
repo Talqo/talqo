@@ -24,8 +24,8 @@ import * as service from "./embed.service.ts"
 // stale-while-revalidate: a shared cache would serve it past the window ADR-0013 promises.
 const CONFIG_MAX_AGE_SECONDS = 60
 
-function serveEmbedConfig(c: Context) {
-	return service.getConfigByToken(c.req.param("embedToken")!, annotator(c)).then((config) => {
+function serveEmbedConfig(c: Context, embedToken: string) {
+	return service.getConfigByToken(embedToken, annotator(c)).then((config) => {
 		// Availability follows the AI provider, not the embed row, so it must vary the tag too.
 		const etag = `W/"${config.updatedAt.getTime()}-${config.isAvailable ? 1 : 0}"`
 		if (c.req.header("if-none-match") === etag) return c.body(null, HTTP_STATUS.NOT_MODIFIED)
@@ -73,4 +73,6 @@ export const embedRoutes = new OpenAPIHono()
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 
-export const embedConfigRoutes = new OpenAPIHono().openapi(getEmbedConfigRoute, serveEmbedConfig)
+export const embedConfigRoutes = new OpenAPIHono().openapi(getEmbedConfigRoute, (c) =>
+	serveEmbedConfig(c, c.req.param("embedToken")),
+)

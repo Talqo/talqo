@@ -33,7 +33,10 @@ export function namespaceToolName(serverName: string, toolName: string): string 
 
 function inheritedEnv(): Record<string, string> {
 	return Object.fromEntries(
-		STDIO_INHERITED_ENV.filter((name) => process.env[name]).map((name) => [name, process.env[name]!]),
+		STDIO_INHERITED_ENV.flatMap((name) => {
+			const value = process.env[name]
+			return value === undefined ? [] : [[name, value]]
+		}),
 	)
 }
 
@@ -60,17 +63,19 @@ function buildTransport(row: McpServerRow, options: McpConnectOptions): MCPClien
 	if (row.transport === "stdio") {
 		// Write-time validation blocks new rows; this stops servers configured before the flag flipped.
 		if (!env.TALQO_MCP_ALLOW_STDIO) throw new Error("Stdio MCP servers are disabled on this deployment")
+		if (row.command === null) throw new Error(`MCP server ${row.name} has no command`)
 		return new Experimental_StdioMCPTransport({
-			command: row.command!,
+			command: row.command,
 			args: row.args,
 			// Only Talqo's harmless variables plus the operator's own; no APP_SECRET, no DATABASE_URL.
 			env: { ...inheritedEnv(), ...secretsOf(row.env, vault, row, "env") },
 		})
 	}
+	if (row.url === null) throw new Error(`MCP server ${row.name} has no URL`)
 	const headers = secretsOf(row.headers, vault, row, "header")
 	return {
 		type: "http",
-		url: row.url!,
+		url: row.url,
 		...(Object.keys(headers).length > 0 ? { headers } : {}),
 		redirect: "error",
 	}
