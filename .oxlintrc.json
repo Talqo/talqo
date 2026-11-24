@@ -35,7 +35,6 @@
 	"rules": {
 		// Imports are explicit and type-first; no namespace bags or self-references.
 		"import/export": "error",
-		// "import/no-namespace": "error",
 		"import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
 		"typescript/consistent-type-imports": "error",
 		// "typescript/no-import-type-side-effects": "error",
