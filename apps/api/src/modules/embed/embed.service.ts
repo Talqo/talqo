@@ -8,7 +8,8 @@ import { generateOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
+import { isSupportedLanguage } from "@talqo/shared"
+import { DEFAULT_WIDGET_APPEARANCE, WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 
 import * as repo from "./embed.repository.ts"
 
@@ -78,7 +79,7 @@ function toEmbed(row: EmbedRow): Embed {
 			theme: row.theme,
 			themeToggle: row.themeToggleEnabled,
 			// Widened on read: a since-dropped language must not make the row unreadable.
-			language: row.language as WidgetAppearance["language"],
+			language: isSupportedLanguage(row.language) ? row.language : DEFAULT_WIDGET_APPEARANCE.language,
 		},
 	}
 }

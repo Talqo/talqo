@@ -61,7 +61,6 @@
 		"typescript/no-unsafe-enum-comparison": "error",
 		"typescript/no-unsafe-member-access": "error",
 		"typescript/no-unsafe-return": "error",
-		// "typescript/no-unsafe-type-assertion": "error",
 		"typescript/no-unsafe-unary-minus": "error",
 		"typescript/non-nullable-type-assertion-style": "error",
 		// "typescript/only-throw-error": "error",
@@ -243,7 +242,7 @@
 	},
 	"overrides": [
 		{
-			// Enabled by categories, so the commented-out rule entry is not enough to disable them.
+			// Our categories enable these, so they need an explicit off.
 			"files": ["**/*"],
 			"rules": {
 				"promise/always-return": "off",
