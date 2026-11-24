@@ -37,7 +37,7 @@
 		"import/export": "error",
 		"import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
 		"typescript/consistent-type-imports": "error",
-		// "typescript/no-import-type-side-effects": "error",
+		"typescript/no-import-type-side-effects": "error",
 		"typescript/no-require-imports": "error",
 		"unicorn/prefer-node-protocol": "error",
 
