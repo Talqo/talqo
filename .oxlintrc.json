@@ -64,7 +64,7 @@
 		"typescript/no-unsafe-unary-minus": "error",
 		"typescript/non-nullable-type-assertion-style": "error",
 		"typescript/only-throw-error": "error",
-		// "typescript/unbound-method": "error",
+		"typescript/unbound-method": "error",
 		"typescript/use-unknown-in-catch-callback-variable": "error",
 
 		// TypeScript semantics the compiler cannot enforce by itself.
@@ -247,8 +247,7 @@
 			"rules": {
 				"promise/always-return": "off",
 				"typescript/await-thenable": "off",
-				"typescript/no-unsafe-type-assertion": "off",
-				"typescript/unbound-method": "off"
+				"typescript/no-unsafe-type-assertion": "off"
 			}
 		},
 		{

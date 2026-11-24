@@ -68,11 +68,11 @@ type Dependencies = {
 	beforeAccept?: (attempt: number) => Promise<void>
 	concurrencyLimit: number
 	dailyLimit: number
-	prepare(input: {
+	prepare: (input: {
 		maxOutputTokens: number
 		messages: Array<aiProvider.TextMessage>
 		timeoutMs: number
-	}): Promise<PreparedOperation>
+	}) => Promise<PreparedOperation>
 	maxInputCharacters: number
 	maxOutputTokens: number
 	timeoutMs: number
