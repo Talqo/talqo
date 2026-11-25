@@ -195,14 +195,13 @@
 		"unicorn/prefer-string-replace-all": "error",
 		"unicorn/prefer-string-slice": "error",
 		"unicorn/prefer-structured-clone": "error",
-		// "unicorn/prefer-top-level-await": "error",
 		"unicorn/text-encoding-identifier-case": "error",
 
 		// Test hygiene.
 		"no-only-tests/no-only-tests": "error",
 
 		// Project guardrails.
-		// "no-console": "error",
+		"no-console": "error",
 		"no-magic-numbers": [
 			"error",
 			{
