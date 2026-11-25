@@ -134,7 +134,7 @@
 		"react/purity": "error",
 		"react/refs": "error",
 		"react/require-render-return": "error",
-		// "react/rules-of-hooks": "error",
+		"react/rules-of-hooks": "error",
 		"react/set-state-in-effect": "error",
 		"react/set-state-in-render": "error",
 		"react/static-components": "error",
@@ -427,7 +427,9 @@
 				"playwright/valid-expect": "error",
 				"playwright/valid-expect-in-promise": "error",
 				"playwright/valid-test-tags": "error",
-				"playwright/valid-title": "error"
+				"playwright/valid-title": "error",
+				// Playwright fixtures receive `use` positionally; there is no React here.
+				"react/rules-of-hooks": "off"
 			}
 		},
 		{
