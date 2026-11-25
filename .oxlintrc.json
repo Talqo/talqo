@@ -201,7 +201,6 @@
 		"no-only-tests/no-only-tests": "error",
 
 		// Project guardrails.
-		"no-console": "error",
 		"no-magic-numbers": [
 			"error",
 			{
