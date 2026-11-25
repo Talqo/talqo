@@ -447,7 +447,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			cancellationRequested: false,
 			dispatched: false,
 			newSession,
-			persisted: Promise.resolve().then(() => persist(record)),
+			persisted: Promise.try(() => persist(record)),
 		}
 		activeSend = send
 		publish()
