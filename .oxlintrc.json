@@ -94,7 +94,6 @@
 
 		// Async work must be awaited, settled, and surfaced.
 		"no-promise-executor-return": "error",
-		// "promise/always-return": "error",
 		"promise/no-multiple-resolved": "error",
 		"promise/no-return-in-finally": "error",
 		// "typescript/await-thenable": ["error", { "allowMixedPromiseArrays": true }],
