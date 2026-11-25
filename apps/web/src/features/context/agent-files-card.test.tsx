@@ -73,7 +73,9 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 
 async function settle() {
 	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0)
+		})
 	})
 }
 

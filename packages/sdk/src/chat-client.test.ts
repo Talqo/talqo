@@ -141,7 +141,7 @@ function testClient(overrides: Partial<ChatClientOptions> = {}): ChatClient {
 }
 
 function unresolvedSession(): Promise<SessionState> {
-	return new Promise<SessionState>(() => undefined)
+	return new Promise<SessionState>(() => {})
 }
 
 const cancellationFailures = [
@@ -826,7 +826,7 @@ describe("createChatClient", () => {
 			transport: baseTransport({
 				loadSession: async () => {
 					loads += 1
-					if (loads > 1) return new Promise<never>(() => undefined)
+					if (loads > 1) return new Promise<never>(() => {})
 					recoveryStarted.resolve()
 					return recoveredSession.promise
 				},
@@ -996,7 +996,7 @@ describe("createChatClient", () => {
 				}),
 				loadSession: async () => {
 					recoveryStarted.resolve()
-					return new Promise<never>(() => undefined)
+					return new Promise<never>(() => {})
 				},
 			}),
 			randomUUID: () => "11111111-1111-4111-8111-111111111111",
@@ -2306,7 +2306,7 @@ describe("chat recovery", () => {
 			storage,
 			now: () => new Date("2026-09-11T00:00:00.000Z"),
 			transport: baseTransport({
-				sendMessage: () => new Promise<AsyncIterable<ChatEvent>>(() => undefined),
+				sendMessage: () => new Promise<AsyncIterable<ChatEvent>>(() => {}),
 			}),
 			recoveryDelays: [0],
 		})
@@ -2351,7 +2351,9 @@ describe("chat recovery", () => {
 
 		await client.initialize()
 		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
-		await new Promise((resolve) => setTimeout(resolve, 20))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20)
+		})
 
 		expect(loads).toBe(2)
 		expect(client.getSnapshot().messages).toEqual([])
@@ -2376,7 +2378,9 @@ describe("chat recovery", () => {
 		})
 
 		await client.initialize()
-		await new Promise((resolve) => setTimeout(resolve, 20))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20)
+		})
 
 		expect(loads).toBe(1)
 		expect(client.getSnapshot().activity).toBe("idle")
@@ -2392,7 +2396,7 @@ describe("chat recovery", () => {
 					if (sends === 1) throw new Error("connection lost")
 					return {
 						[Symbol.asyncIterator]: () => ({
-							next: () => new Promise<IteratorResult<ChatEvent>>(() => undefined),
+							next: () => new Promise<IteratorResult<ChatEvent>>(() => {}),
 							return: async () => {
 								closed += 1
 								return { done: true, value: undefined }

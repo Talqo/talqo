@@ -165,7 +165,9 @@ async function type(element: HTMLInputElement, text: string) {
 
 async function wait(milliseconds: number) {
 	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, milliseconds))
+		await new Promise((resolve) => {
+			setTimeout(resolve, milliseconds)
+		})
 	})
 }
 

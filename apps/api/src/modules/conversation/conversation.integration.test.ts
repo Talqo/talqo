@@ -157,7 +157,9 @@ function deferred() {
 }
 
 async function* cancellationGeneration(input: { signal: AbortSignal }) {
-	await new Promise<void>((resolve) => input.signal.addEventListener("abort", () => resolve(), { once: true }))
+	await new Promise<void>((resolve) => {
+		input.signal.addEventListener("abort", () => resolve(), { once: true })
+	})
 	yield {
 		type: "finish",
 		outcome: "cancelled",
@@ -749,7 +751,9 @@ describe("conversation lifecycle", () => {
 		const started = deferred()
 		const generate = async function* (input: { signal: AbortSignal }) {
 			started.resolve()
-			await new Promise<void>((resolve) => input.signal.addEventListener("abort", () => resolve(), { once: true }))
+			await new Promise<void>((resolve) => {
+				input.signal.addEventListener("abort", () => resolve(), { once: true })
+			})
 			yield {
 				type: "finish",
 				outcome: "cancelled",
@@ -1610,9 +1614,9 @@ describe("chat retrieval", () => {
 		const search = spyOn(knowledge, "searchKnowledge").mockImplementation(async (_agentId, _text, signal) => {
 			if (!signal) throw new Error("Expected retrieval cancellation signal")
 			started.resolve()
-			return new Promise<Array<string>>((_resolve, reject) =>
-				signal.addEventListener("abort", () => reject(signal.reason), { once: true }),
-			)
+			return new Promise<Array<string>>((_resolve, reject) => {
+				signal.addEventListener("abort", () => reject(signal.reason), { once: true })
+			})
 		})
 		try {
 			const sent = await instance.service.send({

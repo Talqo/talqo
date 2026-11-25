@@ -36,7 +36,9 @@ async function pollTask(taskId: string, baseUrl: string, fetcher: FetchDocling):
 		const status = pollSchema.parse(await poll.json()).task_status
 		if (status === "success") return
 		if (status === "failure") throw new Error("Docling Serve failed to convert the file")
-		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
+		await new Promise((resolve) => {
+			setTimeout(resolve, POLL_INTERVAL_MS)
+		})
 	}
 }
 
