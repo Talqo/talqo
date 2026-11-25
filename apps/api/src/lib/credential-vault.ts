@@ -13,8 +13,11 @@ export type CredentialEnvelope = {
 
 export type CredentialSecretMap = Record<string, CredentialEnvelope>
 
+/** The fields an envelope is bound to; `associatedData` sorts them before sealing. */
+type VaultContext = Record<string, unknown>
+
 /** Envelopes are bound to both the module key context and the purpose they were sealed for. */
-function associatedData(context: object): Buffer {
+function associatedData(context: VaultContext): Buffer {
 	return Buffer.from(JSON.stringify(context, Object.keys(context).toSorted()))
 }
 
@@ -28,7 +31,7 @@ export function createCredentialVault(appSecret: string | undefined, keyContext:
 	const key = Buffer.from(hkdfSync("sha256", sourceKey, Buffer.alloc(0), keyContext, KEY_BYTES))
 
 	return {
-		encrypt(payload: unknown, context: object): CredentialEnvelope {
+		encrypt(payload: unknown, context: VaultContext): CredentialEnvelope {
 			const nonce = randomBytes(NONCE_BYTES)
 			const cipher = createCipheriv("aes-256-gcm", key, nonce)
 			cipher.setAAD(associatedData(context))
@@ -42,7 +45,7 @@ export function createCredentialVault(appSecret: string | undefined, keyContext:
 			}
 		},
 		/** `T` defaults to the string map every stored credential uses. */
-		decrypt<T = Record<string, string>>(envelope: CredentialEnvelope, context: object): T {
+		decrypt<T = Record<string, string>>(envelope: CredentialEnvelope, context: VaultContext): T {
 			const open = (aad: Buffer): T => {
 				const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(envelope.nonce, "base64url"))
 				decipher.setAAD(aad)
