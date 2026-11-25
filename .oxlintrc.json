@@ -144,7 +144,7 @@
 
 		// General correctness and readability.
 		"array-callback-return": "error",
-		// "eqeqeq": "error",
+		"eqeqeq": ["error", "smart"],
 		"no-array-constructor": "error",
 		"no-case-declarations": "error",
 		"no-empty": "error",
