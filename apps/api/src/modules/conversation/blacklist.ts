@@ -5,7 +5,7 @@ function normalizeForMatch(value: string): string {
 }
 
 export function createBlacklistFilter(words: ReadonlyArray<string>) {
-	const terms = words.values().filter(Boolean).map(normalizeForMatch).toArray()
+	const terms = words.filter(Boolean).map(normalizeForMatch)
 	if (terms.length === 0) {
 		return {
 			push: (chunk: string): FilterResult => ({ blocked: false, text: chunk }),

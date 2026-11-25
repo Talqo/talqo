@@ -1225,10 +1225,8 @@ describe("conversation lifecycle", () => {
 			expect(append.mock.calls.every(([, , text]) => text.length <= 1024)).toBe(true)
 			expect(
 				events
-					.values()
 					.filter((event) => event.type === "delta")
 					.map((event) => event.text)
-					.toArray()
 					.join(""),
 			).toBe("x".repeat(40) + "y".repeat(2048))
 			expect(events.at(-1)?.type).toBe("terminal")

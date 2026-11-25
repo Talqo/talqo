@@ -81,17 +81,8 @@ type StoredSecrets = { env: Array<{ name: string }>; headers: Array<{ name: stri
  */
 function secretsDiff(rows: Array<EnvVariable>, stored: Array<{ name: string }>) {
 	const record = toEnvRecord(rows)
-	const present = new Set(
-		rows
-			.values()
-			.map(({ name }) => name.trim())
-			.filter(Boolean),
-	)
-	const removed = stored
-		.values()
-		.map(({ name }) => name)
-		.filter((name) => !present.has(name))
-		.toArray()
+	const present = new Set(rows.map(({ name }) => name.trim()).filter(Boolean))
+	const removed = stored.map(({ name }) => name).filter((name) => !present.has(name))
 	return { record, removed }
 }
 
