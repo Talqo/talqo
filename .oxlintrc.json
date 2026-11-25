@@ -96,7 +96,6 @@
 		"no-promise-executor-return": "error",
 		"promise/no-multiple-resolved": "error",
 		"promise/no-return-in-finally": "error",
-		// "typescript/await-thenable": ["error", { "allowMixedPromiseArrays": true }],
 		"typescript/no-floating-promises": "error",
 		"typescript/no-misused-promises": ["error", { "checksVoidReturn": { "attributes": false } }],
 		"typescript/return-await": ["error", "error-handling-correctness-only"],

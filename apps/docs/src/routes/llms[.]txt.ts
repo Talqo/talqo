@@ -12,7 +12,7 @@ export const Route = createFileRoute("/llms.txt")({
 					"- [MCP endpoint](/api/mcp): read-only tools for listing, reading, and searching these pages.",
 				].join("\n")
 
-				return new Response(`${await docsLlms.index()}\n\n${reference}\n`, {
+				return new Response(`${docsLlms.index()}\n\n${reference}\n`, {
 					headers: { "Content-Type": "text/plain; charset=utf-8" },
 				})
 			},
