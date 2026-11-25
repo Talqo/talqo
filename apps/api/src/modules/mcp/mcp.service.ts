@@ -179,7 +179,12 @@ function applySelection(
 	previous: Array<McpToolSnapshot>,
 	updates: Array<{ enabled: boolean; name: string }>,
 ): Array<McpToolSnapshot> {
-	const enabled = new Set(updates.filter((entry) => entry.enabled).map((entry) => entry.name))
+	const enabled = new Set(
+		updates
+			.values()
+			.filter((entry) => entry.enabled)
+			.map((entry) => entry.name),
+	)
 	return previous.map((tool) => ({ ...tool, enabled: enabled.has(tool.name) }))
 }
 

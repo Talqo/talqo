@@ -32,9 +32,11 @@ export async function seed(): Promise<void> {
 	await repo.withAccessLock(async () => {
 		const existing = await repo.findRoles()
 		await Promise.all(
-			SEED_ROLES.filter(
-				(role) => !existing.some(({ id, name }) => id === role.id || name.toLowerCase() === role.name.toLowerCase()),
-			).map(({ id, name, permissions }) => repo.insertRoleWithPermissions({ id, name }, permissions)),
+			SEED_ROLES.values()
+				.filter(
+					(role) => !existing.some(({ id, name }) => id === role.id || name.toLowerCase() === role.name.toLowerCase()),
+				)
+				.map(({ id, name, permissions }) => repo.insertRoleWithPermissions({ id, name }, permissions)),
 		)
 	})
 }
@@ -44,15 +46,16 @@ export const hasAdmin = repo.adminGrantExists
 export async function seedAgentAccess(agentIds: ReadonlyArray<string>): Promise<void> {
 	await repo.withAccessLock(async () => {
 		const roles = await repo.findRoles()
-		const desired = SEED_ROLES.filter(({ agentPermissions }) => agentPermissions.length > 0).map(
-			({ id, name, agentPermissions }) => {
+		const desired = SEED_ROLES.values()
+			.filter(({ agentPermissions }) => agentPermissions.length > 0)
+			.map(({ id, name, agentPermissions }) => {
 				const role =
 					roles.find((candidate) => candidate.id === id) ??
 					roles.find((candidate) => candidate.name.toLowerCase() === name.toLowerCase())
 				if (!role) throw new Error(`seedAgentAccess: missing role ${name}`)
 				return { roleId: role.id, permissions: agentPermissions }
-			},
-		)
+			})
+			.toArray()
 		const existing = Map.groupBy(
 			await repo.findAgentPermissionsOfRoles(desired.map(({ roleId }) => roleId)),
 			({ agentId }) => agentId,
@@ -60,8 +63,10 @@ export async function seedAgentAccess(agentIds: ReadonlyArray<string>): Promise<
 		await Promise.all(
 			agentIds.flatMap((agentId) =>
 				desired
+					.values()
 					.filter(({ roleId }) => !existing.get(agentId)?.some((grant) => grant.roleId === roleId))
-					.map(({ roleId, permissions }) => repo.replaceRoleAgentPermissions(roleId, agentId, permissions)),
+					.map(({ roleId, permissions }) => repo.replaceRoleAgentPermissions(roleId, agentId, permissions))
+					.toArray(),
 			),
 		)
 	})

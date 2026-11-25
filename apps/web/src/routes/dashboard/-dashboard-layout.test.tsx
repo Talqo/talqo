@@ -227,9 +227,12 @@ test("marks only the navigation item for the current page as current", async () 
 	await act(async () => rendered.router.navigate({ to: "/dashboard/team" }))
 	await settle()
 
-	const current = [...rendered.host.querySelectorAll("aside nav a")]
+	const current = rendered.host
+		.querySelectorAll("aside nav a")
+		.values()
 		.filter((link) => link.getAttribute("aria-current") === "page")
 		.map((link) => link.textContent)
+		.toArray()
 	expect(current).toEqual([t("nav.team")])
 })
 

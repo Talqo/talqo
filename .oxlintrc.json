@@ -171,7 +171,7 @@
 		"prefer-object-has-own": "error",
 
 		// Keep collections and objects to one shape instead of copying or re-wrapping them.
-		// "quality/no-array-filter-map": "error",
+		"quality/no-array-filter-map": "error",
 		// "quality/no-conditional-empty-object-spread": "error",
 		// "quality/no-object-parameters": "error",
 		"quality/no-reduce-accumulator-copy": "error",

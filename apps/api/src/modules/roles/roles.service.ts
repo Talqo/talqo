@@ -216,7 +216,11 @@ export async function agentScope(userId: string, permission?: AgentPermission): 
 	const access = await agentPermissionsById(userId)
 	return access === "all"
 		? "all"
-		: [...access].filter(([, held]) => !permission || held.includes(permission)).map(([agentId]) => agentId)
+		: access
+				.entries()
+				.filter(([, held]) => !permission || held.includes(permission))
+				.map(([agentId]) => agentId)
+				.toArray()
 }
 
 export async function requireAgentScope(userId: string, permission: AgentPermission): Promise<Array<string> | "all"> {
@@ -433,6 +437,7 @@ export async function manageableRoleIds(actorId: string, roles: ReadonlyArray<Ro
 	const scoped = await agentPermissionsById(actorId)
 	const grants = await repo.findAgentPermissionsOfRoles(roles.map((role) => role.id))
 	return roles
+		.values()
 		.filter(
 			(role) =>
 				role.permissions.every((permission) => held.includes(permission)) &&
@@ -442,6 +447,7 @@ export async function manageableRoleIds(actorId: string, roles: ReadonlyArray<Ro
 				),
 		)
 		.map((role) => role.id)
+		.toArray()
 }
 
 export async function createRole(input: RoleInput, actorId: string): Promise<Role> {
