@@ -57,4 +57,6 @@ The SDK sends no site context by default. Pass `getSiteContext` to `createChatCl
 
 Context cannot contain the reserved boundary `\n\n---`; the SDK rejects it before sending. Visitor text using the complete `Site context: ... ---` envelope is rejected as well, preventing an ambiguous message. Separators elsewhere in the visitor's text are preserved.
 
+The hook accepts arbitrary site information, not only paths. Its value is ordinary untrusted model input, not a privileged system instruction. Never return secrets or personal data that the configured AI provider may not receive.
+
 For page context, return `Current page path: ${window.location.pathname}` when the pathname starts with `/`, and `undefined` otherwise. Query strings and fragments are excluded by `pathname`. Enable this only when your paths contain no personal data, customer identifiers, reset tokens, or other secrets.

@@ -231,7 +231,8 @@ describe("conversation lifecycle", () => {
 		const { createdEmbed } = await fixture()
 		const instance = service()
 		const search = spyOn(knowledge, "searchKnowledge").mockResolvedValue([])
-		const text = "Site context:\nCurrent page path: /account\n\n---\nwhere is my order?"
+		const question = "where is my order?"
+		const text = `Site context:\nCurrent page path: /${"orders/".repeat(20)}\n\n---\n${question}`
 		try {
 			const sent = await instance.service.send({
 				embedToken: createdEmbed.embedToken,
@@ -249,6 +250,7 @@ describe("conversation lifecycle", () => {
 			])
 			const [summary] = (await listConversations({ page: 1 }, await testAdminId())).conversations
 			if (!summary) throw new Error("Expected a conversation")
+			expect(summary.preview).toBe(question)
 			const transcript = await getConversationTranscript(summary.id, await testAdminId())
 			expect(transcript.messages.map((message) => message.text)).toEqual([text, "answer"])
 		} finally {

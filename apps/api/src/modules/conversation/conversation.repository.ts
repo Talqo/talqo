@@ -650,7 +650,7 @@ export async function listConversations(input: {
 				messageCount: sql<number>`(SELECT count(*)::int FROM message m WHERE m.conversation_id = conversation.id)`,
 				preview: sql<
 					string | null
-				>`(SELECT left(m.text, ${input.previewLength}) FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'user' ORDER BY m.created_at, m.id LIMIT 1)`,
+				>`(SELECT left(regexp_replace(m.text, '^Site context:\n.*?\n\n---\n', ''), ${input.previewLength}) FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'user' ORDER BY m.created_at, m.id LIMIT 1)`,
 			})
 			.from(conversation)
 			.where(where)
