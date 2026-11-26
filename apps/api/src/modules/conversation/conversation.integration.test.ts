@@ -231,7 +231,7 @@ describe("conversation lifecycle", () => {
 		const { createdEmbed } = await fixture()
 		const instance = service()
 		const search = spyOn(knowledge, "searchKnowledge").mockResolvedValue([])
-		const text = "Site context:\nCurrent page path: /account\n\nwhere is my order?"
+		const text = "Site context:\nCurrent page path: /account\n\n---\nwhere is my order?"
 		try {
 			const sent = await instance.service.send({
 				embedToken: createdEmbed.embedToken,

@@ -53,6 +53,8 @@ The embed token is public. Provider API keys and operator credentials must stay 
 
 ## Site context
 
-The SDK sends no site context by default. Pass `getSiteContext` to `createChatClient` to prepend context to each new user message. The hook is read for every new send, and the composed text is saved and shown in conversation history. Retries and recovery reuse that exact text rather than adding context again.
+The SDK sends no site context by default. Pass `getSiteContext` to `createChatClient` to prepend context to each new outgoing user message. The hook is read for every new send. Messages exposed by `getSnapshot()` contain only the visitor's text, including after history restoration, while the server keeps the full composed text for the model and operator history. Retries and recovery reuse that exact text rather than adding context again.
+
+Context cannot contain the reserved boundary `\n\n---`; the SDK rejects it before sending. Visitor text using the complete `Site context: ... ---` envelope is rejected as well, preventing an ambiguous message. Separators elsewhere in the visitor's text are preserved.
 
 For page context, return `Current page path: ${window.location.pathname}` when the pathname starts with `/`, and `undefined` otherwise. Query strings and fragments are excluded by `pathname`. Enable this only when your paths contain no personal data, customer identifiers, reset tokens, or other secrets.

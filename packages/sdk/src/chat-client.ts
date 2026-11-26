@@ -27,6 +27,9 @@ const MAX_RECOVERY_POLLS = 65
 const HTTP_CLIENT_ERROR = 400
 const HTTP_UNAUTHORIZED = 401
 const HTTP_SERVER_ERROR = 500
+const SITE_CONTEXT_PREFIX = "Site context:\n"
+const SITE_CONTEXT_BOUNDARY = "\n\n---"
+const SITE_CONTEXT_SEPARATOR = `${SITE_CONTEXT_BOUNDARY}\n`
 
 export class ChatClientError extends Error {
 	readonly detail: ChatError
@@ -77,6 +80,23 @@ function isDefiniteRejection(error: unknown): error is ChatTransportError {
 	if (status === undefined) return false
 	// The API rejects with provider-error only before acceptance; later provider failures arrive as stream events.
 	return (status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR) || error.detail.code === "provider-error"
+}
+
+function findSiteContextSeparator(text: string): number {
+	if (!text.startsWith(SITE_CONTEXT_PREFIX)) return -1
+	return text.indexOf(SITE_CONTEXT_SEPARATOR, SITE_CONTEXT_PREFIX.length)
+}
+
+function composeUserText(text: string, siteContext: string | undefined): string {
+	if (findSiteContextSeparator(text) !== -1) throw new Error("Message text contains the reserved site context envelope")
+	if (!siteContext) return text
+	if (siteContext.includes(SITE_CONTEXT_BOUNDARY)) throw new Error("Site context contains the reserved separator")
+	return `${SITE_CONTEXT_PREFIX}${siteContext}${SITE_CONTEXT_SEPARATOR}${text}`
+}
+
+function visibleUserText(text: string): string {
+	const separatorIndex = findSiteContextSeparator(text)
+	return separatorIndex === -1 ? text : text.slice(separatorIndex + SITE_CONTEXT_SEPARATOR.length)
 }
 
 export function createChatClient(options: ChatClientOptions): ChatClient {
@@ -130,7 +150,19 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			publish()
 		},
 	)
+	const publicMessageCache = new WeakMap<ChatMessage, ChatMessage>()
 	let snapshot = createSnapshot()
+
+	function toPublicMessage(message: ChatMessage): ChatMessage {
+		if (message.role !== "user") return message
+		const cached = publicMessageCache.get(message)
+		if (cached !== undefined) return cached
+		const text = visibleUserText(message.text)
+		if (text === message.text) return message
+		const projected = { ...message, text }
+		publicMessageCache.set(message, projected)
+		return projected
+	}
 
 	function createSnapshot(): ChatSnapshot {
 		const isAvailable = configuration?.isAvailable === true
@@ -156,7 +188,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			isAvailable,
 			configuration,
 			activeTools,
-			messages,
+			messages: messages.map(toPublicMessage),
 			activity: currentActivity(),
 			actions,
 			notices,
@@ -478,8 +510,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 
 	async function sendMessage(text: string): Promise<void> {
 		if (text.length === 0) throw new Error("Message text must not be empty")
-		const siteContext = options.getSiteContext?.()
-		await sendText(siteContext ? `Site context:\n${siteContext}\n\n${text}` : text)
+		await sendText(composeUserText(text, options.getSiteContext?.()))
 	}
 
 	function cancelResponse(): Promise<void> {

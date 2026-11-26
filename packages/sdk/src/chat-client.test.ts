@@ -161,7 +161,7 @@ describe("createChatClient", () => {
 		expect(client.getSnapshot().configuration?.title).toBe("Support")
 	})
 
-	test("adds fresh site context to outgoing and visible user messages", async () => {
+	test("adds fresh site context only to outgoing user messages", async () => {
 		const contexts = ["Current page path: /account", "Current page path: /product/guitar", undefined]
 		const sent: string[] = []
 		const ids = [
@@ -200,18 +200,113 @@ describe("createChatClient", () => {
 		await client.sendMessage("second")
 		await client.sendMessage("third")
 
-		const expected = [
-			"Site context:\nCurrent page path: /account\n\nfirst",
-			"Site context:\nCurrent page path: /product/guitar\n\nsecond",
+		const rawTurns = [
+			"Site context:\nCurrent page path: /account\n\n---\nfirst",
+			"Site context:\nCurrent page path: /product/guitar\n\n---\nsecond",
 			"third",
 		]
-		expect(sent).toEqual(expected)
+		expect(sent).toEqual(rawTurns)
 		expect(
 			client
 				.getSnapshot()
 				.messages.filter((message) => message.role === "user")
 				.map((message) => message.text),
-		).toEqual(expected)
+		).toEqual(["first", "second", "third"])
+	})
+
+	test("hides restored site context without altering assistant, malformed, or ordinary user text", async () => {
+		const storage = createMemoryStorage()
+		const raw = "Site context:\nCurrent page path: /account\n\n---\nhello\n\n---\nworld"
+		const malformed = "Site context:\nCurrent page path: /broken\n\nwithout a separator"
+		const ordinary = "before\n\n---\nafter"
+		await storage.setItem(
+			createChatStorageKey("https://api.example.test", "embed"),
+			JSON.stringify({ version: 1, credential: "credential" }),
+		)
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage,
+			transport: baseTransport({
+				loadSession: async () => ({
+					messages: [
+						{ id: "u1", role: "user", text: raw, createdAt: "now", outcome: "completed" },
+						{ id: "a1", role: "assistant", text: raw, createdAt: "now", outcome: "completed" },
+						{ id: "u2", role: "user", text: malformed, createdAt: "now", outcome: "completed" },
+						{ id: "u3", role: "user", text: ordinary, createdAt: "now", outcome: "completed" },
+					],
+					activeGeneration: undefined,
+				}),
+				sendMessage: async () =>
+					streamFrom([
+						{
+							type: "accepted",
+							requestId: "next-request",
+							generationId: "next-generation",
+							userMessage: { id: "next-user", createdAt: "now" },
+							assistantMessage: { id: "next-assistant", createdAt: "now" },
+						},
+						{ type: "terminal", outcome: "completed" },
+					]),
+			}),
+		})
+		await client.initialize()
+		expect(client.getSnapshot().messages.map((message) => message.text)).toEqual([
+			"hello\n\n---\nworld",
+			raw,
+			malformed,
+			ordinary,
+		])
+		const restoredMessage = client.getSnapshot().messages[0]
+
+		await client.sendMessage("next")
+
+		expect(client.getSnapshot().messages[0]).toBe(restoredMessage)
+	})
+
+	for (const siteContext of ["before\n\n---\nafter", "Current page path: /docs\n\n---"]) {
+		test(`rejects a reserved boundary in site context: ${JSON.stringify(siteContext)}`, async () => {
+			let sends = 0
+			const client = createChatClient({
+				apiUrl: "https://api.example.test",
+				embedToken: "embed",
+				getSiteContext: () => siteContext,
+				storage: createMemoryStorage(),
+				transport: baseTransport({
+					sendMessage: async () => {
+						sends += 1
+						return streamFrom([])
+					},
+				}),
+			})
+			await client.initialize()
+
+			await expect(client.sendMessage("hello")).rejects.toThrow("reserved separator")
+			expect(sends).toBe(0)
+			expect(client.getSnapshot().messages).toEqual([])
+		})
+	}
+
+	test("rejects a visitor-authored site context envelope instead of truncating it", async () => {
+		let sends = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage: createMemoryStorage(),
+			transport: baseTransport({
+				sendMessage: async () => {
+					sends += 1
+					return streamFrom([])
+				},
+			}),
+		})
+		await client.initialize()
+
+		await expect(
+			client.sendMessage("Site context:\nCurrent page path: /x\n\n---\nwhat is this feature?"),
+		).rejects.toThrow("reserved site context envelope")
+		expect(sends).toBe(0)
+		expect(client.getSnapshot().messages).toEqual([])
 	})
 
 	test("initializes configuration and restores server history from a stored credential", async () => {
@@ -918,15 +1013,15 @@ describe("createChatClient", () => {
 		await client.retryLastMessage()
 
 		expect(sent).toEqual([
-			"Site context:\nCurrent page path: /account\n\nhello",
-			"Site context:\nCurrent page path: /account\n\nhello",
+			"Site context:\nCurrent page path: /account\n\n---\nhello",
+			"Site context:\nCurrent page path: /account\n\n---\nhello",
 		])
 		expect(client.getSnapshot()).toMatchObject({
 			error: undefined,
 			messages: [
-				{ id: "user-1", outcome: "completed" },
+				{ id: "user-1", text: "hello", outcome: "completed" },
 				{ id: "assistant-1", outcome: "failed" },
-				{ id: "user-2", outcome: "completed" },
+				{ id: "user-2", text: "hello", outcome: "completed" },
 				{ id: "assistant-2", outcome: "completed" },
 			],
 		})
@@ -1090,9 +1185,9 @@ describe("createChatClient", () => {
 		expect(readChatStorageRecord(await storage.getItem(key))).toEqual({ version: 1, credential })
 	})
 
-	test("resubmits a stored pending message with its original identity", async () => {
+	test("resubmits a stored pending message with its original identity and hides its site context", async () => {
 		const storage = createMemoryStorage()
-		const pending = { requestId: "request", text: "hello" }
+		const pending = { requestId: "request", text: "Site context:\nCurrent page path: /account\n\n---\nhello" }
 		await storage.setItem(
 			createChatStorageKey("https://api.example.test", "embed"),
 			JSON.stringify({ version: 1, credential: "credential", pending }),
@@ -1122,6 +1217,7 @@ describe("createChatClient", () => {
 		})
 
 		await client.initialize()
+		expect(client.getSnapshot().messages[0]).toMatchObject({ text: "hello", outcome: "interrupted" })
 		await waitForSnapshot(client, () => client.getSnapshot().notices.includes("recovery-unavailable"))
 		await expect(client.sendMessage("hello")).rejects.toThrow("already active")
 

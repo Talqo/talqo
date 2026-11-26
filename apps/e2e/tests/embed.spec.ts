@@ -69,8 +69,8 @@ test("widget fetches and paints its palette across origins", async ({ page, chat
 
 test("widget streams a multi-turn chat and verifies history", async ({ page, request, chatEmbed }) => {
 	const { providerControlOrigin } = chatEmbed
-	const firstUserTurn = "Site context:\nCurrent page path: /\n\nGive me the first answer"
-	const secondUserTurn = "Site context:\nCurrent page path: /product/guitar\n\nProve you received the earlier turn"
+	const firstRawTurn = "Site context:\nCurrent page path: /\n\n---\nGive me the first answer"
+	const secondRawTurn = "Site context:\nCurrent page path: /product/guitar\n\n---\nProve you received the earlier turn"
 
 	await page.goto(chatEmbed.widgetUrl)
 	await page.getByRole("button", { name: widget("openChat") }).click()
@@ -82,33 +82,37 @@ test("widget streams a multi-turn chat and verifies history", async ({ page, req
 	}
 
 	await send("Give me the first answer")
-	await expect(dialog.getByText(firstUserTurn, { exact: true })).toBeVisible()
+	await expect(dialog.getByText("Give me the first answer", { exact: true })).toBeVisible()
+	await expect(dialog.getByText(firstRawTurn, { exact: true })).toHaveCount(0)
 	await expect(dialog.getByText("First", { exact: true })).toBeVisible()
 	await expect(await request.post(`${providerControlOrigin}/release`)).toBeOK()
 	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
 
 	await page.evaluate(() => history.pushState({}, "", "/product/guitar?color=natural#reviews"))
 	await send("Prove you received the earlier turn")
-	await expect(dialog.getByText(secondUserTurn, { exact: true })).toBeVisible()
+	await expect(dialog.getByText("Prove you received the earlier turn", { exact: true })).toBeVisible()
+	await expect(dialog.getByText(secondRawTurn, { exact: true })).toHaveCount(0)
 	await expect(dialog.getByText("Second streamed answer.", { exact: true })).toBeVisible()
 	const captured = (await (await request.get(`${providerControlOrigin}/requests`)).json()) as {
 		requests: { messages: { content: unknown; role: string }[] }[]
 	}
-	expect(captured.requests[0]?.messages.at(-1)).toEqual({ role: "user", content: firstUserTurn })
+	expect(captured.requests[0]?.messages.at(-1)).toEqual({ role: "user", content: firstRawTurn })
 	expect(captured.requests[1]?.messages).toEqual([
 		{ role: "system", content: expect.stringContaining("support assistant") },
-		{ role: "user", content: firstUserTurn },
+		{ role: "user", content: firstRawTurn },
 		{ role: "assistant", content: "First streamed answer." },
-		{ role: "user", content: secondUserTurn },
+		{ role: "user", content: secondRawTurn },
 	])
 
 	// The same session proves persistence: a reload must not lose either turn.
 	await page.evaluate((url) => history.replaceState({}, "", url), chatEmbed.widgetUrl)
 	await page.reload()
 	await page.getByRole("button", { name: widget("openChat") }).click()
-	await expect(dialog.getByText(firstUserTurn, { exact: true })).toBeVisible()
+	await expect(dialog.getByText("Give me the first answer", { exact: true })).toBeVisible()
+	await expect(dialog.getByText(firstRawTurn, { exact: true })).toHaveCount(0)
 	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
-	await expect(dialog.getByText(secondUserTurn, { exact: true })).toBeVisible()
+	await expect(dialog.getByText("Prove you received the earlier turn", { exact: true })).toBeVisible()
+	await expect(dialog.getByText(secondRawTurn, { exact: true })).toHaveCount(0)
 	await expect(dialog.getByText("Second streamed answer.", { exact: true })).toBeVisible()
 })
 
