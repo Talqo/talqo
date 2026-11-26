@@ -233,6 +233,7 @@ describe("title", () => {
 		expect(container.querySelector("dialog")?.getAttribute("aria-label")).toBe("Support")
 		expect(header?.className).toContain("tw:bg-primary")
 		expect(header?.className).toContain("tw:text-primary-foreground")
+		expect(header?.className).toContain("tw:py-1")
 	})
 })
 
@@ -438,14 +439,24 @@ describe("EmbeddedWidget resize", () => {
 		stubViewport(1024, 768)
 	})
 
-	test("shows a white stripe along the desktop resize border when the chat is open", async () => {
+	test("shows a white curved stripe following the desktop resize corner when the chat is open", async () => {
 		expect(host.querySelector('[data-testid="resize-corner"]')).toBeNull()
 
 		await openChat()
 		const handle = host.querySelector('[data-testid="resize-corner"]')
 		expect(handle).not.toBeNull()
+		expect(handle?.className).toContain("tw:-top-1.5")
+		expect(handle?.className).toContain("tw:-left-1.5")
 		expect(handle?.querySelector("svg")).toBeNull()
-		expect(handle?.querySelector("span")?.className).toContain("tw:bg-white")
+		const stripe = handle?.querySelector("span")
+		expect(stripe?.className).toContain("tw:h-10")
+		expect(stripe?.className).toContain("tw:w-8")
+		expect(stripe?.className).toContain("tw:top-1")
+		expect(stripe?.className).toContain("tw:left-1")
+		expect(stripe?.className).toContain("tw:border-white")
+		expect(stripe?.className).toContain("tw:rounded-tl-lg")
+		expect(stripe?.className).toContain("tw:border-t-6")
+		expect(stripe?.className).toContain("tw:border-l-6")
 	})
 
 	test("hides resize handles when the pointer is coarse", async () => {

@@ -32,7 +32,7 @@ export function ChatHeader({
 	const isDark = scheme === "dark"
 
 	return (
-		<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:bg-primary tw:px-4 tw:py-3.5 tw:text-primary-foreground">
+		<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:bg-primary tw:px-4 tw:py-1 tw:text-primary-foreground">
 			<h2 className="tw:font-semibold tw:text-sm">{title ?? t("defaultTitle")}</h2>
 			<div className="tw:flex tw:items-center tw:gap-1">
 				{hasMessages && (

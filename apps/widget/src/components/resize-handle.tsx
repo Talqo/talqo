@@ -56,14 +56,22 @@ export function ResizeHandle({
 				if (event.detail === 0) onToggleExpanded()
 			}}
 			className={cn(
-				"tw:absolute tw:z-10 tw:flex tw:h-6 tw:w-8 tw:items-start tw:justify-center tw:rounded-control tw:transition-opacity tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:focus-visible:outline-none",
+				"tw:absolute tw:z-10 tw:size-6 tw:rounded-control tw:transition-opacity tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:focus-visible:outline-none",
 				position === "bottom-left"
-					? "tw:top-0 tw:right-2 tw:cursor-nesw-resize"
-					: "tw:top-0 tw:left-2 tw:cursor-nwse-resize",
+					? "tw:-top-1.5 tw:-right-1.5 tw:cursor-nesw-resize"
+					: "tw:-top-1.5 tw:-left-1.5 tw:cursor-nwse-resize",
 				resizing ? "tw:opacity-100" : "tw:opacity-0 tw:group-hover:opacity-100 tw:focus-visible:opacity-100",
 			)}
 		>
-			<span aria-hidden="true" className="tw:block tw:h-0.5 tw:w-6 tw:rounded-full tw:bg-white" />
+			<span
+				aria-hidden="true"
+				className={cn(
+					"tw:absolute tw:block tw:h-10 tw:w-8 tw:border-white tw:drop-shadow-sm",
+					position === "bottom-left"
+						? "tw:top-1 tw:right-1 tw:rounded-tr-lg tw:border-t-6 tw:border-r-6"
+						: "tw:top-1 tw:left-1 tw:rounded-tl-lg tw:border-t-6 tw:border-l-6",
+				)}
+			/>
 		</button>
 	)
 }
