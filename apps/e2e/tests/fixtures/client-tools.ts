@@ -7,7 +7,7 @@ export function mountTools(): void {
 	host.TalqoWidget.mount("#talqo-widget", {
 		tools: {
 			readPage: tool({
-				description: "Read the host page text",
+				description: "Read the host page title",
 				inputSchema: z.object({}),
 				execute: async (_input, { abortSignal }) => {
 					const executions = Number(sessionStorage.getItem("tool-executions") ?? "0") + 1
@@ -17,8 +17,8 @@ export function mountTools(): void {
 							abortSignal?.addEventListener("abort", () => reject(new Error("Cancelled")), { once: true })
 						})
 					}
-					const pageText = document.querySelector("p")?.textContent
-					if (!pageText) throw new Error("Host page text is missing")
+					const pageText = document.title
+					if (!pageText) throw new Error("Host page title is missing")
 					return { pageText }
 				},
 			}),
