@@ -8,17 +8,27 @@ import { bodyLimit } from "hono/body-limit"
 import {
 	agentFileDetailResponseSchema,
 	agentFileListResponseSchema,
+	agentWebsiteDetailResponseSchema,
+	agentWebsiteListResponseSchema,
+	addAgentWebsiteRoute,
+	deleteAgentWebsiteRoute,
 	deleteAgentFileRoute,
 	downloadAgentFileRoute,
 	listAgentFilesRoute,
+	listAgentWebsitesRoute,
+	refreshAgentWebsiteRoute,
 	renameAgentFileRoute,
 	retryAgentFileRoute,
 	uploadAgentFileRoute,
 } from "./knowledge-base.contract.ts"
-import * as files from "./knowledge-base.service.ts"
+import * as knowledgeBase from "./knowledge-base.service.ts"
 
-function serialize(file: files.IndexedFile) {
+function serialize(file: knowledgeBase.IndexedFile) {
 	return { ...file, createdAt: file.createdAt.toISOString() }
+}
+
+function serializeWebsite(website: knowledgeBase.IndexedWebsite) {
+	return { ...website, createdAt: website.createdAt.toISOString() }
 }
 
 async function requireAgent(agentId: string): Promise<void> {
@@ -32,7 +42,7 @@ function contentDisposition(name: string): string {
 }
 
 const uploadBodyLimit = bodyLimit({
-	maxSize: files.MAX_UPLOAD_BODY_BYTES,
+	maxSize: knowledgeBase.MAX_UPLOAD_BODY_BYTES,
 	onError: (c) => problemResponse(c, PROBLEM_CODES.PAYLOAD_TOO_LARGE, HTTP_STATUS.PAYLOAD_TOO_LARGE),
 })
 
@@ -40,13 +50,13 @@ const filesRoutes = new OpenAPIHono()
 	.openapi(listAgentFilesRoute, async (c) => {
 		const agentId = c.req.valid("param").agentId
 		await requireAgent(agentId)
-		const listed = await files.listWithStatus(agentId)
+		const listed = await knowledgeBase.listWithStatus(agentId)
 		return c.json(
 			agentFileListResponseSchema.parse({
 				files: listed.map(serialize),
-				maxSizeBytes: files.MAX_FILE_SIZE_BYTES,
-				maxNameLength: files.MAX_FILE_NAME_LENGTH,
-				allowedExtensions: [...files.ALLOWED_EXTENSIONS],
+				maxSizeBytes: knowledgeBase.MAX_FILE_SIZE_BYTES,
+				maxNameLength: knowledgeBase.MAX_FILE_NAME_LENGTH,
+				allowedExtensions: [...knowledgeBase.ALLOWED_EXTENSIONS],
 			}),
 			HTTP_STATUS.OK,
 		)
@@ -58,18 +68,18 @@ const filesRoutes = new OpenAPIHono()
 		if (!(file instanceof File)) {
 			return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
 		}
-		annotate(c, { "file.extension": files.uploadExtension(file.name), "file.size": file.size })
+		annotate(c, { "file.extension": knowledgeBase.uploadExtension(file.name), "file.size": file.size })
 		await requireAgent(agentId)
-		files.validateUpload(file)
-		const stored = await files.upload(agentId, file.name, await file.arrayBuffer())
+		knowledgeBase.validateUpload(file)
+		const stored = await knowledgeBase.upload(agentId, file.name, await file.arrayBuffer())
 		return c.json(agentFileDetailResponseSchema.parse({ file: serialize(stored) }), HTTP_STATUS.CREATED)
 	})
 	.openapi(downloadAgentFileRoute, async (c) => {
 		const { agentId, fileName } = c.req.valid("param")
 		// URL-decoded before routing: %2F reaches us as a literal "/", so traversal must be rejected here.
 		await requireAgent(agentId)
-		files.validateName(fileName)
-		const content = await files.get(agentId, fileName)
+		knowledgeBase.validateName(fileName)
+		const content = await knowledgeBase.get(agentId, fileName)
 		// attachment forces a download, so the generic type suffices; no per-format map to maintain.
 		return c.body(new Uint8Array(content), HTTP_STATUS.OK, {
 			"Content-Disposition": contentDisposition(fileName),
@@ -80,28 +90,65 @@ const filesRoutes = new OpenAPIHono()
 		const { agentId, fileName } = c.req.valid("param")
 		// URL-decoded before routing: %2F reaches us as a literal "/", so traversal must be rejected here.
 		await requireAgent(agentId)
-		files.validateName(fileName)
-		const target = files.resolveRenameTarget(fileName, c.req.valid("json").name)
-		const renamed = await files.rename(agentId, fileName, target)
+		knowledgeBase.validateName(fileName)
+		const target = knowledgeBase.resolveRenameTarget(fileName, c.req.valid("json").name)
+		const renamed = await knowledgeBase.rename(agentId, fileName, target)
 		return c.json(agentFileDetailResponseSchema.parse({ file: serialize(renamed) }), HTTP_STATUS.OK)
 	})
 	.openapi(deleteAgentFileRoute, async (c) => {
 		const { agentId, fileName } = c.req.valid("param")
 		await requireAgent(agentId)
-		files.validateName(fileName)
-		await files.deleteFile(agentId, fileName)
+		knowledgeBase.validateName(fileName)
+		await knowledgeBase.deleteFile(agentId, fileName)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 	.openapi(retryAgentFileRoute, async (c) => {
 		const { agentId, fileName } = c.req.valid("param")
 		await requireAgent(agentId)
-		files.validateName(fileName)
-		await files.retryEmbedding(agentId, fileName)
+		knowledgeBase.validateName(fileName)
+		await knowledgeBase.retryEmbedding(agentId, fileName)
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
+	})
+
+const websiteRoutes = new OpenAPIHono()
+	.openapi(listAgentWebsitesRoute, async (c) => {
+		const agentId = c.req.valid("param").agentId
+		await requireAgent(agentId)
+		const websites = await knowledgeBase.listWebsites(agentId)
+		return c.json(
+			agentWebsiteListResponseSchema.parse({
+				websites: websites.map(serializeWebsite),
+				maxPages: knowledgeBase.MAX_WEBSITE_PAGES,
+			}),
+			HTTP_STATUS.OK,
+		)
+	})
+	.openapi(addAgentWebsiteRoute, async (c) => {
+		const agentId = c.req.valid("param").agentId
+		await requireAgent(agentId)
+		const website = await knowledgeBase.addWebsite(agentId, c.req.valid("json").url)
+		annotate(c, { "website.id": website.id })
+		return c.json(
+			agentWebsiteDetailResponseSchema.parse({ website: serializeWebsite(website) }),
+			HTTP_STATUS.CREATED,
+		)
+	})
+	.openapi(refreshAgentWebsiteRoute, async (c) => {
+		const { agentId, websiteId } = c.req.valid("param")
+		await requireAgent(agentId)
+		await knowledgeBase.refreshWebsite(agentId, websiteId)
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
+	})
+	.openapi(deleteAgentWebsiteRoute, async (c) => {
+		const { agentId, websiteId } = c.req.valid("param")
+		await requireAgent(agentId)
+		await knowledgeBase.deleteWebsite(agentId, websiteId)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 
 const routes = new OpenAPIHono()
 routes.use("/:agentId/files", uploadBodyLimit)
 routes.route("/:agentId/files", filesRoutes)
+routes.route("/:agentId/websites", websiteRoutes)
 
-export const agentFilesRoutes = routes
+export const knowledgeBaseRoutes = routes

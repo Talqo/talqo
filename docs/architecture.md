@@ -21,7 +21,7 @@ Update this guide in the same change as any decision that changes architecture, 
 | Bun | Runtime and toolchain | [ADR-0001](adr/0001-use-bun.md) |
 | PostgreSQL | Authoritative datastore | [ADR-0003](adr/0003-use-postgresql.md) |
 | pgvector | Knowledge chunk vectors in PostgreSQL | None |
-| Docling Serve | Upload conversion and chunking | [ADR-0015](adr/0015-convert-uploaded-files-with-docling-serve.md) |
+| Docling Serve | Uploaded file and crawler-fetched HTML conversion/chunking | [ADR-0015](adr/0015-convert-uploaded-files-with-docling-serve.md) |
 | Drizzle | Persistence and migrations | [ADR-0004](adr/0004-use-drizzle-for-relational-persistence.md) |
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
@@ -124,7 +124,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `<module>.schema.ts` declares only tables, relations, indexes, and database constraints owned by that module. It contains no domain workflow.
 - `<module>.repository.ts` contains persistence operations for owned data. Services own invariants, sequencing, and application errors.
 - `src/db/client.ts` owns connection construction and lifecycle. Modules consume the configured client; they do not create pools.
-- The source-file module owns original files, ingestion state, and chunk vectors; its service coordinates their lifecycle. The API process polls durable pending files, holds one PostgreSQL advisory lock across the deployment, and embeds one file and one chunk at a time. Failed files require an explicit retry; provider/model/connection changes requeue them.
+- The knowledge-base module owns uploaded originals, website source rows, ingestion state, and chunk vectors; its service coordinates their lifecycle. The API process polls durable pending sources, holds one PostgreSQL advisory lock across the deployment, and converts and embeds one source and one chunk at a time. Failed sources require an explicit retry; provider/model/connection changes requeue files for conversion and websites for a fresh bounded crawl.
 - The `roles` module owns the admin grant, roles, global permissions, per-agent role permissions, role assignments, the invitation credential (token hash, expiry, redemption), first-run setup/bootstrap, and operator administration (password reset, operator deletion). Every access-management write runs under the deployment-wide access lock with fresh authority rechecks.
 - Drizzle configuration discovers distributed module schemas and emits one ordered application migration history under root `drizzle/`.
 - Edit owned schema source, generate migrations centrally, inspect generated SQL, and apply migrations through the centralized lifecycle.

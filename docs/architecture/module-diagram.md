@@ -60,7 +60,7 @@ graph LR
     conversation --> audit
 ```
 
-`identity` and `audit` are leaves: they never call another module. `audit` only ever receives calls (a write sink for activity log entries). `conversation` orchestrates sending messages. `stats` owns no tables: it composes the operator statistics read model from other modules' services. Separately, `knowledge-base` owns source-file lifecycle and serial ingestion, calling the configured embedding provider.
+`identity` and `audit` are leaves: they never call another module. `audit` only ever receives calls (a write sink for activity log entries). `conversation` orchestrates sending messages. `stats` owns no tables: it composes the operator statistics read model from other modules' services. Separately, `knowledge-base` owns file and website source lifecycle and serial ingestion, calling the configured embedding provider.
 
 ## Modules
 
@@ -72,7 +72,7 @@ graph LR
 | `embed` | `EMBED` | Embeddable surfaces: appearance, public embed token, and the agent each one serves. One agent serves many embeds. |
 | `ai-provider` | `AI_PROVIDER_CONFIG` | Deployment-wide model-provider credentials and model selection (a singleton, not per agent). |
 | `mcp` | `MCP_SERVER` | Per-agent tool-server integrations over Streamable HTTP or stdio, with encrypted credentials and tool resolution during chat. One agent serves many connections. |
-| `knowledge-base` | `agent_file`, `agent_file_chunk`; original uploads on disk | Agent source-file lifecycle, durable serial ingestion, Docling conversion/chunking, and per-agent pgvector storage, and chat retrieval. |
+| `knowledge-base` | `agent_file`, `agent_file_chunk`; original uploads on disk | Agent file and website source lifecycle, bounded public crawling, durable serial ingestion, Docling conversion/chunking for files and fetched HTML, per-agent pgvector storage, and chat retrieval. |
 | `conversation` | `CONVERSATION`, `GENERATION_ATTEMPT`, `MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Chat runtime; orchestrates a reply using agent config, knowledge retrieval, and the AI provider. Serves operators read-only transcripts by an operator-facing ID, never the visitor credential. |
 | `usage` | `USAGE_RECORD` | Meters tokens per generation attempt; limit enforcement lives in `conversation`. |
 | `stats` | No tables. Reads from `conversation`, `usage`, `agent` | Operator statistics at `GET /api/stats`. |

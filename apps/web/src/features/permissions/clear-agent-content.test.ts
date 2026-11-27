@@ -9,6 +9,7 @@ describe("clearAgentContent", () => {
 		const protectedKeys = [
 			["/api/agents/agent-1"],
 			["/api/agents/agent-1/files"],
+			["/api/agents/agent-1/websites"],
 			["/api/embeds"],
 			["/api/embeds/embed-1"],
 			["/api/conversations"],

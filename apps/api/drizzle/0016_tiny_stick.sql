@@ -1,0 +1,1 @@
+ALTER TABLE "agent_file" ADD COLUMN "kind" text DEFAULT 'file' NOT NULL;

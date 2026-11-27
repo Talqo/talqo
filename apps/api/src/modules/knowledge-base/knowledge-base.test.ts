@@ -6,11 +6,17 @@ import {
 	MAX_FILE_NAME_LENGTH,
 	MAX_FILE_SIZE_BYTES,
 	MAX_FILE_SIZE_MB,
+	MAX_WEBSITE_URL_LENGTH,
+	InvalidWebsiteError,
+	normalizeWebsiteUrl,
 	resolveRenameTarget,
 	uploadExtension,
 	validateName,
 	validateUpload,
+	websiteIngestionError,
 } from "./knowledge-base.service.ts"
+import { IngestionError } from "./knowledge-base.worker.ts"
+import { WebsiteCrawlError } from "./website-crawler.ts"
 
 describe("uploadExtension", () => {
 	it("reports allowed extensions in lower case and everything else as other", () => {
@@ -70,6 +76,33 @@ describe("validateName", () => {
 
 	it("accepts a plain file name", () => {
 		expect(() => validateName("report.pdf")).not.toThrow()
+	})
+})
+
+describe("website sources", () => {
+	it("normalizes case, paths, default ports, and fragments", () => {
+		expect(normalizeWebsiteUrl(" HTTPS://Example.COM:443/docs/../guide/#part ")).toBe(
+			"https://example.com/guide/",
+		)
+	})
+
+	it("rejects invalid schemes, credentials, and overlong addresses", () => {
+		for (const input of [
+			"",
+			"ftp://example.com/file",
+			"https://user:secret@example.com/",
+			`https://example.com/${"a".repeat(MAX_WEBSITE_URL_LENGTH)}`,
+		]) {
+			expect(() => normalizeWebsiteUrl(input)).toThrow(InvalidWebsiteError)
+		}
+	})
+
+	it("maps each safe crawler failure to an ingestion error", () => {
+		for (const reason of ["website-blocked", "website-unreachable", "website-too-large"] as const) {
+			const mapped = websiteIngestionError(new WebsiteCrawlError(reason))
+			expect(mapped).toBeInstanceOf(IngestionError)
+			expect(mapped.reason).toBe(reason)
+		}
 	})
 })
 

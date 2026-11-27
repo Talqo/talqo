@@ -3,7 +3,7 @@ import type { ReservedSql } from "postgres"
 import { env } from "@/config/env.ts"
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
-import { isForeignKeyViolation } from "@/lib/pg-error.ts"
+import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import { constants as fsConstants } from "node:fs"
 import { copyFile, mkdir, readdir, readFile, rm, stat, unlink, writeFile } from "node:fs/promises"
@@ -13,7 +13,14 @@ import { z } from "zod"
 
 import { chunkFile } from "./docling-client.ts"
 import * as repository from "./knowledge-base.repository.ts"
-import { IngestionError, processPendingFiles } from "./knowledge-base.worker.ts"
+import { IngestionError, processPendingSources } from "./knowledge-base.worker.ts"
+import {
+	canonicalWebsiteUrl,
+	crawlWebsite,
+	MAX_WEBSITE_PAGES,
+	MAX_WEBSITE_URL_LENGTH,
+	WebsiteCrawlError,
+} from "./website-crawler.ts"
 
 /* eslint-disable no-magic-numbers */
 export const MAX_FILE_SIZE_MB = 10
@@ -24,6 +31,7 @@ const MULTIPART_MARGIN_BYTES = 1024 * 1024
 
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * BYTES_PER_MB
 export const MAX_UPLOAD_BODY_BYTES = MAX_FILE_SIZE_BYTES + MULTIPART_MARGIN_BYTES
+export { MAX_WEBSITE_PAGES, MAX_WEBSITE_URL_LENGTH }
 
 export const ALLOWED_EXTENSIONS = [".docx", ".md", ".pdf", ".txt"] as const
 export type AllowedExtension = (typeof ALLOWED_EXTENSIONS)[number]
@@ -60,6 +68,14 @@ type StoredFile = {
 }
 export type IndexedFile = StoredFile & {
 	embeddingStatus: repository.FileStatus
+	embeddingError: repository.FileFailureReason | null
+}
+
+export type IndexedWebsite = {
+	id: string
+	url: string
+	createdAt: Date
+	embeddingStatus: repository.FileStatus
 	embeddingError: repository.FailureReason | null
 }
 
@@ -81,6 +97,27 @@ export class InvalidFileError extends ApiError {
 class FileTooLargeError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.PAYLOAD_TOO_LARGE, HTTP_STATUS.PAYLOAD_TOO_LARGE, message, undefined, options)
+	}
+}
+
+export class InvalidWebsiteError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_WEBSITE_INVALID, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
+	}
+}
+class DuplicateWebsiteError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_WEBSITE_DUPLICATE, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
+class WebsiteNotFoundError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_WEBSITE_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
+	}
+}
+class WebsiteNotRefreshableError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_WEBSITE_NOT_REFRESHABLE, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}
 }
 
@@ -284,6 +321,51 @@ export async function retryEmbedding(agentId: string, name: string): Promise<voi
 	if (!(await repository.retry(agentId, name))) throw new FileNotRetryableError("File is not in a failed state")
 }
 
+export function normalizeWebsiteUrl(input: string): string {
+	try {
+		return canonicalWebsiteUrl(input)
+	} catch (error) {
+		if (error instanceof WebsiteCrawlError) {
+			throw new InvalidWebsiteError(`Use a public HTTP(S) address no longer than ${MAX_WEBSITE_URL_LENGTH} characters`)
+		}
+		throw error
+	}
+}
+
+function toIndexedWebsite(website: repository.StoredWebsite): IndexedWebsite {
+	return {
+		id: website.id,
+		url: website.name,
+		createdAt: website.createdAt,
+		embeddingStatus: website.status,
+		embeddingError: website.error,
+	}
+}
+
+export async function addWebsite(agentId: string, input: string): Promise<IndexedWebsite> {
+	const url = normalizeWebsiteUrl(input)
+	try {
+		return toIndexedWebsite(await repository.insertWebsite(agentId, url))
+	} catch (error) {
+		if (isUniqueViolation(error)) throw new DuplicateWebsiteError("This website was already added")
+		throw error
+	}
+}
+
+export async function listWebsites(agentId: string): Promise<IndexedWebsite[]> {
+	return (await repository.listWebsites(agentId)).map(toIndexedWebsite)
+}
+
+export async function refreshWebsite(agentId: string, websiteId: string): Promise<void> {
+	if (await repository.refreshWebsite(agentId, websiteId)) return
+	if (!(await repository.findWebsite(agentId, websiteId))) throw new WebsiteNotFoundError("Website not found")
+	throw new WebsiteNotRefreshableError("Only ready or failed websites can be refreshed")
+}
+
+export async function deleteWebsite(agentId: string, websiteId: string): Promise<void> {
+	if (!(await repository.removeWebsite(agentId, websiteId))) throw new WebsiteNotFoundError("Website not found")
+}
+
 const RETRIEVAL_TOP_K = 5
 
 export async function searchKnowledge(agentId: string, text: string, signal?: AbortSignal): Promise<string[]> {
@@ -333,7 +415,31 @@ export async function reconcileDanglingRows(): Promise<void> {
 	console.error("agent-file.recovery.dangling_rows_removed", { scanned: rows.length, removed: missing.length })
 }
 
+export function websiteIngestionError(error: WebsiteCrawlError): IngestionError {
+	return new IngestionError(error.reason, { cause: error })
+}
+
+async function convertWebsite(job: repository.Job): Promise<string[]> {
+	let pages: Awaited<ReturnType<typeof crawlWebsite>>
+	try {
+		pages = await crawlWebsite(job.name)
+	} catch (error) {
+		if (error instanceof WebsiteCrawlError) throw websiteIngestionError(error)
+		throw error
+	}
+	const texts: string[] = []
+	for (const [pageIndex, page] of pages.entries()) {
+		try {
+			texts.push(...(await chunkFile(`website-page-${pageIndex + 1}.html`, page.html, env.TALQO_DOCLING_URL)))
+		} catch (error) {
+			throw new IngestionError("conversion-failed", { cause: error })
+		}
+	}
+	return texts
+}
+
 async function convert(job: repository.Job): Promise<string[]> {
+	if (job.kind === "website") return convertWebsite(job)
 	try {
 		return await chunkFile(job.name, await get(job.agentId, job.name), env.TALQO_DOCLING_URL)
 	} catch (error) {
@@ -343,7 +449,7 @@ async function convert(job: repository.Job): Promise<string[]> {
 
 type WorkerConnection = ReservedSql
 type EmbeddingOperation = Awaited<ReturnType<typeof aiProvider.prepareEmbeddingOperation>>
-type IngestionDependencies = Parameters<typeof processPendingFiles<repository.Job>>[0]
+type IngestionDependencies = Parameters<typeof processPendingSources<repository.Job>>[0]
 
 async function acquireWorkerLock(connection: WorkerConnection): Promise<boolean> {
 	const result = await connection<
@@ -392,7 +498,15 @@ function ingestionDependencies(model: EmbeddingOperation, connection: WorkerConn
 			await repository.complete(job, model.key, chunks)
 		},
 		fail: async (job, error) => {
-			console.error("agent-file.embedding.failed", { agentId: job.agentId, file: job.name, error })
+			if (job.kind === "website") {
+				console.error("agent-file.embedding.failed", {
+					agentId: job.agentId,
+					kind: job.kind,
+					error: error instanceof IngestionError ? error.reason : "unknown",
+				})
+			} else {
+				console.error("agent-file.embedding.failed", { agentId: job.agentId, file: job.name, kind: job.kind, error })
+			}
 			await repository.fail(job, error instanceof IngestionError ? error.reason : "unknown")
 		},
 	}
@@ -405,7 +519,7 @@ function logWorkerFailure(error: unknown): void {
 async function runIngestionBatch(connection: WorkerConnection): Promise<void> {
 	const model = await aiProvider.prepareEmbeddingOperation({ timeoutMs: EMBEDDING_TIMEOUT_MS })
 	await repository.reindexChanged(model.key)
-	await processPendingFiles(ingestionDependencies(model, connection))
+	await processPendingSources(ingestionDependencies(model, connection))
 }
 
 async function processIngestionBatch(connection: WorkerConnection): Promise<void> {
