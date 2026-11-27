@@ -12,7 +12,6 @@ export const PAGE_TOOL_NAME = "talqo_page"
 const APPROVAL_LIMIT = 2000
 const INPUT_LIMIT = 10_000
 const OPTION_LIMIT = 1000
-const CENTER_DIVISOR = 2
 const PROPOSAL_CHANGED = "The proposal changed. Observe the page and request fresh approval."
 const THEME_TOKENS = ["primary", "text-on-primary", "background", "surface", "text"]
 
@@ -96,16 +95,6 @@ function isTargetOutsidePage(element: HTMLElement, exclude: readonly Element[]):
 	return false
 }
 
-function assertTargetVisible(element: HTMLElement): void {
-	const rect = element.getBoundingClientRect()
-	if (!rect.width || !rect.height) throw new Error("Target is not visible.")
-	const x = Math.max(0, Math.min(innerWidth - 1, rect.left + rect.width / CENTER_DIVISOR))
-	const y = Math.max(0, Math.min(innerHeight - 1, rect.top + rect.height / CENTER_DIVISOR))
-	const hit = document.elementFromPoint(x, y)
-	if (hit !== element && !element.contains(hit))
-		throw new Error(`Target is covered by ${hit?.tagName ?? "the viewport"}. Observe the page again.`)
-}
-
 function pageBaseTarget(): string {
 	return document.querySelector("base[target]")?.getAttribute("target") ?? "_self"
 }
@@ -166,15 +155,6 @@ function assertSameContent(
 		throw new Error(PROPOSAL_CHANGED)
 }
 
-function assertSamePage(
-	latest: BrowserState | undefined,
-	baseline: { content: string; url: string; fingerprint: string },
-	element: HTMLElement,
-): void {
-	if (!latest) return
-	assertSameContent(latest, baseline, element)
-}
-
 function restoreIgnoredRoots(previous: Map<Element, string | null>): void {
 	for (const [root, value] of previous) {
 		if (value === null) root.removeAttribute("data-page-agent-ignore")
@@ -221,10 +201,16 @@ function pageChanged(
 ): boolean {
 	return page.getElement(index) !== element || state.content !== observed.content || location.href !== observed.url
 }
-async function dispatchAction(page: PageController, input: InteractiveInput) {
-	if (input.action === "click") return page.clickElement(input.index)
-	if (input.action === "fill") return page.inputText(input.index, input.text)
-	return page.selectOption(input.index, input.option)
+async function dispatchAction(page: PageController, input: InteractiveInput, exclude: readonly Element[]) {
+	const previous = exclude.map((root) => [root, root.hasAttribute("inert")] as const)
+	for (const [root] of previous) root.toggleAttribute("inert", true)
+	try {
+		if (input.action === "click") return await page.clickElement(input.index)
+		if (input.action === "fill") return await page.inputText(input.index, input.text)
+		return await page.selectOption(input.index, input.option)
+	} finally {
+		for (const [root, inert] of previous) root.toggleAttribute("inert", inert)
+	}
 }
 
 export function createPageTool(options: {
@@ -250,7 +236,6 @@ export function createPageTool(options: {
 	function validate(element: HTMLElement): void {
 		assertTargetUsable(element)
 		if (isTargetOutsidePage(element, ignoredRoots())) throw new Error("Target is outside the permitted page.")
-		assertTargetVisible(element)
 		const baseTarget = pageBaseTarget()
 		assertSameTabLink(element, baseTarget)
 		assertSameTabForm(element, baseTarget)
@@ -448,7 +433,7 @@ export function createPageTool(options: {
 			const latest = !actionValidated || input.approval ? await browserState(page) : undefined
 			signal.throwIfAborted()
 			assertSameTarget(captured, element, page, input.index)
-			assertSamePage(latest, baseline, element)
+			if (latest) assertSameContent(latest, baseline, element)
 			validate(element)
 			actionValidated = true
 		}
@@ -490,7 +475,7 @@ export function createPageTool(options: {
 			return { status: "declined", message: "Do not retry this commitment without a new visitor request." }
 		signal.throwIfAborted()
 		validateAction = createActionValidator(page, input, element, baseline, signal)
-		const result = await dispatchAction(page, input)
+		const result = await dispatchAction(page, input, options.exclude)
 		signal.throwIfAborted()
 		return { status: result.success ? "dispatched" : "failed", result, page: await observe() }
 	}

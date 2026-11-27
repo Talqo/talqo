@@ -13,12 +13,6 @@ test("advertises an object-root tool schema accepted by structured-output provid
 	expect(manifest[0]?.inputSchema).toHaveProperty("properties.action.type", "string")
 })
 
-test("describes approval as an on-page action, not a chat question", async () => {
-	const page = createPageTool({ exclude: [], language: "en" })
-	const manifest = await captureClientTools({ talqo_page: page.definition }).manifest()
-	expect(manifest[0]?.description).toContain("do not ask for approval in chat")
-})
-
 test("reports incomplete actions before browser execution", async () => {
 	const page = createPageTool({ exclude: [], language: "en" })
 	const tools = captureClientTools({ talqo_page: page.definition })

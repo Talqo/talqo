@@ -91,7 +91,6 @@ function buttonFixture(): HTMLElement {
 	document.body.innerHTML = '<main><button id="buy">Buy</button></main>'
 	const element = document.querySelector<HTMLElement>("#buy")!
 	setRect(element, 20, 40)
-	document.elementFromPoint = () => element
 	controllerState.element = element
 	return element
 }
@@ -200,7 +199,6 @@ test.each(["page", "shadow", "host"])(
 		const boundary = location === "host" ? host : section
 		const button = section.querySelector("button")!
 		setRect(button, 20, 40)
-		document.elementFromPoint = () => button
 		controllerState.element = button
 		const page = newPage()
 		const tools = toolsFor(page)
@@ -311,7 +309,6 @@ test("reports a stale snapshot and a changed page", async () => {
 	document.body.innerHTML = '<main><button id="buy">Buy</button></main>'
 	const element = document.querySelector("#buy") as HTMLElement
 	setRect(element, 20, 40)
-	document.elementFromPoint = () => element
 	controllerState.element = element
 	const page = newPage()
 	const tools = toolsFor(page)
@@ -335,7 +332,6 @@ test("validates links and forms before dispatch", async () => {
 	const tools = toolsFor(page)
 	const link = document.querySelector("#away") as HTMLElement
 	setRect(link, 20, 40)
-	document.elementFromPoint = () => link
 	controllerState.element = link
 	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
 		status: "failed",
@@ -343,7 +339,6 @@ test("validates links and forms before dispatch", async () => {
 	})
 	const submit = document.querySelector("#submit") as HTMLElement
 	setRect(submit, 20, 40)
-	document.elementFromPoint = () => submit
 	controllerState.element = submit
 	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
 		status: "failed",
@@ -352,8 +347,8 @@ test("validates links and forms before dispatch", async () => {
 	page.dispose()
 })
 
-test("rejects unavailable and covered targets", async () => {
-	document.body.innerHTML = '<main><button id="buy" disabled>Buy</button><button id="send">Send</button></main>'
+test("rejects unavailable targets", async () => {
+	document.body.innerHTML = '<main><button id="buy" disabled>Buy</button></main>'
 	const page = newPage()
 	const tools = toolsFor(page)
 	const disabled = document.querySelector("#buy") as HTMLElement
@@ -362,13 +357,35 @@ test("rejects unavailable and covered targets", async () => {
 		status: "failed",
 		message: "Target is unavailable. Observe the page again.",
 	})
-	const send = document.querySelector("#send") as HTMLElement
-	setRect(send, 20, 40)
-	document.elementFromPoint = () => document.createElement("span")
-	controllerState.element = send
+	page.dispose()
+})
+
+test("makes chat inert during dispatch and restores its interaction state", async () => {
+	buttonFixture()
+	const chat = document.createElement("aside")
+	chat.innerHTML = "<button>Send</button>"
+	document.body.append(chat)
+	const page = newPage({ exclude: [chat] })
+	const tools = toolsFor(page)
+	controllerState.onAction = () => {
+		expect(chat.inert).toBe(true)
+	}
+	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
+		status: "dispatched",
+	})
+	expect(chat.inert).toBe(false)
+
+	controllerState.onAction = () => {
+		throw new Error("Click failed")
+	}
 	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
 		status: "failed",
+		message: "Click failed",
 	})
+	expect(chat.inert).toBe(false)
+	chat.inert = true
+	await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })
+	expect(chat.inert).toBe(true)
 	page.dispose()
 })
 
@@ -379,7 +396,6 @@ test("fills and selects ordinary controls even when their ID or test ID is payme
 	const tools = toolsFor(page)
 	const input = document.querySelector("input")!
 	setRect(input, 20, 40)
-	document.elementFromPoint = () => input
 	controllerState.element = input
 	expect(
 		await execute(tools, {
@@ -391,7 +407,6 @@ test("fills and selects ordinary controls even when their ID or test ID is payme
 	).toMatchObject({ status: "dispatched" })
 	const select = document.querySelector("select")!
 	setRect(select, 20, 40)
-	document.elementFromPoint = () => select
 	controllerState.element = select
 	expect(
 		await execute(tools, {
@@ -408,7 +423,6 @@ test("rejects a control with a sensitive ARIA label even when the controller ret
 	document.body.innerHTML = '<main><input aria-label="API secret"></main>'
 	const input = document.querySelector("input")!
 	setRect(input, 20, 40)
-	document.elementFromPoint = () => input
 	controllerState.element = input
 	const page = newPage()
 	const tools = toolsFor(page)
