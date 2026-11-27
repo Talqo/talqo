@@ -1,7 +1,6 @@
 import type { WidgetPosition } from "@talqo/shared/widget-appearance"
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react"
 
-import ResizeGripIcon from "@/assets/icons/resize-grip.svg?react"
 import { cn } from "@talqo/ui/lib/utils"
 import { useTranslation } from "react-i18next"
 
@@ -64,12 +63,13 @@ export function ResizeHandle({
 				resizing ? "tw:opacity-100" : "tw:opacity-0 tw:group-hover:opacity-100 tw:focus-visible:opacity-100",
 			)}
 		>
-			<ResizeGripIcon
+			<span
 				aria-hidden="true"
 				className={cn(
-					"tw:size-full tw:transition-colors",
-					position === "bottom-left" && "tw:-scale-x-100",
-					resizing ? "tw:text-primary" : "tw:text-muted-foreground",
+					"tw:absolute tw:block tw:h-10 tw:w-8 tw:border-white tw:drop-shadow-sm",
+					position === "bottom-left"
+						? "tw:top-1 tw:right-1 tw:rounded-tr-lg tw:border-t-6 tw:border-r-6"
+						: "tw:top-1 tw:left-1 tw:rounded-tl-lg tw:border-t-6 tw:border-l-6",
 				)}
 			/>
 		</button>
