@@ -8,6 +8,7 @@ function probe() {
 	const app = new Hono()
 	app.use("*", async (context, next) => {
 		await next()
+		// oxlint-disable-next-line typescript/no-unsafe-argument -- Hono's middleware context input is `any` by design
 		seen.push({ matched: hasMatchedRoute(context), path: matchedRoutePath(context) })
 	})
 	app.get("/known/:id", (context) => context.text("ok"))

@@ -248,11 +248,7 @@
 			"files": ["**/*.{test,spec,integration,e2e}.{ts,tsx,mts,cts}", "**/__tests__/**/*.{ts,tsx,mts,cts}"],
 			"rules": {
 				"quality/no-chained-type-assertions": "off",
-				"typescript/no-explicit-any": "off",
 				"typescript/no-non-null-assertion": "off",
-				"typescript/no-unsafe-argument": "off",
-				"typescript/no-unsafe-assignment": "off",
-				"typescript/no-unsafe-member-access": "off",
 				"typescript/only-throw-error": "off",
 				"typescript/unbound-method": "off"
 			}
@@ -287,17 +283,6 @@
 				"no-with": "off",
 				"prefer-rest-params": "error",
 				"prefer-spread": "error"
-			}
-		},
-		{
-			// Unsafe-* need type information that plain JavaScript never provides.
-			"files": ["**/*.{js,jsx,mjs,cjs}"],
-			"rules": {
-				"typescript/no-unsafe-argument": "off",
-				"typescript/no-unsafe-assignment": "off",
-				"typescript/no-unsafe-call": "off",
-				"typescript/no-unsafe-member-access": "off",
-				"typescript/no-unsafe-return": "off"
 			}
 		},
 		{
