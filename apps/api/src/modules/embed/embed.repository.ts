@@ -72,6 +72,15 @@ export async function setEmbedDisabled(
 	return row
 }
 
+export async function findExistingEmbedIds(ids: readonly string[]): Promise<Set<string>> {
+	if (ids.length === 0) return new Set()
+	const rows = await db
+		.select({ id: embed.id })
+		.from(embed)
+		.where(inArray(embed.id, [...ids]))
+	return new Set(rows.map(({ id }) => id))
+}
+
 export async function deleteEmbed(id: string, sourceAgentId: string): Promise<boolean> {
 	const removed = await db
 		.delete(embed)

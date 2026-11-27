@@ -1,5 +1,6 @@
 import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
+import { moduleUploadDir } from "@/lib/upload-storage.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
@@ -12,8 +13,11 @@ import {
 	testAdminId,
 	uniqueUsername,
 } from "@/test-helpers.ts"
+import { EMBED_ICON_MAX_BYTES } from "@talqo/shared/embed-icon"
 import { DEFAULT_WIDGET_APPEARANCE, WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 import { beforeEach, describe, expect, it, spyOn } from "bun:test"
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises"
+import { join } from "node:path"
 
 import * as repository from "./embed.repository.ts"
 import * as service from "./embed.service.ts"
@@ -281,6 +285,7 @@ describe("public config lookup", () => {
 			version: WIDGET_CONFIG_VERSION,
 			name: "Marketing site",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
+			iconUrl: null,
 			isAvailable: false,
 		})
 	})
@@ -483,5 +488,219 @@ describe("embed disable and enable routes", () => {
 		expect(
 			(await app.request(`/api/embeds/${unknown}/enable`, { method: "POST", headers: { Cookie: cookie } })).status,
 		).toBe(404)
+	})
+})
+
+const ICON_SVG =
+	'<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1"/></svg>\n'
+
+function uploadIcon(cookie: string, embedId: string, contents: string | Uint8Array = ICON_SVG) {
+	const form = new FormData()
+	form.append("file", new File([contents], "logo.svg", { type: "image/svg+xml" }))
+	return app.request(`/api/embeds/${embedId}/icon`, { method: "PUT", headers: { Cookie: cookie }, body: form })
+}
+
+function resetIcon(cookie: string, embedId: string) {
+	return app.request(`/api/embeds/${embedId}/icon`, { method: "DELETE", headers: { Cookie: cookie } })
+}
+
+function iconDir(embedId: string): string {
+	return join(moduleUploadDir("embedIcons"), embedId)
+}
+
+async function storedIconUrl(embedId: string): Promise<string | null> {
+	return (await service.getEmbed(embedId, await testAdminId())).iconUrl
+}
+
+describe("embed launcher icon", () => {
+	it("stores an uploaded SVG as a file and serves it publicly, sandboxed", async () => {
+		const created = await createEmbed(await createAgent())
+
+		const uploaded = await uploadIcon(await createManagerSession(), created.id)
+
+		expect(uploaded.status).toBe(200)
+		const { embed } = (await uploaded.json()) as { embed: { iconUrl: string } }
+		expect(embed.iconUrl).toMatch(new RegExp(`^/api/embed-config/${created.embedToken}/icon\\?v=[0-9a-f]{16}$`))
+		expect(await readFile(join(iconDir(created.id), "icon.svg"), "utf8")).toBe(ICON_SVG)
+		const config = await app.request(`/api/embed-config/${created.embedToken}`)
+		expect(((await config.json()) as { iconUrl: string }).iconUrl).toBe(embed.iconUrl)
+
+		const icon = await app.request(embed.iconUrl)
+
+		expect(icon.status).toBe(200)
+		expect(await icon.text()).toBe(ICON_SVG)
+		expect(icon.headers.get("content-type")).toBe("image/svg+xml")
+		expect(icon.headers.get("content-security-policy")).toBe("default-src 'none'; style-src 'unsafe-inline'; sandbox")
+		expect(icon.headers.get("x-content-type-options")).toBe("nosniff")
+		expect(icon.headers.get("cross-origin-resource-policy")).toBe("cross-origin")
+		const cached = await app.request(embed.iconUrl, { headers: { "If-None-Match": icon.headers.get("etag") ?? "" } })
+		expect(cached.status).toBe(304)
+	})
+
+	it("replaces the file and moves the versioned URL and config ETag", async () => {
+		const created = await createEmbed(await createAgent())
+		const cookie = await createManagerSession()
+		await uploadIcon(cookie, created.id)
+		const first = await storedIconUrl(created.id)
+		const etag = (await app.request(`/api/embed-config/${created.embedToken}`)).headers.get("etag") ?? ""
+		const replacement = '<svg xmlns="http://www.w3.org/2000/svg"><title>Kočka 🐈</title></svg>'
+
+		await uploadIcon(cookie, created.id, replacement)
+
+		const second = await storedIconUrl(created.id)
+		expect(second).not.toBe(first)
+		expect(await (await app.request(second ?? "")).text()).toBe(replacement)
+		expect(await readdir(iconDir(created.id))).toEqual(["icon.svg"])
+		const refreshed = await app.request(`/api/embed-config/${created.embedToken}`, {
+			headers: { "If-None-Match": etag },
+		})
+		expect(refreshed.status).toBe(200)
+	})
+
+	it("restores the default icon and removes the file", async () => {
+		const created = await createEmbed(await createAgent())
+		const cookie = await createManagerSession()
+		await uploadIcon(cookie, created.id)
+		const iconUrl = await storedIconUrl(created.id)
+		const etag = (await app.request(`/api/embed-config/${created.embedToken}`)).headers.get("etag") ?? ""
+
+		const reset = await resetIcon(cookie, created.id)
+
+		expect(reset.status).toBe(200)
+		expect(await reset.json()).toMatchObject({ embed: { id: created.id, iconUrl: null } })
+		expect((await service.getConfigByToken(created.embedToken)).iconUrl).toBeNull()
+		await expect(stat(iconDir(created.id))).rejects.toMatchObject({ code: "ENOENT" })
+		const refreshed = await app.request(`/api/embed-config/${created.embedToken}`, {
+			headers: { "If-None-Match": etag },
+		})
+		expect(refreshed.status).toBe(200)
+		const gone = await app.request(iconUrl ?? "")
+		expect(gone.status).toBe(404)
+		expect(await gone.json()).toMatchObject({ code: "embed-icon-not-found" })
+	})
+
+	it("answers 404 for an embed without an icon and for an unknown token", async () => {
+		const created = await createEmbed(await createAgent())
+
+		expect((await app.request(`/api/embed-config/${created.embedToken}/icon`)).status).toBe(404)
+		expect((await app.request(`/api/embed-config/unknown-token/icon`)).status).toBe(404)
+	})
+
+	it("serves the icon at the new token's URL after rotation and drops the old one", async () => {
+		const created = await createEmbed(await createAgent())
+		await uploadIcon(await createManagerSession(), created.id)
+		const before = await storedIconUrl(created.id)
+
+		const rotated = await service.rotateEmbedToken(created.id, await testAdminId())
+
+		expect((await app.request(before ?? "")).status).toBe(404)
+		expect((await app.request(rotated.iconUrl ?? "")).status).toBe(200)
+	})
+
+	it("removes the icon file when the embed is deleted", async () => {
+		const created = await createEmbed(await createAgent())
+		await uploadIcon(await createManagerSession(), created.id)
+
+		await service.deleteEmbed(created.id, await testAdminId())
+
+		await expect(stat(iconDir(created.id))).rejects.toMatchObject({ code: "ENOENT" })
+	})
+
+	it("sweeps icon directories whose embed no longer exists and keeps the rest", async () => {
+		const kept = await createEmbed(await createAgent())
+		await uploadIcon(await createManagerSession(), kept.id)
+		const orphan = crypto.randomUUID()
+		await mkdir(iconDir(orphan), { recursive: true })
+		await writeFile(join(iconDir(orphan), "icon.svg"), ICON_SVG)
+
+		await service.removeOrphanIcons()
+
+		await expect(stat(iconDir(orphan))).rejects.toMatchObject({ code: "ENOENT" })
+		expect(await readFile(join(iconDir(kept.id), "icon.svg"), "utf8")).toBe(ICON_SVG)
+	})
+
+	it.each([
+		["a PNG", new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+		["HTML", "<html><body><svg></svg></body></html>"],
+		["a DTD", '<!DOCTYPE svg [<!ENTITY x "x">]><svg>&x;</svg>'],
+		["an unclosed root", "<svg>"],
+		["invalid UTF-8", new Uint8Array([0x3c, 0x73, 0x76, 0x67, 0x3e, 0xff, 0x3c, 0x2f, 0x73, 0x76, 0x67, 0x3e])],
+	])("rejects %s without changing the stored icon", async (_label, contents) => {
+		const created = await createEmbed(await createAgent())
+		const cookie = await createManagerSession()
+		await uploadIcon(cookie, created.id)
+		const before = await storedIconUrl(created.id)
+
+		const response = await uploadIcon(cookie, created.id, contents)
+
+		expect(response.status).toBe(400)
+		expect(await response.json()).toMatchObject({ code: "embed-icon-invalid" })
+		expect(await storedIconUrl(created.id)).toBe(before)
+		expect(await readFile(join(iconDir(created.id), "icon.svg"), "utf8")).toBe(ICON_SVG)
+	})
+
+	it("rejects an icon over the size limit", async () => {
+		const created = await createEmbed(await createAgent())
+
+		const response = await uploadIcon(
+			await createManagerSession(),
+			created.id,
+			`<svg>${" ".repeat(EMBED_ICON_MAX_BYTES)}</svg>`,
+		)
+
+		expect(response.status).toBe(413)
+		expect(await response.json()).toMatchObject({ code: "payload-too-large" })
+		expect(await storedIconUrl(created.id)).toBeNull()
+	})
+
+	it("rejects a request body far beyond the limit", async () => {
+		const created = await createEmbed(await createAgent())
+
+		const response = await uploadIcon(
+			await createManagerSession(),
+			created.id,
+			`<svg>${" ".repeat(EMBED_ICON_MAX_BYTES * 2)}</svg>`,
+		)
+
+		expect(response.status).toBe(413)
+	})
+
+	it("denies icon changes to an agent reader", async () => {
+		const created = await createEmbed(await createAgent())
+		const cookie = await createReaderSession()
+
+		expect((await uploadIcon(cookie, created.id)).status).toBe(403)
+		expect((await resetIcon(cookie, created.id)).status).toBe(403)
+		expect(await storedIconUrl(created.id)).toBeNull()
+		await expect(stat(iconDir(created.id))).rejects.toMatchObject({ code: "ENOENT" })
+	})
+
+	it.each([
+		["a valid icon", ICON_SVG],
+		["an invalid file", "<html></html>"],
+	])("conceals embeds of agents the operator cannot see when uploading %s", async (_label, contents) => {
+		const hidden = await createEmbed(await createAgent("Hidden"))
+		const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		await giveRole(operator.id, ["agents:manage"], [await createAgent("Visible")])
+
+		const response = await uploadIcon(await login(operator.username), hidden.id, contents)
+
+		expect(response.status).toBe(404)
+		expect(await response.json()).toMatchObject({ code: "embed-not-found" })
+		expect(await storedIconUrl(hidden.id)).toBeNull()
+	})
+
+	it("rejects an upload without a file", async () => {
+		const created = await createEmbed(await createAgent())
+		const form = new FormData()
+		form.append("file", "not a file")
+
+		const response = await app.request(`/api/embeds/${created.id}/icon`, {
+			method: "PUT",
+			headers: { Cookie: await createManagerSession() },
+			body: form,
+		})
+
+		expect(response.status).toBe(400)
 	})
 })

@@ -27,6 +27,7 @@ const INITIAL_EMBED: Embed = {
 	embedToken: "initial-token",
 	accessVersion: 1,
 	isDisabled: false,
+	iconUrl: null,
 	appearance: EMBED_FORM_DEFAULTS,
 }
 

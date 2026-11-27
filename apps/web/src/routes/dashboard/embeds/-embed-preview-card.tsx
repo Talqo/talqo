@@ -11,10 +11,11 @@ type EmbedPreviewCardProps = {
 	activeScheme: "light" | "dark"
 	appearance: WidgetAppearance
 	embedId: string
+	iconUrl: string | null
 	title: string | undefined
 }
 
-export function EmbedPreviewCard({ activeScheme, appearance, embedId, title }: EmbedPreviewCardProps) {
+export function EmbedPreviewCard({ activeScheme, appearance, embedId, iconUrl, title }: EmbedPreviewCardProps) {
 	const { t } = useTranslation()
 
 	return (
@@ -54,7 +55,13 @@ export function EmbedPreviewCard({ activeScheme, appearance, embedId, title }: E
 								<div className="bg-muted/30 h-24 rounded-md border" />
 							</div>
 						</div>
-						<WidgetPreview appearance={appearance} title={title} activeScheme={activeScheme} previewKey={embedId} />
+						<WidgetPreview
+							appearance={appearance}
+							title={title}
+							iconUrl={iconUrl}
+							activeScheme={activeScheme}
+							previewKey={embedId}
+						/>
 					</div>
 				</div>
 			</CardContent>

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
+import { svgDataUrl } from "./embed-icon"
 import {
 	configFromMessage,
 	configMessage,
@@ -30,6 +31,7 @@ describe("preview channel", () => {
 			type: "config",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
 			title: undefined,
+			iconUrl: undefined,
 			forcedScheme: undefined,
 			isAvailable: undefined,
 		})
@@ -41,6 +43,7 @@ describe("preview channel", () => {
 			type: "config",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
 			title: "Preview",
+			iconUrl: undefined,
 			forcedScheme: "light",
 			isAvailable: true,
 		})
@@ -67,12 +70,14 @@ describe("preview channel", () => {
 		expect(configFromMessage(message())).toEqual({
 			appearance: partialAppearance,
 			title: undefined,
+			iconUrl: undefined,
 			forcedScheme: undefined,
 			isAvailable: undefined,
 		})
 		expect(configFromMessage(message({ title: "Marketing site", forcedScheme: "dark", isAvailable: false }))).toEqual({
 			appearance: partialAppearance,
 			title: "Marketing site",
+			iconUrl: undefined,
 			forcedScheme: "dark",
 			isAvailable: false,
 		})
@@ -80,6 +85,17 @@ describe("preview channel", () => {
 		expect(configFromMessage(message({ forcedScheme: "light" }))?.forcedScheme).toBe("light")
 		expect(configFromMessage(message({ title: 42 }))?.title).toBeUndefined()
 		expect(configFromMessage(message({ isAvailable: "no" }))?.isAvailable).toBeUndefined()
+	})
+
+	test("relays saved and draft launcher icon URLs only", () => {
+		const iconUrl = "https://api.example.test/api/embed-config/token/icon?v=1"
+		expect(configMessage(DEFAULT_WIDGET_APPEARANCE, { iconUrl }).iconUrl).toBe(iconUrl)
+		expect(configFromMessage(message({ iconUrl }))?.iconUrl).toBe(iconUrl)
+		const draft = svgDataUrl("<svg></svg>")
+		expect(configFromMessage(message({ iconUrl: draft }))?.iconUrl).toBe(draft)
+		for (const value of ["/api/embed-config/token/icon", "javascript:alert(1)", "data:text/html,<svg/>", 42, null]) {
+			expect(configFromMessage(message({ iconUrl: value }))?.iconUrl).toBeUndefined()
+		}
 	})
 
 	test("rejects foreign, stale, and malformed config messages", () => {

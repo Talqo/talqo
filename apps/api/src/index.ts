@@ -4,6 +4,7 @@ import { app } from "./app.ts"
 import { parseEnv } from "./config/env.ts"
 import { createStaticResponder, resolveStaticDirs } from "./http/static.ts"
 import { stdoutWideEventLog } from "./http/wide-event-stdout.ts"
+import { removeOrphanIcons } from "./modules/embed/embed.service.ts"
 import { runIngestion } from "./modules/knowledge-base/knowledge-base.service.ts"
 
 const WORKER_RESTART_DELAY_MS = 3_000
@@ -45,5 +46,6 @@ if (import.meta.main) {
 			}
 		})
 	}
+	void removeOrphanIcons().catch((error: unknown) => console.error("embed.icons.sweep_failed", { error }))
 	void runIngestionLoop()
 }

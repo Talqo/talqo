@@ -23,6 +23,7 @@ const INITIAL_EMBED: Embed = {
 	embedToken: "initial-token",
 	accessVersion: 1,
 	isDisabled: false,
+	iconUrl: null,
 	appearance: {
 		light: {
 			primary: "#1a7f4b",
@@ -44,6 +45,8 @@ const INITIAL_EMBED: Embed = {
 		language: "en",
 	},
 }
+const ICON_URL_PATH = `${DETAIL_URL}/icon`
+const CUSTOM_ICON = "/api/embed-config/initial-token/icon?v=1"
 const DEFAULT_AGENT_PERMISSIONS = ["agents:read", "agents:manage"]
 const CONTRAST_CASES = [
 	{ field: "text-on-primary", value: "#1a7f4b" },
@@ -67,6 +70,7 @@ let detailFailures: Response[]
 let agentsFailures: Response[]
 let updateFailures: Response[]
 let deleteFailures: Response[]
+let iconFailures: Response[]
 let updates: unknown[]
 let requests: Array<{ url: string; method: string }>
 let detailGate: Promise<void> | undefined
@@ -115,6 +119,12 @@ async function respond(request: RequestInfo | URL, init?: RequestInit): Promise<
 		if (failure) return failure
 		return json({ embed: currentEmbed })
 	}
+	if (url === ICON_URL_PATH && (method === "PUT" || method === "DELETE")) {
+		const failure = iconFailures.shift()
+		if (failure) return failure
+		currentEmbed = { ...currentEmbed, iconUrl: method === "PUT" ? CUSTOM_ICON : null }
+		return json({ embed: currentEmbed })
+	}
 	if (url === DETAIL_URL && method === "DELETE") {
 		return deleteFailures.shift() ?? new Response(null, { status: 204 })
 	}
@@ -125,8 +135,9 @@ async function respond(request: RequestInfo | URL, init?: RequestInit): Promise<
 		updates.push(JSON.parse(body))
 		const failure = updateFailures.shift()
 		if (failure) return failure
-		currentEmbed = SAVED_EMBED
-		return json({ embed: SAVED_EMBED })
+		// Like the API, an appearance update keeps the stored icon.
+		currentEmbed = { ...SAVED_EMBED, iconUrl: currentEmbed.iconUrl }
+		return json({ embed: currentEmbed })
 	}
 	throw new Error(`Unexpected request ${method} ${url}`)
 }
@@ -238,6 +249,7 @@ beforeEach(() => {
 	agentsFailures = []
 	updateFailures = []
 	deleteFailures = []
+	iconFailures = []
 	updates = []
 	requests = []
 	detailGate = undefined
@@ -716,6 +728,112 @@ describe("embed appearance controls", () => {
 				language: "cs",
 			},
 		})
+	})
+})
+
+function iconImage(): HTMLImageElement {
+	const found = host.querySelector<HTMLImageElement>(
+		`img[alt="${t("embedSetup.iconCustomAlt")}"], img[alt="${t("embedSetup.iconDefaultAlt")}"]`,
+	)
+	if (!found) throw new Error("Icon preview not rendered")
+	return found
+}
+
+async function pickIcon(file: File) {
+	const picker = input("input[type=file]")
+	Object.defineProperty(picker, "files", { configurable: true, value: [file] })
+	await act(async () => picker.dispatchEvent(new Event("change", { bubbles: true })))
+	await settle()
+	await settle()
+}
+
+function alerts(): string[] {
+	return [...host.querySelectorAll("[role='alert']")].map((element) => element.textContent ?? "")
+}
+
+function iconRequests(method: "PUT" | "DELETE") {
+	return requests.filter((request) => request.url === ICON_URL_PATH && request.method === method)
+}
+
+describe("embed launcher icon", () => {
+	test("previews a picked SVG and uploads it only with the rest of the form", async () => {
+		await renderPage()
+		expect(iconImage().alt).toBe(t("embedSetup.iconDefaultAlt"))
+		expect(button(t("embedSetup.save")).disabled).toBe(true)
+
+		await pickIcon(new File(["<svg></svg>"], "logo.svg", { type: "image/svg+xml" }))
+
+		expect(iconRequests("PUT")).toHaveLength(0)
+		expect(iconImage().getAttribute("src")).toBe("data:image/svg+xml,%3Csvg%3E%3C%2Fsvg%3E")
+		expect(button(t("embedSetup.save")).disabled).toBe(false)
+
+		await submit(button(t("embedSetup.save")))
+
+		expect(updates).toHaveLength(1)
+		expect(iconRequests("PUT")).toHaveLength(1)
+		expect(iconImage().getAttribute("src")).toBe(CUSTOM_ICON)
+		expect(button(t("embedSetup.save")).disabled).toBe(true)
+		expect(formStatus()).toBe(t("embedSetup.saved"))
+	})
+
+	test("removes the uploaded icon only when the form is saved", async () => {
+		currentEmbed = { ...INITIAL_EMBED, iconUrl: CUSTOM_ICON }
+		await renderPage()
+
+		await click(button(t("embedSetup.iconReset")))
+
+		expect(iconRequests("DELETE")).toHaveLength(0)
+		expect(iconImage().alt).toBe(t("embedSetup.iconDefaultAlt"))
+		expect(host.textContent).not.toContain(t("embedSetup.iconReset"))
+
+		await submit(button(t("embedSetup.save")))
+
+		expect(iconRequests("DELETE")).toHaveLength(1)
+		expect(iconImage().alt).toBe(t("embedSetup.iconDefaultAlt"))
+		expect(button(t("embedSetup.save")).disabled).toBe(true)
+	})
+
+	test.each([
+		["an oversized file", new File([" ".repeat(64 * 1024 + 1)], "huge.svg"), "embedSetup.iconTooLarge"],
+		["a file that is not SVG", new File(["not svg"], "logo.svg"), "problems.embed-icon-invalid"],
+	])("refuses %s on pick without staging it", async (_label, file, message) => {
+		await renderPage()
+
+		await pickIcon(file)
+
+		expect(alerts()).toEqual([t(message, { maxKB: 64 })])
+		expect(iconImage().alt).toBe(t("embedSetup.iconDefaultAlt"))
+		expect(button(t("embedSetup.save")).disabled).toBe(true)
+	})
+
+	test("keeps the picked icon staged when the server rejects it", async () => {
+		iconFailures = [
+			json({ code: "embed-icon-invalid", type: "https://docs.talqo.chat/problems#embed-icon-invalid" }, 400),
+		]
+		await renderPage()
+		await pickIcon(new File(["<svg></svg>"], "logo.svg", { type: "image/svg+xml" }))
+
+		await submit(button(t("embedSetup.save")))
+
+		expect(alerts()).toEqual([t("problems.embed-icon-invalid")])
+		expect(iconImage().getAttribute("src")).toStartWith("data:image/svg+xml,")
+		expect(button(t("embedSetup.save")).disabled).toBe(false)
+
+		await submit(button(t("embedSetup.save")))
+
+		expect(iconRequests("PUT")).toHaveLength(2)
+		expect(iconImage().getAttribute("src")).toBe(CUSTOM_ICON)
+	})
+
+	test("shows the icon without upload controls to readers", async () => {
+		agentPermissions = ["agents:read"]
+		currentEmbed = { ...INITIAL_EMBED, iconUrl: CUSTOM_ICON }
+		await renderPage()
+
+		expect(iconImage().getAttribute("src")).toBe(CUSTOM_ICON)
+		expect(host.querySelector("input[type=file]")).toBeNull()
+		expect(host.textContent).not.toContain(t("embedSetup.iconUpload"))
+		expect(host.textContent).not.toContain(t("embedSetup.iconReset"))
 	})
 })
 

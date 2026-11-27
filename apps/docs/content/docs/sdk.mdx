@@ -43,7 +43,7 @@ chat.dispose()
 
 ## State and controls
 
-`getSnapshot()` returns messages, configuration, activity, available actions, notices, active tool calls, and any error. Use `isAvailable` to hide an unavailable chat and `actions` to enable `send`, `stop`, `retry`, and `new-chat` controls. The SDK owns lifecycle and recovery decisions. `acceptedMessageId` identifies the latest accepted user message, so a UI can clear its submitted draft without inspecting transcript changes. Message text belongs to the message's `text` field. Render it as text or sanitized Markdown, never as unchecked HTML.
+`getSnapshot()` returns messages, configuration, activity, available actions, notices, active tool calls, and any error. Use `isAvailable` to hide an unavailable chat and `actions` to enable `send`, `stop`, `retry`, and `new-chat` controls. `configuration.iconUrl` is the absolute URL of the operator's SVG launcher icon, or `null` for your own default; use it only as an `<img>` source, never fetch and inline its markup. The SDK owns lifecycle and recovery decisions. `acceptedMessageId` identifies the latest accepted user message, so a UI can clear its submitted draft without inspecting transcript changes. Message text belongs to the message's `text` field. Render it as text or sanitized Markdown, never as unchecked HTML.
 
 Use `cancelResponse()` to stop a reply, `retryLastMessage()` to retry after a failed response, and `startNewChat()` to clear the current conversation and begin another. `error.newChatAvailable` includes SDK recovery defaults when the server omits guidance. An explicit server value, including `false`, takes precedence.
 

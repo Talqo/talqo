@@ -620,6 +620,50 @@
               "code": {
                 "type": "string",
                 "enum": [
+                  "embed-icon-invalid"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "https://docs.talqo.chat/problems#embed-icon-invalid"
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "embed-icon-not-found"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "https://docs.talqo.chat/problems#embed-icon-not-found"
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
                   "embed-not-found"
                 ]
               },
@@ -1394,6 +1438,13 @@
           },
           "appearance": {
             "$ref": "#/components/schemas/EmbedAppearance"
+          },
+          "iconUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Custom launcher icon path, relative to the API origin; use it only as an image source. Null for the default icon"
           }
         },
         "required": [
@@ -1403,7 +1454,8 @@
           "embedToken",
           "accessVersion",
           "isDisabled",
-          "appearance"
+          "appearance",
+          "iconUrl"
         ]
       },
       "EmbedAppearance": {
@@ -1485,6 +1537,13 @@
           "appearance": {
             "$ref": "#/components/schemas/EmbedAppearance"
           },
+          "iconUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Custom launcher icon path, relative to the API origin; use it only as an image source. Null for the default icon"
+          },
           "isAvailable": {
             "type": "boolean"
           }
@@ -1493,6 +1552,7 @@
           "version",
           "name",
           "appearance",
+          "iconUrl",
           "isAvailable"
         ]
       },
@@ -6806,6 +6866,209 @@
         }
       }
     },
+    "/api/embeds/{embedId}/icon": {
+      "put": {
+        "operationId": "setEmbedIcon",
+        "tags": [
+          "Embed"
+        ],
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "embedId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Icon replaced",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "embed": {
+                      "$ref": "#/components/schemas/Embed"
+                    }
+                  },
+                  "required": [
+                    "embed"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Problem response. Codes: embed-icon-invalid, invalid-request.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem response. Codes: authentication-required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem response. Codes: password-change-required, permission-denied.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem response. Codes: embed-not-found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Problem response. Codes: payload-too-large.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Problem response. Codes: internal-server-error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteEmbedIcon",
+        "tags": [
+          "Embed"
+        ],
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "embedId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default icon restored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "embed": {
+                      "$ref": "#/components/schemas/Embed"
+                    }
+                  },
+                  "required": [
+                    "embed"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem response. Codes: authentication-required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem response. Codes: password-change-required, permission-denied.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem response. Codes: embed-not-found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Problem response. Codes: internal-server-error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/embed-config/{embedToken}": {
       "get": {
         "operationId": "getEmbedConfig",
@@ -6839,6 +7102,61 @@
           },
           "404": {
             "description": "Problem response. Codes: embed-not-found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Problem response. Codes: internal-server-error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/embed-config/{embedToken}/icon": {
+      "get": {
+        "operationId": "getEmbedIcon",
+        "tags": [
+          "Public Chat"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "embedToken",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The embed's custom launcher icon, sandboxed by its Content-Security-Policy",
+            "content": {
+              "image/svg+xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Icon unchanged since the supplied ETag"
+          },
+          "404": {
+            "description": "Problem response. Codes: embed-icon-not-found.",
             "content": {
               "application/problem+json": {
                 "schema": {

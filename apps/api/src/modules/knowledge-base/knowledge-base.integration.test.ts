@@ -1,6 +1,7 @@
 import { app } from "@/app.ts"
 import { env } from "@/config/env.ts"
 import { sql } from "@/db/client.ts"
+import { moduleUploadDir } from "@/lib/upload-storage.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
@@ -264,6 +265,10 @@ describe("ingestion worker", () => {
 		const orphanAgentId = crypto.randomUUID()
 		await mkdir(join(UPLOAD_ROOT, orphanAgentId), { recursive: true })
 		await writeFile(join(UPLOAD_ROOT, orphanAgentId, "orphan.md"), "orphan")
+		const embedIconDir = join(moduleUploadDir("embedIcons"), crypto.randomUUID())
+		await mkdir(embedIconDir, { recursive: true })
+		await writeFile(join(embedIconDir, "icon.svg"), "<svg></svg>")
+		const enqueue = spyOn(repository, "enqueue")
 		await aiProvider.saveConfiguration({
 			expectedRevision: 0,
 			text: {
@@ -290,13 +295,16 @@ describe("ingestion worker", () => {
 			await expect(runIngestion()).rejects.toBe(stop)
 			expect((await repository.statuses(owner.id)).get("guide.md")?.status).toBe("ready")
 			expect(await searchKnowledge(owner.id, "content")).toEqual(["Worker ingested content"])
+			expect(enqueue.mock.calls.map(([agentId]) => agentId)).not.toContain("embed-icons")
 		} finally {
+			enqueue.mockRestore()
 			sleep.mockRestore()
 			fetchSpy.mockRestore()
 			await stub.stop(true)
 			await sql`DELETE FROM ai_provider_config`
 			await agent.deleteAgent(owner.id)
 			await rm(join(UPLOAD_ROOT, orphanAgentId), { recursive: true, force: true })
+			await rm(embedIconDir, { recursive: true, force: true })
 		}
 	})
 })

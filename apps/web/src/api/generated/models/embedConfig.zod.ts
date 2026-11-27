@@ -11,6 +11,7 @@ export const EmbedConfig = zod.object({
   "version": zod.number(),
   "name": zod.string(),
   "appearance": EmbedAppearance,
+  "iconUrl": zod.string().nullable().describe('Custom launcher icon path, relative to the API origin; use it only as an image source. Null for the default icon'),
   "isAvailable": zod.boolean()
 });
 

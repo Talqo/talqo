@@ -31,12 +31,14 @@ export const embedFormSchema = z.object({
 	theme: z.enum(WIDGET_THEMES),
 	themeToggle: z.boolean(),
 	language: z.enum(SUPPORTED_LANGUAGES),
+	// `url` drives the previews; `file` is set only for a picked icon that is not saved yet.
+	icon: z.object({ url: z.string().nullable(), file: z.instanceof(File).optional() }),
 })
 
 export type EmbedFormValues = z.infer<typeof embedFormSchema>
 type WidgetSchemeFormValues = z.infer<typeof schemeSchema>
 
-export const EMBED_FORM_DEFAULTS: Omit<EmbedFormValues, "name"> = {
+export const EMBED_FORM_DEFAULTS: Omit<EmbedFormValues, "name" | "icon"> = {
 	light: DEFAULT_WIDGET_APPEARANCE.light,
 	dark: DEFAULT_WIDGET_APPEARANCE.dark,
 	position: DEFAULT_WIDGET_APPEARANCE.position,
@@ -67,7 +69,7 @@ function toSchemeFormValues(scheme: WidgetScheme): WidgetSchemeFormValues {
 	}
 }
 
-export function toFormValues(embed: Pick<Embed, "appearance" | "name">): EmbedFormValues {
+export function toFormValues(embed: Pick<Embed, "appearance" | "iconUrl" | "name">): EmbedFormValues {
 	const { language, light, dark } = embed.appearance
 	return {
 		name: embed.name,
@@ -78,5 +80,6 @@ export function toFormValues(embed: Pick<Embed, "appearance" | "name">): EmbedFo
 		themeToggle: embed.appearance.themeToggle,
 		// The API widens `language` on read, so a since-dropped one opens on the default.
 		language: isSupportedLanguage(language) ? language : DEFAULT_WIDGET_APPEARANCE.language,
+		icon: { url: embed.iconUrl },
 	}
 }

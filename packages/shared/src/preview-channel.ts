@@ -1,5 +1,7 @@
 import type { WidgetAppearance, WidgetAppearanceInput } from "./widget-appearance"
 
+import { isIconUrl } from "./embed-icon"
+
 const PREVIEW_CHANNEL_SOURCE = "talqo-preview"
 export const PREVIEW_CHANNEL_VERSION = 1
 
@@ -12,6 +14,7 @@ export type PreviewReadyMessage = {
 export type PreviewConfigMessage = {
 	appearance: WidgetAppearance
 	title?: string
+	iconUrl?: string | null
 	forcedScheme?: "light" | "dark"
 	isAvailable?: boolean
 	source: typeof PREVIEW_CHANNEL_SOURCE
@@ -22,13 +25,14 @@ export type PreviewConfigMessage = {
 export type PreviewConfig = {
 	appearance: WidgetAppearanceInput
 	title?: string
+	iconUrl?: string
 	forcedScheme?: "light" | "dark"
 	isAvailable?: boolean
 }
 
 export function configMessage(
 	appearance: WidgetAppearance,
-	options: { title?: string; forcedScheme?: "light" | "dark"; isAvailable?: boolean } = {},
+	options: { title?: string; iconUrl?: string | null; forcedScheme?: "light" | "dark"; isAvailable?: boolean } = {},
 ): PreviewConfigMessage {
 	return {
 		source: PREVIEW_CHANNEL_SOURCE,
@@ -36,6 +40,7 @@ export function configMessage(
 		type: "config",
 		appearance,
 		title: options.title,
+		iconUrl: options.iconUrl,
 		forcedScheme: options.forcedScheme,
 		isAvailable: options.isAvailable,
 	}
@@ -71,6 +76,7 @@ export function trustedParentOrigin(value: string | null): string | undefined {
 function previewOptions(message: Record<string, unknown>): Omit<PreviewConfig, "appearance"> {
 	return {
 		title: typeof message.title === "string" ? message.title : undefined,
+		iconUrl: isIconUrl(message.iconUrl) ? message.iconUrl : undefined,
 		forcedScheme:
 			message.forcedScheme === "light" || message.forcedScheme === "dark" ? message.forcedScheme : undefined,
 		isAvailable: typeof message.isAvailable === "boolean" ? message.isAvailable : undefined,

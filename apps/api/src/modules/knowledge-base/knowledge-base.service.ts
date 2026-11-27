@@ -4,10 +4,10 @@ import { env } from "@/config/env.ts"
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
+import { isModuleUploadDir, uploadRoot } from "@/lib/upload-storage.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import { constants as fsConstants } from "node:fs"
 import { copyFile, mkdir, readdir, readFile, rm, stat, unlink, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
 import { extname, join } from "node:path"
 import { z } from "zod"
 
@@ -39,7 +39,7 @@ export function uploadExtension(name: string): AllowedExtension | "other" {
 	return isAllowedExtension(extension) ? extension : "other"
 }
 
-const UPLOAD_DIR = env.TALQO_UPLOAD_DIR ?? join(tmpdir(), "talqo")
+const UPLOAD_DIR = uploadRoot()
 
 const FORBIDDEN_NAME_CHARS = /[/\\\0]|\.{2}/
 
@@ -140,7 +140,7 @@ function isFileMissing(error: unknown): boolean {
 async function listAgentDirectories(): Promise<string[]> {
 	try {
 		const entries = await readdir(UPLOAD_DIR, { withFileTypes: true })
-		return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
+		return entries.filter((entry) => entry.isDirectory() && !isModuleUploadDir(entry.name)).map((entry) => entry.name)
 	} catch (error) {
 		if (!isFileMissing(error)) throw error
 		return []

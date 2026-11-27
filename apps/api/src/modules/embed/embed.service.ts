@@ -6,9 +6,13 @@ import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { generateOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
+import { moduleUploadDir } from "@/lib/upload-storage.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
+import { EMBED_ICON_MAX_BYTES, EMBED_ICON_MAX_KB, isSvgDocument } from "@talqo/shared/embed-icon"
 import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
+import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises"
+import { join } from "node:path"
 
 import * as repo from "./embed.repository.ts"
 
@@ -19,6 +23,7 @@ export type Embed = {
 	agentId: string
 	appearance: WidgetAppearance
 	embedToken: string
+	iconUrl: string | null
 	id: string
 	isDisabled: boolean
 	name: string
@@ -26,6 +31,7 @@ export type Embed = {
 
 export type EmbedConfig = {
 	appearance: WidgetAppearance
+	iconUrl: string | null
 	isAvailable: boolean
 	name: string
 	updatedAt: Date
@@ -48,10 +54,30 @@ export class UnknownAgentError extends ApiError {
 		super(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
 	}
 }
+class InvalidEmbedIconError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.EMBED_ICON_INVALID, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
+	}
+}
+class EmbedIconNotFoundError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.EMBED_ICON_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
+	}
+}
+class EmbedIconTooLargeError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.PAYLOAD_TOO_LARGE, HTTP_STATUS.PAYLOAD_TOO_LARGE, message, undefined, options)
+	}
+}
 
 type EmbedRow = NonNullable<Awaited<ReturnType<typeof repo.findEmbed>>>
 
-function toEmbed(row: EmbedRow): Embed {
+/** Relative to the API origin; the content-derived version busts caches when the icon is replaced. */
+function iconPath(embedToken: string, iconVersion: string): string {
+	return `/api/embed-config/${encodeURIComponent(embedToken)}/icon?v=${iconVersion}`
+}
+
+function toEmbed(row: EmbedRow, iconVersion: string | null): Embed {
 	return {
 		id: row.id,
 		agentId: row.agentId,
@@ -59,6 +85,7 @@ function toEmbed(row: EmbedRow): Embed {
 		embedToken: row.embedToken,
 		accessVersion: row.accessVersion,
 		isDisabled: row.isDisabled,
+		iconUrl: iconVersion === null ? null : iconPath(row.embedToken, iconVersion),
 		appearance: {
 			light: {
 				primary: row.lightPrimaryColor,
@@ -104,9 +131,9 @@ function toColumns(appearance: WidgetAppearance) {
 
 export async function listVisibleEmbeds(actorId: string, agentId?: string): Promise<Embed[]> {
 	const scope = await roles.agentScope(actorId, roles.AgentPermission.AgentRead)
-	if (!agentId) return (await repo.listEmbeds(scope)).map(toEmbed)
+	if (!agentId) return Promise.all((await repo.listEmbeds(scope)).map(present))
 	const allowed = scope === "all" || scope.includes(agentId)
-	return (await repo.listEmbeds(allowed ? [agentId] : [])).map(toEmbed)
+	return Promise.all((await repo.listEmbeds(allowed ? [agentId] : [])).map(present))
 }
 
 export async function getEmbed(
@@ -117,7 +144,7 @@ export async function getEmbed(
 	const row = await repo.findEmbed(id)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
 	await roles.requireAgentPermission(actorId, row.agentId, permission, PROBLEM_CODES.EMBED_NOT_FOUND)
-	return toEmbed(row)
+	return present(row)
 }
 
 export async function createEmbed(input: EmbedInput, actorId: string): Promise<Embed> {
@@ -130,7 +157,7 @@ export async function createEmbed(input: EmbedInput, actorId: string): Promise<E
 			embedToken: generateOpaqueToken(),
 			...toColumns(input.appearance),
 		})
-		return toEmbed(row)
+		return present(row)
 	} catch (error) {
 		if (isForeignKeyViolation(error)) throw new UnknownAgentError(`Agent ${input.agentId} not found`)
 		throw error
@@ -151,7 +178,7 @@ export async function updateEmbed(id: string, input: EmbedInput, actorId: string
 			current.agentId,
 		)
 		if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
-		return toEmbed(row)
+		return present(row)
 	} catch (error) {
 		if (isForeignKeyViolation(error)) throw new UnknownAgentError("Agent not found")
 		throw error
@@ -162,7 +189,7 @@ export async function rotateEmbedToken(id: string, actorId: string): Promise<Emb
 	const current = await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
 	const row = await repo.rotateEmbedToken(id, generateOpaqueToken(), current.agentId)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
-	return toEmbed(row)
+	return present(row)
 }
 
 export async function disableEmbed(id: string, actorId: string): Promise<Embed> {
@@ -177,25 +204,126 @@ async function setDisabled(id: string, isDisabled: boolean, actorId: string): Pr
 	const current = await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
 	const row = await repo.setEmbedDisabled(id, isDisabled, current.agentId)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
-	return toEmbed(row)
+	return present(row)
+}
+
+function iconDir(embedId: string): string {
+	return join(moduleUploadDir("embedIcons"), embedId)
+}
+
+function iconFile(embedId: string): string {
+	return join(iconDir(embedId), "icon.svg")
+}
+
+const ICON_VERSION_LENGTH = 16
+
+function hashIcon(content: Uint8Array): string {
+	return new Bun.CryptoHasher("sha256").update(content).digest("hex").slice(0, ICON_VERSION_LENGTH)
+}
+
+async function readIcon(embedId: string): Promise<{ content: Uint8Array; version: string } | null> {
+	try {
+		const content = await readFile(iconFile(embedId))
+		return { content, version: hashIcon(content) }
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return null
+		throw error
+	}
+}
+
+async function present(row: EmbedRow): Promise<Embed> {
+	return toEmbed(row, (await readIcon(row.id))?.version ?? null)
+}
+
+// Written beside the target and renamed over it, so a replacement is never served half-written.
+async function writeIconFile(embedId: string, markup: string): Promise<void> {
+	await mkdir(iconDir(embedId), { recursive: true })
+	const staging = join(iconDir(embedId), `icon.${crypto.randomUUID()}.tmp`)
+	try {
+		await writeFile(staging, markup, { flag: "wx" })
+		await rename(staging, iconFile(embedId))
+	} finally {
+		await rm(staging, { force: true })
+	}
+}
+
+async function removeIconDir(embedId: string): Promise<void> {
+	await rm(iconDir(embedId), { recursive: true, force: true })
+}
+
+function decodeIcon(content: ArrayBuffer): string {
+	if (content.byteLength > EMBED_ICON_MAX_BYTES) {
+		throw new EmbedIconTooLargeError(`Icon exceeds the ${EMBED_ICON_MAX_KB} KB size limit`)
+	}
+	let markup: string
+	try {
+		markup = new TextDecoder("utf-8", { fatal: true }).decode(content)
+	} catch {
+		throw new InvalidEmbedIconError("Icon is not UTF-8 text")
+	}
+	if (!isSvgDocument(markup)) throw new InvalidEmbedIconError("Icon must be an SVG document")
+	return markup
+}
+
+export async function setEmbedIcon(id: string, content: ArrayBuffer, actorId: string): Promise<Embed> {
+	await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
+	await writeIconFile(id, decodeIcon(content))
+	// A deletion that ran meanwhile already removed the directory; drop the file it left behind.
+	const row = await repo.findEmbed(id)
+	if (!row) {
+		await removeIconDir(id)
+		throw new EmbedNotFoundError(`Embed ${id} not found`)
+	}
+	return present(row)
+}
+
+export async function removeEmbedIcon(id: string, actorId: string): Promise<Embed> {
+	await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
+	await removeIconDir(id)
+	return getEmbed(id, actorId)
+}
+
+export async function getIconByToken(embedToken: string): Promise<{ content: Uint8Array; version: string }> {
+	const row = await repo.findEmbedByToken(embedToken)
+	const icon = row ? await readIcon(row.id) : null
+	if (!icon) throw new EmbedIconNotFoundError("Embed icon not found")
+	return icon
+}
+
+/** Removes icon directories left by an embed deletion that crashed before its file cleanup. */
+export async function removeOrphanIcons(): Promise<void> {
+	let embedIds: string[]
+	try {
+		embedIds = await readdir(moduleUploadDir("embedIcons"))
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return
+		throw error
+	}
+	// Directories are listed before rows are read, so an icon uploaded meanwhile is never mistaken for an orphan.
+	const existing = await repo.findExistingEmbedIds(embedIds)
+	const orphans = embedIds.filter((embedId) => !existing.has(embedId))
+	await Promise.all(orphans.map(removeIconDir))
+	if (orphans.length > 0) console.info("embed.icons.orphans_removed", { removed: orphans.length })
 }
 
 export async function deleteEmbed(id: string, actorId: string): Promise<void> {
 	const current = await getEmbed(id, actorId, roles.AgentPermission.AgentManage)
 	if (!(await repo.deleteEmbed(id, current.agentId))) throw new EmbedNotFoundError(`Embed ${id} not found`)
+	// After the row: a crash here leaves an orphan directory that the startup sweep removes.
+	await removeIconDir(id)
 }
 
 export async function getConfigByToken(embedToken: string, annotate: Annotate = () => {}): Promise<EmbedConfig> {
 	const row = await repo.findEmbedByToken(embedToken)
 	if (!row) throw new EmbedNotFoundError("Embed not found")
 	annotate({ "embed.id": row.id, "agent.id": row.agentId })
-	const { name, appearance, isDisabled } = toEmbed(row)
+	const { name, appearance, iconUrl, isDisabled } = await present(row)
 	const isAvailable = !isDisabled && (await aiProvider.canGenerateText())
-	return { version: WIDGET_CONFIG_VERSION, name, appearance, isAvailable, updatedAt: row.updatedAt }
+	return { version: WIDGET_CONFIG_VERSION, name, appearance, iconUrl, isAvailable, updatedAt: row.updatedAt }
 }
 
 export async function getEmbedByToken(embedToken: string): Promise<Embed> {
 	const row = await repo.findEmbedByToken(embedToken)
 	if (!row) throw new EmbedNotFoundError("Embed not found")
-	return toEmbed(row)
+	return present(row)
 }

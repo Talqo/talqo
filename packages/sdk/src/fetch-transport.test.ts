@@ -120,6 +120,8 @@ const ACCEPTED_EVENT = {
 	assistantMessage: { id: "assistant", createdAt: "2026-09-12T12:00:01Z" },
 }
 
+const ICON_PATH = "/api/embed-config/embed%2Ftoken%20%3F/icon?v=1"
+
 async function rejectedDetail(action: Promise<unknown>) {
 	try {
 		await action
@@ -132,15 +134,31 @@ async function rejectedDetail(action: Promise<unknown>) {
 }
 
 describe("createFetchChatTransport", () => {
+	test("reads an icon that is not an API path as the default icon", async () => {
+		const fake = recordingFetch([
+			jsonResponse({
+				version: 1,
+				name: "Support",
+				appearance: APPEARANCE,
+				iconUrl: "javascript:alert(1)",
+				isAvailable: true,
+			}),
+		])
+		const transport = createFetchChatTransport({ fetch: fake.fetch })
+
+		expect((await transport.loadConfiguration(context())).iconUrl).toBeNull()
+	})
+
 	test("loads canonical embed configuration and maps name to title", async () => {
 		const fake = recordingFetch([
-			jsonResponse({ version: 1, name: "Support", appearance: APPEARANCE, isAvailable: false }),
+			jsonResponse({ version: 1, name: "Support", appearance: APPEARANCE, iconUrl: ICON_PATH, isAvailable: false }),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
 		expect(await transport.loadConfiguration(context())).toEqual({
 			title: "Support",
 			appearance: APPEARANCE,
+			iconUrl: `https://api.example.test${ICON_PATH}`,
 			isAvailable: false,
 		})
 		expect(fake.calls).toMatchObject([
@@ -492,9 +510,11 @@ describe("createFetchChatTransport", () => {
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
+		// No iconUrl in the response: an older API reads as the default icon.
 		expect(await transport.loadConfiguration(context())).toEqual({
 			title: "Support",
 			appearance: { ...APPEARANCE, extra: true },
+			iconUrl: null,
 			isAvailable: true,
 		})
 		const problemError = await rejectedDetail(transport.loadConfiguration(context()))

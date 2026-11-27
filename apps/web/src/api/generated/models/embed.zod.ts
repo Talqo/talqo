@@ -18,7 +18,8 @@ export const Embed = zod.object({
   "embedToken": zod.string(),
   "accessVersion": zod.int().gt(embedAccessVersionExclusiveMin),
   "isDisabled": zod.boolean(),
-  "appearance": EmbedAppearance
+  "appearance": EmbedAppearance,
+  "iconUrl": zod.string().nullable().describe('Custom launcher icon path, relative to the API origin; use it only as an image source. Null for the default icon')
 });
 
 export type Embed = zod.input<typeof Embed>;
