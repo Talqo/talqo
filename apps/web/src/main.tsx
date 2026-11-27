@@ -13,6 +13,11 @@ import "@talqo/ui/globals.css"
 // eslint-disable-next-line import/no-unassigned-import
 import "./lib/i18n"
 
+// Vite fires this when a lazy chunk fails to load, usually because the tab is on an older deploy.
+window.addEventListener("vite:preloadError", () => {
+	window.location.reload()
+})
+
 applyTheme(getInitialTheme())
 
 const queryClient = new QueryClient({
