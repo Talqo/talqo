@@ -14,7 +14,7 @@ test("approval follows its target, avoids the chat, and falls back inside a smal
 <div id="chat" style="position:fixed;left:calc(50vw + 60px);top:240px;width:350px;height:360px;background:white">Private chat</div>`)
 	await page.evaluate(async () => {
 		type PageToolModule = {
-			createPageTool(options: { exclude: Element[]; language: string; stop(): Promise<void> }): {
+			createPageTool(options: { exclude: Element[]; language: string }): {
 				definition: Tool<unknown, unknown>
 				dispose(): void
 			}
@@ -29,7 +29,7 @@ test("approval follows its target, avoids the chat, and falls back inside a smal
 			document.body.dataset.purchased = "true"
 		})
 		const controller = new AbortController()
-		const pageTool = createPageTool({ exclude: [excluded], language: "en", stop: async () => controller.abort() })
+		const pageTool = createPageTool({ exclude: [excluded], language: "en" })
 		const execute = pageTool.definition.execute
 		if (!execute) throw new Error("Missing page tool")
 		const callOptions = { toolCallId: "approval", messages: [], abortSignal: controller.signal, context: undefined }
@@ -51,7 +51,6 @@ test("approval follows its target, avoids the chat, and falls back inside a smal
 					action: "click",
 					snapshot: observation.snapshot,
 					index: Number(index),
-					description: "Placing your order",
 					approval: "Place one order for $53.00",
 				},
 				callOptions,
@@ -60,7 +59,7 @@ test("approval follows its target, avoids the chat, and falls back inside a smal
 	})
 	const approval = page.getByRole("region", { name: "Talqo" })
 	await expect(approval.getByRole("button", { name: "Approve", exact: true })).toBeVisible()
-	await expect(approval.getByRole("button", { name: "Approve", exact: true })).toBeFocused()
+	await expect(page.getByRole("button", { name: "Place order", exact: true })).toBeFocused()
 	await expect
 		.poll(async () => {
 			const card = await approval.boundingBox()

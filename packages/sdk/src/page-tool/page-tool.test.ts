@@ -5,7 +5,7 @@ import { z } from "zod"
 import { createPageTool } from "./page-tool.ts"
 
 test("advertises an object-root tool schema accepted by structured-output providers without touching the DOM", async () => {
-	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
+	const page = createPageTool({ exclude: [], language: "en" })
 	const manifest = await captureClientTools({ talqo_page: page.definition }).manifest()
 	expect(manifest[0]?.inputSchema.type).toBe("object")
 	expect(manifest[0]?.inputSchema).not.toHaveProperty("anyOf")
@@ -14,13 +14,13 @@ test("advertises an object-root tool schema accepted by structured-output provid
 })
 
 test("describes approval as an on-page action, not a chat question", async () => {
-	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
+	const page = createPageTool({ exclude: [], language: "en" })
 	const manifest = await captureClientTools({ talqo_page: page.definition }).manifest()
 	expect(manifest[0]?.description).toContain("do not ask for approval in chat")
 })
 
 test("reports incomplete actions before browser execution", async () => {
-	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
+	const page = createPageTool({ exclude: [], language: "en" })
 	const tools = captureClientTools({ talqo_page: page.definition })
 	const result = await tools.execute(
 		{
@@ -28,7 +28,7 @@ test("reports incomplete actions before browser execution", async () => {
 			type: "tool-call",
 			toolCallId: "incomplete",
 			toolName: "talqo_page",
-			input: { action: "fill", snapshot: "current", index: 0, description: "Fill name", approval: null },
+			input: { action: "fill", snapshot: "current", index: 0, approval: null },
 			messages: [],
 		},
 		new AbortController().signal,

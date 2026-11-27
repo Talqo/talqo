@@ -534,7 +534,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			exclude: pageExclude(),
 			themeRoot: options.pageControl?.themeRoot,
 			language: pageLanguage(loaded),
-			stop: cancelResponse,
 		})
 		tools = captureClientTools({ ...customTools, [PAGE_TOOL_NAME]: pageTool.definition })
 	}

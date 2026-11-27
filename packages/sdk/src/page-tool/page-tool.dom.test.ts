@@ -9,6 +9,7 @@ const controllerState: {
 	disposed: boolean
 	lastOptions: Record<string, unknown> | undefined
 	onState?: () => void
+	onAction?: () => void
 } = {
 	content: "*[1] Buy",
 	url: "http://localhost/shop?page=1#top",
@@ -36,6 +37,7 @@ class FakeController {
 		await (controllerState.lastOptions?.beforeAction as ((element: HTMLElement) => Promise<void>) | undefined)?.(
 			controllerState.element!,
 		)
+		controllerState.onAction?.()
 		return { success: true, message: "clicked" }
 	}
 	async inputText() {
@@ -81,6 +83,7 @@ beforeEach(() => {
 	controllerState.disposed = false
 	controllerState.lastOptions = undefined
 	controllerState.onState = undefined
+	controllerState.onAction = undefined
 	document.body.innerHTML = ""
 })
 
@@ -94,7 +97,7 @@ function buttonFixture(): HTMLElement {
 }
 
 function newPage(overrides: Partial<Parameters<typeof createPageTool>[0]> = {}): PageTool {
-	return createPageTool({ exclude: [], language: "en", stop: async () => {}, ...overrides })
+	return createPageTool({ exclude: [], language: "en", ...overrides })
 }
 
 function clickButton(label: string): void {
@@ -108,7 +111,6 @@ async function pendingApproval(tools: ReturnType<typeof toolsFor>, signal?: Abor
 			action: "click",
 			snapshot: await observeSnapshot(tools),
 			index: 0,
-			description: "Buying the shirt",
 			approval: "Buy the shirt for $25.",
 		},
 		signal,
@@ -135,6 +137,28 @@ function shadowButtons(): NodeListOf<HTMLButtonElement> {
 	return panel.shadowRoot!.querySelectorAll("button")
 }
 
+test("observes and acts with only a target highlight, without on-page status controls", async () => {
+	buttonFixture()
+	const page = newPage()
+	const tools = toolsFor(page)
+	const signal = new AbortController().signal
+	const snapshot = await observeSnapshot(tools)
+	const root = document.body.querySelector<HTMLElement>("div:last-child")!.shadowRoot!
+	expect(root.querySelector("section")).toBeNull()
+	expect(shadowButtons()).toHaveLength(0)
+	controllerState.onAction = () => {
+		expect(root.querySelector<HTMLElement>(".highlight")?.hidden).toBe(false)
+		expect(root.querySelector("section")).toBeNull()
+	}
+	expect(await execute(tools, { action: "click", snapshot, index: 0 }, signal)).toMatchObject({
+		status: "dispatched",
+	})
+	expect(root.querySelector<HTMLElement>(".highlight")?.hidden).toBe(true)
+	expect(root.querySelector("section")).toBeNull()
+	page.dispose()
+	expect(root.host.isConnected).toBe(false)
+})
+
 test("observes the page and reports private controls without exposing them", async () => {
 	document.body.innerHTML = `<main aria-label="Payments">
 		<input id="password" type="password">
@@ -159,7 +183,7 @@ test("observes the page and reports private controls without exposing them", asy
 		])
 	}
 	controllerState.element = document.querySelector("#buy") as HTMLElement
-	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
+	const page = newPage()
 	const result = (await execute(toolsFor(page), { action: "observe" })) as Record<string, unknown>
 	expect(result).toMatchObject({ url: "http://localhost/shop", content: "[1] Buy" })
 	expect(String(result.snapshot)).toHaveLength(36)
@@ -169,8 +193,8 @@ test("observes the page and reports private controls without exposing them", asy
 
 test("scrolls the page and re-observes", async () => {
 	controllerState.element = undefined
-	const page = createPageTool({ exclude: [], language: "cs", themeRoot: () => document.body, stop: async () => {} })
-	const result = (await execute(toolsFor(page), { action: "scroll", down: true, description: "Scrolling" })) as {
+	const page = newPage({ language: "cs", themeRoot: () => document.body })
+	const result = (await execute(toolsFor(page), { action: "scroll", down: true })) as {
 		result: string
 		page: { snapshot: string }
 	}
@@ -195,9 +219,13 @@ test("approves a click, validates the proposal, and reports dispatch", async () 
 	expect(root.getElementById(approve.getAttribute("aria-describedby") ?? "")?.textContent).toBe(
 		"Buy the shirt for $25.",
 	)
+	expect(shadowButtons()).toHaveLength(2)
+	approve.focus()
 	approve.click()
 	const result = (await pending) as Record<string, unknown>
 	expect(result).toMatchObject({ status: "dispatched", result: { success: true } })
+	expect(root.querySelector("section")).toBeNull()
+	expect(document.activeElement === composer).toBe(true)
 	page.dispose()
 })
 
@@ -207,20 +235,26 @@ test("declines an approved action without dispatching it", async () => {
 	const tools = toolsFor(page)
 	const pending = pendingApproval(tools)
 	await Bun.sleep(10)
+	const root = document.body.querySelector<HTMLElement>("div:last-child")!.shadowRoot!
 	clickButton("Cancel")
 	expect(await pending).toMatchObject({ status: "declined" })
+	expect(root.querySelector("section")).toBeNull()
 	page.dispose()
 })
 
-test("aborts while waiting for approval", async () => {
+test.each(["cancel", "dispose"])("%s interrupts a pending approval and removes page controls", async (reason) => {
 	buttonFixture()
 	const page = newPage()
 	const tools = toolsFor(page)
 	const controller = new AbortController()
 	const pending = pendingApproval(tools, controller.signal)
 	await Bun.sleep(10)
-	controller.abort(new Error("Visitor cancelled"))
-	await expect(pending).rejects.toThrow("Visitor cancelled")
+	const host = document.body.querySelector<HTMLElement>("div:last-child")!
+	if (reason === "cancel") controller.abort(new Error("Visitor cancelled"))
+	else page.dispose()
+	await expect(pending).rejects.toThrow(reason === "cancel" ? "Visitor cancelled" : "Page task ended")
+	expect(host.isConnected).toBe(false)
+	expect(controllerState.disposed).toBe(true)
 })
 
 test("does not open approval when Stop lands during page revalidation", async () => {
@@ -231,11 +265,7 @@ test("does not open approval when Stop lands during page revalidation", async ()
 	const snapshot = await observeSnapshot(tools)
 	controllerState.onState = () => controller.abort(new Error("Visitor stopped"))
 	await expect(
-		execute(
-			tools,
-			{ action: "click", snapshot, index: 0, description: "Buy", approval: "Buy for $25" },
-			controller.signal,
-		),
+		execute(tools, { action: "click", snapshot, index: 0, approval: "Buy for $25" }, controller.signal),
 	).rejects.toThrow("Visitor stopped")
 })
 
@@ -245,16 +275,16 @@ test("reports a stale snapshot and a changed page", async () => {
 	setRect(element, 20, 40)
 	document.elementFromPoint = () => element
 	controllerState.element = element
-	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
+	const page = newPage()
 	const tools = toolsFor(page)
-	expect(await execute(tools, { action: "click", snapshot: "other", index: 0, description: "Buying" })).toMatchObject({
+	expect(await execute(tools, { action: "click", snapshot: "other", index: 0 })).toMatchObject({
 		status: "stale",
 	})
 	const snapshot = await observeSnapshot(tools)
 	controllerState.onState = () => {
 		controllerState.element = document.createElement("button")
 	}
-	expect(await execute(tools, { action: "click", snapshot, index: 0, description: "Buying" })).toMatchObject({
+	expect(await execute(tools, { action: "click", snapshot, index: 0 })).toMatchObject({
 		status: "changed",
 	})
 	page.dispose()
@@ -263,15 +293,13 @@ test("reports a stale snapshot and a changed page", async () => {
 test("validates links and forms before dispatch", async () => {
 	document.body.innerHTML =
 		'<main><a id="away" href="https://example.com" target="_blank">Away</a><form action="https://example.com"><button id="submit">Send</button></form></main>'
-	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
+	const page = newPage()
 	const tools = toolsFor(page)
 	const link = document.querySelector("#away") as HTMLElement
 	setRect(link, 20, 40)
 	document.elementFromPoint = () => link
 	controllerState.element = link
-	expect(
-		await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0, description: "Leaving" }),
-	).toMatchObject({
+	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
 		status: "failed",
 		message: "This link requires the visitor. Only this tab and origin can be controlled.",
 	})
@@ -279,9 +307,7 @@ test("validates links and forms before dispatch", async () => {
 	setRect(submit, 20, 40)
 	document.elementFromPoint = () => submit
 	controllerState.element = submit
-	expect(
-		await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0, description: "Sending" }),
-	).toMatchObject({
+	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
 		status: "failed",
 		message: "This form requires the visitor. Only this tab and origin can be controlled.",
 	})
@@ -290,27 +316,28 @@ test("validates links and forms before dispatch", async () => {
 
 test("rejects unavailable and covered targets", async () => {
 	document.body.innerHTML = '<main><button id="buy" disabled>Buy</button><button id="send">Send</button></main>'
-	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
+	const page = newPage()
 	const tools = toolsFor(page)
 	const disabled = document.querySelector("#buy") as HTMLElement
 	controllerState.element = disabled
-	expect(
-		await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0, description: "Buying" }),
-	).toMatchObject({ status: "failed", message: "Target is unavailable. Observe the page again." })
+	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
+		status: "failed",
+		message: "Target is unavailable. Observe the page again.",
+	})
 	const send = document.querySelector("#send") as HTMLElement
 	setRect(send, 20, 40)
 	document.elementFromPoint = () => document.createElement("span")
 	controllerState.element = send
-	expect(
-		await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0, description: "Sending" }),
-	).toMatchObject({ status: "failed" })
+	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
+		status: "failed",
+	})
 	page.dispose()
 })
 
 test("fills and selects ordinary controls even when their ID or test ID is payment", async () => {
 	document.body.innerHTML =
 		'<main><input data-testid="payment"><select id="payment"><option>Pay on delivery</option></select></main>'
-	const page = createPageTool({ exclude: [], language: "en", stop: async () => {} })
+	const page = newPage()
 	const tools = toolsFor(page)
 	const input = document.querySelector("input")!
 	setRect(input, 20, 40)
@@ -321,7 +348,6 @@ test("fills and selects ordinary controls even when their ID or test ID is payme
 			action: "fill",
 			snapshot: await observeSnapshot(tools),
 			index: 0,
-			description: "Filling the name",
 			text: "Ada",
 		}),
 	).toMatchObject({ status: "dispatched" })
@@ -334,7 +360,6 @@ test("fills and selects ordinary controls even when their ID or test ID is payme
 			action: "select",
 			snapshot: await observeSnapshot(tools),
 			index: 0,
-			description: "Choosing a payment method",
 			option: "Pay on delivery",
 		}),
 	).toMatchObject({ status: "dispatched" })
@@ -355,31 +380,12 @@ test("rejects a control marked as a payment field even when the controller retur
 				action: "fill",
 				snapshot: await observeSnapshot(tools),
 				index: 0,
-				description: "Filling the field",
 				text: "example",
 			}),
 		).toMatchObject({ status: "failed", message: "Target is outside the permitted page." })
 	} finally {
 		page.dispose()
 	}
-})
-
-test("stops the task from the panel when the agent cannot be reached", async () => {
-	document.body.innerHTML = "<main></main>"
-	const page = createPageTool({
-		exclude: [],
-		language: "cs",
-		stop: async () => {
-			throw new Error("offline")
-		},
-	})
-	const tools = toolsFor(page)
-	await execute(tools, { action: "observe" })
-	const stop = [...shadowButtons()].find((candidate) => candidate.textContent === "Zastavit")
-	stop?.click()
-	await Bun.sleep(10)
-	page.dispose()
-	expect(stop).toBeDefined()
 })
 
 test("releases modal chat dialogs while working on the page", async () => {
@@ -396,7 +402,7 @@ test("releases modal chat dialogs while working on the page", async () => {
 		configurable: true,
 		value: (selector: string) => selector === ":modal" && modal && ((modal = false), true),
 	})
-	const page = createPageTool({ exclude: [dialog], language: "en", stop: async () => {} })
+	const page = newPage({ exclude: [dialog] })
 	const tools = toolsFor(page)
 	await execute(tools, { action: "observe" })
 	expect(dialog.open).toBe(true)

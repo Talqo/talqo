@@ -35,7 +35,7 @@ Verify the current stable PageController release before adding it. Correct its l
 
 ## Visible actions and approvals
 
-The tool owns a small, style-isolated on-page panel and target highlighting. Scroll the active control into view, highlight it before acting, and describe the current action. Provide Stop without blocking ordinary page interaction.
+The tool scrolls the active control into view and highlights it before acting. Show a style-isolated on-page panel only while awaiting approval. Chat displays tool activity and provides Stop without blocking ordinary page interaction.
 
 Browsing, product selection, cart preparation, and draft form filling proceed without approval by default. Purchases, payments, consequential account changes, and unclear commitments require approval. Operators can customize these rules per agent through plain-language instructions; the model interprets them.
 
@@ -43,7 +43,7 @@ Show Approve and Cancel for the exact proposed commitment. A purchase request in
 
 Cancel performs no proposed action. Stop prevents further actions and cancels the active task; it cannot undo an action already dispatched. An expired, interrupted, or invalidated approval cannot execute later. If an action's outcome is uncertain, inspect the current website state rather than replaying it. If the outcome cannot be established, tell the visitor instead of risking a duplicate order.
 
-Support keyboard operation, visible focus, accessible status announcements, reduced motion, and the configured embed language. Keep these controls in the tool, not in chat components.
+Support keyboard operation, visible focus, accessible approval announcements, reduced motion, and the configured embed language. Keep approval controls in the tool, not in chat components.
 
 ## Operator settings and integration
 

@@ -9,7 +9,6 @@ import { anchorPageApproval } from "./page-tool-position.ts"
 import pageToolStyles from "./page-tool.css" with { type: "text" }
 
 export const PAGE_TOOL_NAME = "talqo_page"
-const DESCRIPTION_LIMIT = 300
 const APPROVAL_LIMIT = 2000
 const INPUT_LIMIT = 10_000
 const OPTION_LIMIT = 1000
@@ -20,13 +19,6 @@ const THEME_TOKENS = ["primary", "text-on-primary", "background", "surface", "te
 const targetSchema = {
 	snapshot: z.string().describe("Required for click, fill, and select. Copy the latest observation's snapshot."),
 	index: z.number().int().nonnegative(),
-	description: z
-		.string()
-		.min(1)
-		.max(DESCRIPTION_LIMIT)
-		.describe(
-			"A short visitor-facing action, such as 'Entering your delivery address'. Never show selectors or HTML attributes.",
-		),
 	approval: z
 		.string()
 		.min(1)
@@ -42,7 +34,7 @@ const actionSchema = z.discriminatedUnion("action", [
 	z.object({ action: z.literal("click"), ...targetSchema }),
 	z.object({ action: z.literal("fill"), ...targetSchema, text: z.string().max(INPUT_LIMIT) }),
 	z.object({ action: z.literal("select"), ...targetSchema, option: z.string().max(OPTION_LIMIT) }),
-	z.object({ action: z.literal("scroll"), down: z.boolean(), description: z.string().max(DESCRIPTION_LIMIT) }),
+	z.object({ action: z.literal("scroll"), down: z.boolean() }),
 ])
 const inputSchema = z.object({
 	action: z.enum(["observe", "click", "fill", "select", "scroll"]),
@@ -60,22 +52,12 @@ const labels = {
 	en: {
 		approve: "Approve",
 		cancel: "Cancel",
-		stop: "Stop",
-		observing: "Reading this page",
-		working: "Working on this page",
 		approval: "Your approval is needed",
-		stopped: "Could not stop the agent. Try Stop in chat.",
-		declined: "Action declined.",
 	},
 	cs: {
 		approve: "Schválit",
 		cancel: "Zrušit",
-		stop: "Zastavit",
-		observing: "Čtu tuto stránku",
-		working: "Pracuji na této stránce",
 		approval: "Je potřeba vaše schválení",
-		stopped: "Agenta se nepodařilo zastavit. Zkuste Zastavit v chatu.",
-		declined: "Akce nebyla schválena.",
 	},
 }
 
@@ -283,26 +265,20 @@ export function createPageTool(options: {
 	exclude: readonly Element[]
 	language: string
 	themeRoot?: () => Element | null
-	stop(): Promise<void>
 }): {
 	dispose(): void
 	definition: Tool<z.infer<typeof inputSchema>, unknown>
 } {
 	let controller: PageController | undefined
 	let panel: HTMLElement | undefined
-	let status: HTMLElement | undefined
-	let buttons: HTMLElement | undefined
-	let heading: HTMLElement | undefined
 	let themeObserver: MutationObserver | undefined
 	let highlight: HTMLElement | undefined
 	let snapshot: { id: string; content: string; url: string } | undefined
 	let busy = false
 	let modalDialogs: HTMLDialogElement[] = []
-	let approvalFocus: HTMLElement | undefined
 	let validateAction: ((element: HTMLElement) => Promise<void>) | undefined
 	let activeSignal: AbortSignal | undefined
-	let stopping = new AbortController()
-	let taskSignal = stopping.signal
+	let lifetime = new AbortController()
 	const text = options.language === "cs" ? labels.cs : labels.en
 
 	function validate(element: HTMLElement): void {
@@ -355,24 +331,22 @@ export function createPageTool(options: {
 	}
 
 	function dispose() {
-		const hadApprovalFocus = !!panel?.shadowRoot?.activeElement
-		stopping.abort(new Error("Page task ended"))
+		const reason: unknown = activeSignal?.reason ?? new Error("Page task ended")
+		activeSignal?.removeEventListener("abort", dispose)
+		activeSignal = undefined
+		lifetime.abort(reason)
 		controller?.dispose()
 		controller = undefined
 		panel?.remove()
 		panel = undefined
 		highlight?.remove()
 		highlight = undefined
-		status = undefined
-		buttons = undefined
-		heading = undefined
 		themeObserver?.disconnect()
 		themeObserver = undefined
 		snapshot = undefined
 		validateAction = undefined
-		if (hadApprovalFocus && approvalFocus?.isConnected) approvalFocus.focus({ preventScroll: true })
-		approvalFocus = undefined
 		restoreModalDialogs()
+		lifetime = new AbortController()
 	}
 
 	function releaseChatDialog(dialog: HTMLDialogElement): void {
@@ -386,20 +360,6 @@ export function createPageTool(options: {
 	function releaseChatDialogs(): void {
 		// A modal chat makes the host page and approval controls inert.
 		for (const root of options.exclude) for (const dialog of dialogsIn(root)) releaseChatDialog(dialog)
-	}
-
-	function placePanel(element: HTMLElement): void {
-		if (!panel) return
-		panel.style.top = "16px"
-		panel.style.bottom = "auto"
-		panel.style.left = "auto"
-		panel.style.right = "16px"
-		const targetRect = element.getBoundingClientRect()
-		const panelRect = panel.getBoundingClientRect()
-		if (targetRect.right > panelRect.left && targetRect.top < panelRect.bottom && targetRect.bottom > panelRect.top) {
-			panel.style.top = "auto"
-			panel.style.bottom = "16px"
-		}
 	}
 
 	function applyThemeToken(theme: CSSStyleDeclaration, token: string): void {
@@ -423,42 +383,17 @@ export function createPageTool(options: {
 		themeObserver.observe(themeRoot, { attributes: true, attributeFilter: ["style", "class", "data-scheme"] })
 	}
 
-	function stopTask(): void {
-		stopping.abort(new Error("Page task stopped"))
-		void options.stop().catch(async () => {
-			await setup()
-			if (status) status.textContent = text.stopped
-		})
-	}
-
 	async function setup(): Promise<PageController> {
 		releaseChatDialogs()
 		if (controller) return controller
 		for (const root of options.exclude)
-			root.addEventListener("toggle", releaseChatDialogs, { capture: true, signal: taskSignal })
+			root.addEventListener("toggle", releaseChatDialogs, { capture: true, signal: lifetime.signal })
 		panel = document.createElement("div")
 		panel.lang = options.language === "cs" ? "cs" : "en"
 		const shadow = panel.attachShadow({ mode: "open" })
 		const style = document.createElement("style")
 		style.textContent = pageToolStyles
-		const section = document.createElement("section")
-		section.setAttribute("aria-label", "Talqo")
-		const header = document.createElement("header")
-		heading = document.createElement("h2")
-		heading.textContent = text.working
-		status = document.createElement("p")
-		status.id = "proposal"
-		status.setAttribute("role", "status")
-		status.tabIndex = 0
-		buttons = document.createElement("div")
-		buttons.className = "actions"
-		const stop = document.createElement("button")
-		stop.textContent = text.stop
-		stop.title = options.language === "cs" ? "Zastavit celý úkol" : "Stop the entire task"
-		stop.addEventListener("click", stopTask)
-		header.append(heading, stop)
-		section.append(header, status, buttons)
-		shadow.append(style, section)
+		shadow.append(style)
 		document.body.append(panel)
 		const themeRoot = options.themeRoot?.()
 		if (themeRoot) watchTheme(themeRoot)
@@ -484,47 +419,56 @@ export function createPageTool(options: {
 		return { snapshot: snapshot.id, ...state }
 	}
 
-	function renderDecisionButton(label: string, approved: boolean, finish: (approved: boolean) => void): void {
+	function renderDecisionButton(
+		buttons: HTMLElement,
+		label: string,
+		approved: boolean,
+		finish: (approved: boolean) => void,
+	): void {
 		const button = document.createElement("button")
 		if (approved) button.dataset.primary = ""
-		if (status) button.setAttribute("aria-describedby", status.id)
+		button.setAttribute("aria-describedby", "proposal")
 		button.textContent = label
 		if (!approved) button.title = options.language === "cs" ? "Odmítnout tuto akci" : "Decline this action"
 		button.addEventListener("click", () => finish(approved), { once: true })
-		buttons?.append(button)
-	}
-
-	function renderDecisionButtons(finish: (approved: boolean) => void): void {
-		renderDecisionButton(text.approve, true, finish)
-		renderDecisionButton(text.cancel, false, finish)
+		buttons.append(button)
 	}
 
 	function approve(summary: string, element: HTMLElement, signal: AbortSignal): Promise<boolean> {
 		return new Promise((resolve, reject) => {
 			signal.throwIfAborted()
-			if (!buttons || !status || !panel || !highlight) throw new Error("Page controls are unavailable")
-			status.textContent = summary
+			if (!panel?.shadowRoot || !highlight) throw new Error("Page controls are unavailable")
+			const section = document.createElement("section")
+			section.setAttribute("aria-label", "Talqo")
+			const heading = document.createElement("h2")
+			heading.textContent = text.approval
+			const proposal = document.createElement("p")
+			proposal.id = "proposal"
+			proposal.setAttribute("role", "status")
+			proposal.textContent = summary
+			const buttons = document.createElement("div")
+			buttons.className = "actions"
+			section.append(heading, proposal, buttons)
+			panel.shadowRoot.append(section)
 			const focus = focusedElement()
-			approvalFocus = focus instanceof HTMLElement ? focus : undefined
-			if (heading) heading.textContent = text.approval
-			function finish(approved: boolean): void {
+			function cleanup(): void {
 				stopPositioning()
 				signal.removeEventListener("abort", abort)
-				buttons?.replaceChildren()
-				if (heading) heading.textContent = text.working
-				if (status) {
-					status.textContent = approved ? text.working : text.declined
-					status.focus({ preventScroll: true })
-				}
+				if (focus instanceof HTMLElement && focus.isConnected && panel?.shadowRoot?.activeElement)
+					focus.focus({ preventScroll: true })
+				section.remove()
+			}
+			function finish(approved: boolean): void {
+				cleanup()
 				resolve(approved)
 			}
 			function abort(): void {
-				stopPositioning()
-				buttons?.replaceChildren()
+				cleanup()
 				reject(signal.reason)
 			}
 			signal.addEventListener("abort", abort, { once: true })
-			renderDecisionButtons(finish)
+			renderDecisionButton(buttons, text.approve, true, finish)
+			renderDecisionButton(buttons, text.cancel, false, finish)
 			const stopPositioning = anchorPageApproval(panel, highlight, element, options.exclude)
 		})
 	}
@@ -546,11 +490,6 @@ export function createPageTool(options: {
 			validate(element)
 			actionValidated = true
 		}
-	}
-
-	function showProgress(input: PageInput): void {
-		if (heading) heading.textContent = text.working
-		if (status) status.textContent = input.action === "observe" ? text.observing : input.description
 	}
 
 	async function scrollPage(page: PageController, input: Extract<PageInput, { action: "scroll" }>) {
@@ -575,7 +514,6 @@ export function createPageTool(options: {
 		if (!observed || observed.id !== input.snapshot) return { status: "stale", message: "Observe the page again." }
 		const element = page.getElement(input.index)
 		element.scrollIntoView({ block: "center", behavior: "instant" })
-		placePanel(element)
 		validate(element)
 		const baseline = {
 			fingerprint: element.outerHTML,
@@ -599,40 +537,22 @@ export function createPageTool(options: {
 		signal.throwIfAborted()
 		const page = await setup()
 		signal.throwIfAborted()
-		showProgress(input)
 		if (input.action === "observe") return await observe()
 		if (input.action === "scroll") return await scrollPage(page, input)
 		return await interact(page, input, signal)
-	}
-
-	function startTask(abortSignal: AbortSignal | undefined): AbortSignal {
-		if (activeSignal !== abortSignal) {
-			activeSignal = abortSignal
-			stopping = new AbortController()
-			taskSignal = AbortSignal.any([stopping.signal, ...(abortSignal ? [abortSignal] : [])])
-			taskSignal.addEventListener("abort", dispose, { once: true })
-		}
-		return taskSignal
-	}
-
-	function restoreApprovalFocus(): void {
-		if (!approvalFocus) return
-		if (approvalFocus.isConnected && panel?.shadowRoot?.activeElement) approvalFocus.focus({ preventScroll: true })
-		approvalFocus = undefined
 	}
 
 	function finishOperation(signal: AbortSignal): void {
 		busy = false
 		validateAction = undefined
 		if (highlight) highlight.hidden = true
-		restoreApprovalFocus()
 		if (signal.aborted) dispose()
 	}
 
 	return {
 		dispose,
 		definition: tool({
-			description: `Observe and operate the current website to complete the visitor's objective. For click, fill, and select supply snapshot, index, and description. Fill requires text; select requires option; scroll requires down and description.
+			description: `Observe and operate the current website to complete the visitor's objective. For click, fill, and select supply snapshot and index. Fill requires text; select requires option; scroll requires down.
 Ask for missing details; never invent them. When approval is needed, call the intended action with approval describing the commitment, products, quantities, total including fees, and delivery details. The tool waits for buttons; do not ask for approval in chat.
 Do not retry a declined commitment without a new visitor request, or repeat a purchase or payment whose outcome is uncertain. After interruption, observe to establish the outcome. Confirm success from the website; otherwise report uncertainty.`,
 			inputSchema,
@@ -641,7 +561,12 @@ Do not retry a declined commitment without a new visitor request, or repeat a pu
 				if (!parsed.success) return { status: "invalid", message: z.prettifyError(parsed.error) }
 				if (busy) return { status: "busy", message: "Wait for the current page action." }
 				busy = true
-				const signal = startTask(abortSignal)
+				if (activeSignal !== abortSignal) {
+					activeSignal?.removeEventListener("abort", dispose)
+					activeSignal = abortSignal
+					activeSignal?.addEventListener("abort", dispose, { once: true })
+				}
+				const signal = AbortSignal.any([lifetime.signal, ...(abortSignal ? [abortSignal] : [])])
 				try {
 					return await runOperation(parsed.data, signal)
 				} catch (error) {

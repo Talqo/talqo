@@ -57,7 +57,7 @@ The embed token is public. Provider API keys and operator credentials must stay 
 
 ## Browser tools
 
-The agent's website-action setting enables the SDK's page tool, which observes and operates website controls. The agent decides when to ask for approval using the operator's saved instructions. The SDK waits for the visitor when the agent requests approval; it cannot identify every consequential website action on its own. The SDK owns the on-page action feedback, approval buttons, and Stop control. Custom interfaces do not render approval state.
+The agent's website-action setting enables the SDK's page tool, which observes and operates website controls. The agent uses the operator's saved instructions to decide when to request approval. The SDK highlights targets and displays on-page approval controls, waiting for the visitor's decision before executing the proposed action.
 
 Custom interfaces opt in by passing their chat's root element through `pageControl: { exclude: [chatElement] }` in `createChatClient()`. The tool cannot read or operate those roots. Without this option, ordinary chat and custom tools are unchanged. The pre-built widget supplies its root automatically. If browser tab storage is unavailable, website actions are disabled but chat remains usable.
 

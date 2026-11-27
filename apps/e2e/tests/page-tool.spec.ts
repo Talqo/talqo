@@ -44,7 +44,7 @@ test("page observations reflect live controls and reject disabled or detached ta
 <a id="base-link" href="/">Base target</a></div><div id="chat"><button>Private chat control</button></div>`)
 	const result = await page.evaluate(async () => {
 		type PageToolModule = {
-			createPageTool(options: { exclude: Element[]; language: string; stop(): Promise<void> }): {
+			createPageTool(options: { exclude: Element[]; language: string }): {
 				definition: { execute(input: unknown, options: { abortSignal: AbortSignal }): Promise<unknown> }
 				dispose(): void
 			}
@@ -57,7 +57,7 @@ test("page observations reflect live controls and reject disabled or detached ta
 		const email = document.querySelector("#email")
 		email?.addEventListener("focus", () => email.setAttribute("aria-invalid", "false"), { once: true })
 		const controller = new AbortController()
-		const pageTool = createPageTool({ exclude: [excluded], language: "en", stop: async () => controller.abort() })
+		const pageTool = createPageTool({ exclude: [excluded], language: "en" })
 		const execute = pageTool.definition.execute
 		if (!execute) throw new Error("Missing page tool")
 		const run = (input: unknown) =>
@@ -68,7 +68,6 @@ test("page observations reflect live controls and reject disabled or detached ta
 			const before = (await run({ action: "observe" })) as { snapshot: string; content: string }
 			type ControlAction = {
 				action: "click" | "fill" | "select"
-				description: string
 				approval: null
 				text?: string
 				option?: string
@@ -81,13 +80,11 @@ test("page observations reflect live controls and reject disabled or detached ta
 			}
 			const filled = (await runOn(before, "email", {
 				action: "fill",
-				description: "Fill email",
 				approval: null,
 				text: "new@example.com",
 			})) as { page: { snapshot: string; content: string } }
 			const selected = (await runOn(filled.page, "delivery", {
 				action: "select",
-				description: "Choose delivery",
 				approval: null,
 				option: "Express",
 			})) as { page: { snapshot: string; content: string } }
@@ -96,7 +93,6 @@ test("page observations reflect live controls and reject disabled or detached ta
 			target.disabled = true
 			const disabled = await runOn(selected.page, "target", {
 				action: "click",
-				description: "Place order",
 				approval: null,
 			})
 			target.disabled = false
@@ -104,7 +100,6 @@ test("page observations reflect live controls and reject disabled or detached ta
 			target.remove()
 			const detached = await runOn(refreshed, "target", {
 				action: "click",
-				description: "Place order",
 				approval: null,
 			})
 			const blocked: unknown[] = []
@@ -117,7 +112,6 @@ test("page observations reflect live controls and reject disabled or detached ta
 				const current = (await run({ action: "observe" })) as { snapshot: string; content: string }
 				const denied = await runOn(current, id, {
 					action: "click",
-					description: "Use control",
 					approval: null,
 				})
 				blocked.push(denied)
@@ -191,7 +185,10 @@ test("changed delivery and a page reload require fresh approval; Cancel leaves t
 
 test("Stop cancels a pending order approval without committing", async ({ page, chatEmbed }) => {
 	const approval = await startPurchase(page, chatEmbed.widgetUrl)
-	await approval.getByRole("button", { name: "Stop", exact: true }).click()
+	await page
+		.getByRole("dialog")
+		.getByRole("button", { name: widget("stopGenerating") })
+		.click()
 	await expect(approval).toHaveCount(0)
 	await page.reload()
 	await expect(page.getByRole("heading", { name: "Review order" })).toBeVisible()

@@ -16,12 +16,11 @@ export function orderAction(messages: Message[]): { input?: unknown; answer?: st
 		if (!number) throw new Error(`No page control: ${match}\n${page.content}`)
 		return Number(number)
 	}
-	const action = (match: string, description: string, fields: Record<string, unknown> = {}) => ({
+	const action = (match: string, fields: Record<string, unknown> = {}) => ({
 		input: {
 			action: "click",
 			snapshot: page.snapshot,
 			index: index(match),
-			description,
 			approval: null,
 			...fields,
 		},
@@ -29,7 +28,7 @@ export function orderAction(messages: Message[]): { input?: unknown; answer?: st
 	if (page.content.includes("Order confirmed")) return { answer: "Your order is confirmed." }
 	if (page.content.includes("Place order")) {
 		const express = page.content.includes("Delivery: Express")
-		return action("Place order", "Placing your order", {
+		return action("Place order", {
 			approval: `Buy 2 Large Everyday T-shirts for $${express ? "58" : "53"}.00 including ${express ? "Express" : "Standard"} delivery to Alex Example, 12 Market Street.`,
 		})
 	}
@@ -44,22 +43,22 @@ export function orderAction(messages: Message[]): { input?: unknown; answer?: st
 		)
 			return { answer: "What full name and delivery address should I use?" }
 		if (!page.content.includes('value="Alex Example"') && !page.content.includes("value=Alex Example"))
-			return action("name=name", "Entering your full name", { action: "fill", text: "Alex Example" })
+			return action("name=name", { action: "fill", text: "Alex Example" })
 		if (!page.content.includes("12 Market Street"))
-			return action("name=address", "Entering your delivery address", { action: "fill", text: "12 Market Street" })
-		return action("Review order", "Reviewing your order")
+			return action("name=address", { action: "fill", text: "12 Market Street" })
+		return action("Review order")
 	}
 	if (page.content.includes("Go to checkout")) {
 		if (!page.content.includes("value=2") && !page.content.includes('value="2"'))
-			return action("name=quantity", "Setting the quantity to two", { action: "fill", text: "2" })
+			return action("name=quantity", { action: "fill", text: "2" })
 		// The summary proves the cart update was submitted, not just typed.
-		if (page.content.includes("quantity 1")) return action("Update cart", "Updating your cart")
-		return action("Go to checkout", "Opening checkout")
+		if (page.content.includes("quantity 1")) return action("Update cart")
+		return action("Go to checkout")
 	}
 	if (page.content.includes("Add to cart")) {
 		if (!page.content.includes("value=Large") && !page.content.includes('value="Large"'))
-			return action("name=size", "Selecting size Large", { action: "select", option: "Large" })
-		return action("Add to cart", "Adding the T-shirts to your cart")
+			return action("name=size", { action: "select", option: "Large" })
+		return action("Add to cart")
 	}
-	return action("View Everyday T-shirt", "Opening the Everyday T-shirt")
+	return action("View Everyday T-shirt")
 }
