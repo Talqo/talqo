@@ -95,7 +95,17 @@ Register at most 8 tools in total. The page tool takes one slot when enabled. If
 
 Talqo stores browser and MCP tool results in conversation history and sends them to the model on later completed turns. Do not return secrets or unnecessary personal data.
 
-Website observations include visible page text and ordinary form values. They are sent to the configured AI provider and retained in conversation history, where operators can review them. The tool skips iframes and password fields and uses field attributes to identify other sensitive controls. It cannot detect every sensitive value. Exclude sensitive page sections through `pageControl.exclude`, even if the fields look like ordinary inputs. Reported page URLs omit query strings and fragments. Approval summaries are model-written proposals, not verified transaction receipts; the website remains the source of order details.
+The page tool sends visible page content and form values to your configured AI provider and saves them in conversation history. You are responsible for excluding sensitive content. Use `data-talqo-hidden` to exclude an element and its descendants from observations and actions:
+
+```html
+<section data-talqo-hidden>
+	<p>Private account details</p>
+</section>
+```
+
+For programmatic exclusions, pass elements through `pageControl.exclude`.
+
+Reported page URLs omit query strings and fragments. Approval summaries are model-written proposals, not verified transaction receipts; the website remains the source of order details.
 
 Browser tools run with your page's permissions. Register only actions you intend the agent to perform, validate application permissions inside `execute`, and honor its abort signal. Stopping or disconnecting cannot undo an action already performed. Interrupted calls are never replayed automatically. When `website-action-uncertain` is reported, tell the visitor to check the page before repeating an instruction.
 

@@ -61,44 +61,17 @@ const labels = {
 	},
 }
 
-const PAYMENT_FIELD = /\bcc[-_]|\bpan\b|card.?number|credit.?card|debit.?card|cvv|cvc|security.?code/i
-const PRIVATE_FIELD = /password|hidden|secret|token|one-time-code/i
-const FIELD_ATTRIBUTES = ["type", "name", "id", "autocomplete", "aria-label", "placeholder"]
-
-function fieldMetadata(element: Element): string {
-	return [
-		...FIELD_ATTRIBUTES.map((name) => element.getAttribute(name)),
-		...element.getAttributeNames().filter((name) => name.startsWith("data-")),
-	].join(" ")
-}
-
-function isPaymentContainer(element: Element | null | undefined): boolean {
-	return (
-		!!element &&
-		(element.hasAttribute("data-payment") ||
-			(element.matches("form, fieldset") && /payment/i.test(fieldMetadata(element))))
-	)
-}
-
-function isInsidePaymentContainer(element: Element): boolean {
-	for (let node = element.parentNode; node; node = node instanceof ShadowRoot ? node.host : node.parentNode) {
-		if (node instanceof Element && isPaymentContainer(node)) return true
-	}
-	return false
-}
-
-function isPrivateControl(element: Element): boolean {
-	if (isPaymentContainer(element)) return true
-	const metadata = fieldMetadata(element)
-	if (PRIVATE_FIELD.test(metadata) || PAYMENT_FIELD.test(metadata)) return true
-	const form = element instanceof HTMLElement ? formControl(element)?.form : undefined
-	return isPaymentContainer(form) || isInsidePaymentContainer(element)
-}
+const IGNORED_PAGE_ELEMENTS = '[data-talqo-hidden], iframe, input[type="password"], input[type="hidden"]'
+const SENSITIVE_ARIA_LABEL =
+	/password|secret|token|one[- ]time[- ]code|\bcc[-_]|\bpan\b|card.?number|credit.?card|debit.?card|cvv|cvc|security.?code/i
 
 function privatePageRoots(root: Document | ShadowRoot): Element[] {
-	const elements = [...root.querySelectorAll("iframe, input, textarea, select")].filter(
-		(element) => element.matches("iframe") || isPrivateControl(element),
-	)
+	const elements = [
+		...root.querySelectorAll(IGNORED_PAGE_ELEMENTS),
+		...[...root.querySelectorAll("[aria-label]")].filter((element) =>
+			SENSITIVE_ARIA_LABEL.test(element.getAttribute("aria-label") ?? ""),
+		),
+	]
 	for (const element of root.querySelectorAll("*"))
 		if (element.shadowRoot) elements.push(...privatePageRoots(element.shadowRoot))
 	return elements
@@ -115,19 +88,12 @@ function assertTargetUsable(element: HTMLElement): void {
 		throw new Error("Target is unavailable. Observe the page again.")
 }
 
-function isTargetOutsidePage(
-	element: HTMLElement,
-	panel: HTMLElement | undefined,
-	highlight: HTMLElement | undefined,
-	exclude: readonly Element[],
-): boolean {
-	return (
-		element.ownerDocument !== document ||
-		element.matches("iframe") ||
-		exclude.some((root) => root.contains(element)) ||
-		!!panel?.contains(element) ||
-		highlight === element
-	)
+function isTargetOutsidePage(element: HTMLElement, exclude: readonly Element[]): boolean {
+	if (element.ownerDocument !== document) return true
+	for (let node: Node | null = element; node; node = node instanceof ShadowRoot ? node.host : node.parentNode) {
+		if (exclude.some((root) => root.contains(node))) return true
+	}
+	return false
 }
 
 function assertTargetVisible(element: HTMLElement): void {
@@ -283,11 +249,7 @@ export function createPageTool(options: {
 
 	function validate(element: HTMLElement): void {
 		assertTargetUsable(element)
-		if (
-			isTargetOutsidePage(element, panel, highlight, options.exclude) ||
-			(element.matches("input, textarea, select") && isPrivateControl(element))
-		)
-			throw new Error("Target is outside the permitted page.")
+		if (isTargetOutsidePage(element, ignoredRoots())) throw new Error("Target is outside the permitted page.")
 		assertTargetVisible(element)
 		const baseTarget = pageBaseTarget()
 		assertSameTabLink(element, baseTarget)

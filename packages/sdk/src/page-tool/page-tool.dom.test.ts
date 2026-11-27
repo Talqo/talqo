@@ -159,28 +159,25 @@ test("observes and acts with only a target highlight, without on-page status con
 	expect(root.host.isConnected).toBe(false)
 })
 
-test("observes the page and reports private controls without exposing them", async () => {
+test("excludes private elements and sensitive ARIA labels while keeping ordinary fields available", async () => {
 	document.body.innerHTML = `<main aria-label="Payments">
 		<input id="password" type="password">
 		<input id="number" type="tel" name="credit-card" aria-label="Card number">
-		<select id="saved" data-card-number><option>Saved card</option></select>
+		<select id="saved" aria-label="Saved credit card"><option>Saved card</option></select>
 		<form data-payment><input id="code" name="code"></form>
 		<section data-payment><div><input id="wrapped" name="number"></div></section>
-		<input id="marked" data-payment>
+		<input id="hidden" type="hidden">
 		<iframe id="frame" srcdoc="<p>Private frame content</p>"></iframe>
-		<input name="quantity">
+		<section id="secrets" aria-label="API secrets"><p>Private credentials</p></section>
+		<input name="quantity" aria-label="Quantity">
+		<input name="secret" placeholder="Token">
+		<section aria-label="Order details"><p>Public order details</p></section>
 		<button id="buy">Buy</button>
 	</main>`
 	controllerState.onState = () => {
-		expect([...document.querySelectorAll("main [data-page-agent-ignore]")].map((element) => element.id)).toEqual([
-			"password",
-			"number",
-			"saved",
-			"code",
-			"wrapped",
-			"marked",
-			"frame",
-		])
+		expect(
+			new Set([...document.querySelectorAll("main [data-page-agent-ignore]")].map((element) => element.id)),
+		).toEqual(new Set(["password", "number", "saved", "hidden", "frame", "secrets"]))
 	}
 	controllerState.element = document.querySelector("#buy") as HTMLElement
 	const page = newPage()
@@ -190,6 +187,47 @@ test("observes the page and reports private controls without exposing them", asy
 	expect(controllerState.disposed).toBe(false)
 	page.dispose()
 })
+
+test.each(["page", "shadow", "host"])(
+	"excludes marked subtrees in the %s and rejects newly hidden targets",
+	async (location) => {
+		const host = document.createElement("div")
+		document.body.append(host)
+		const root = location === "page" ? host : host.attachShadow({ mode: "open" })
+		const section = document.createElement("section")
+		section.innerHTML = "<p>Private account details</p><button>Reveal</button>"
+		root.append(section)
+		const boundary = location === "host" ? host : section
+		const button = section.querySelector("button")!
+		setRect(button, 20, 40)
+		document.elementFromPoint = () => button
+		controllerState.element = button
+		const page = newPage()
+		const tools = toolsFor(page)
+		try {
+			const snapshot = await observeSnapshot(tools)
+			boundary.setAttribute("data-talqo-hidden", "")
+			expect(await execute(tools, { action: "click", snapshot, index: 0 })).toMatchObject({
+				status: "failed",
+				message: "Target is outside the permitted page.",
+			})
+			controllerState.onState = () => {
+				expect(boundary.getAttribute("data-page-agent-ignore")).toBe("true")
+			}
+			await observeSnapshot(tools)
+			expect(boundary.hasAttribute("data-page-agent-ignore")).toBe(false)
+			boundary.removeAttribute("data-talqo-hidden")
+			controllerState.onState = undefined
+			expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject(
+				{
+					status: "dispatched",
+				},
+			)
+		} finally {
+			page.dispose()
+		}
+	},
+)
 
 test("scrolls the page and re-observes", async () => {
 	controllerState.element = undefined
@@ -366,8 +404,8 @@ test("fills and selects ordinary controls even when their ID or test ID is payme
 	page.dispose()
 })
 
-test("rejects a control marked as a payment field even when the controller returns it", async () => {
-	document.body.innerHTML = '<main><input name="number" data-payment></main>'
+test("rejects a control with a sensitive ARIA label even when the controller returns it", async () => {
+	document.body.innerHTML = '<main><input aria-label="API secret"></main>'
 	const input = document.querySelector("input")!
 	setRect(input, 20, 40)
 	document.elementFromPoint = () => input
