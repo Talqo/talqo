@@ -229,6 +229,54 @@ describe("knowledge embeddings", () => {
 	})
 })
 
+function redirectDoclingFetch(doclingUrl: URL, stubUrl: URL) {
+	const originalFetch = globalThis.fetch
+	return spyOn(globalThis, "fetch").mockImplementation(
+		Object.assign(
+			(input: string | URL | Request, init?: RequestInit) => {
+				const url = input instanceof Request ? new URL(input.url) : new URL(input)
+				// Only the configured Docling origin moves to the stub; embedding calls keep their real provider.
+				return originalFetch(
+					url.origin === doclingUrl.origin ? new URL(`${url.pathname}${url.search}`, stubUrl) : input,
+					init,
+				)
+			},
+			{ preconnect: originalFetch.preconnect },
+		),
+	)
+}
+
+type SaveConfigurationInput = Parameters<typeof aiProvider.saveConfiguration>[0]
+function providerConfiguration(baseURL: string, modelId: string): Omit<SaveConfigurationInput, "expectedRevision"> {
+	return {
+		text: {
+			providerId: "openai",
+			modelId: "gpt-5-mini",
+			authMode: "static",
+			settings: {},
+			credentials: { apiKey: "sk-text" },
+		},
+		embedding: {
+			providerId: "openai-compatible",
+			modelId,
+			authMode: "static",
+			settings: { baseURL },
+			credentialSource: "separate",
+			credentials: { apiKey: "sk-embedding" },
+		},
+	}
+}
+
+async function runOneIngestionBatch(): Promise<void> {
+	const stop = new Error("stop the worker after the first batch")
+	const sleep = spyOn(Bun, "sleep").mockRejectedValue(stop)
+	try {
+		await expect(runIngestion()).rejects.toBe(stop)
+	} finally {
+		sleep.mockRestore()
+	}
+}
+
 describe("ingestion worker", () => {
 	it("recovers uploads and embeds a pending file before the next poll", async () => {
 		const doclingUrl = new URL(env.TALQO_DOCLING_URL)
@@ -246,57 +294,76 @@ describe("ingestion worker", () => {
 				return new Response("not found", { status: 404 })
 			},
 		})
-		// The conversion client reads the configured URL; redirect only that origin to the ephemeral stub.
-		const originalFetch = globalThis.fetch
-		const fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
-			Object.assign(
-				(input: string | URL | Request, init?: RequestInit) => {
-					const url = input instanceof Request ? new URL(input.url) : new URL(input)
-					return originalFetch(
-						url.origin === doclingUrl.origin ? new URL(`${url.pathname}${url.search}`, stub.url) : input,
-						init,
-					)
-				},
-				{ preconnect: originalFetch.preconnect },
-			),
-		)
+		const fetchSpy = redirectDoclingFetch(doclingUrl, stub.url)
 		const owner = await createOwner("Worker")
 		const orphanAgentId = crypto.randomUUID()
 		await mkdir(join(UPLOAD_ROOT, orphanAgentId), { recursive: true })
 		await writeFile(join(UPLOAD_ROOT, orphanAgentId, "orphan.md"), "orphan")
 		await aiProvider.saveConfiguration({
 			expectedRevision: 0,
-			text: {
-				providerId: "openai",
-				modelId: "gpt-5-mini",
-				authMode: "static",
-				settings: {},
-				credentials: { apiKey: "sk-text" },
-			},
-			embedding: {
-				providerId: "openai-compatible",
-				modelId: "test-embedding",
-				authMode: "static",
-				settings: { baseURL: `${stub.url.origin}/v1` },
-				credentialSource: "separate",
-				credentials: { apiKey: "sk-embedding" },
-			},
+			...providerConfiguration(`${stub.url.origin}/v1`, "test-embedding"),
 		})
 		await uploadFile(owner.id, "guide.md", new TextEncoder().encode("content").buffer)
 
-		const stop = new Error("stop the worker after the first batch")
-		const sleep = spyOn(Bun, "sleep").mockRejectedValue(stop)
 		try {
-			await expect(runIngestion()).rejects.toBe(stop)
+			await runOneIngestionBatch()
 			expect((await repository.statuses(owner.id)).get("guide.md")?.status).toBe("ready")
 			expect(await searchKnowledge(owner.id, "content")).toEqual(["Worker ingested content"])
 		} finally {
-			sleep.mockRestore()
 			fetchSpy.mockRestore()
 			await stub.stop(true)
 			await sql`DELETE FROM ai_provider_config`
 			await agent.deleteAgent(owner.id)
 			await rm(join(UPLOAD_ROOT, orphanAgentId), { recursive: true, force: true })
+		}
+	})
+	it("stops the batch when the embedding model changes before completion", async () => {
+		const doclingUrl = new URL(env.TALQO_DOCLING_URL)
+		let chunkRequests = 0
+		let embeddingRequests = 0
+		const stub = Bun.serve({
+			hostname: "127.0.0.1",
+			port: 0,
+			async fetch(request) {
+				const { pathname } = new URL(request.url)
+				if (pathname === "/v1/chunk/hybrid/file/async") {
+					chunkRequests += 1
+					return chunkRequests === 1
+						? Response.json({ task_id: "task-1" })
+						: new Response("unexpected second conversion", { status: 500 })
+				}
+				if (pathname === "/v1/status/poll/task-1") return Response.json({ task_status: "success" })
+				if (pathname === "/v1/result/task-1") return Response.json({ chunks: [{ text: "Changed model content" }] })
+				if (pathname === "/v1/embeddings") {
+					embeddingRequests += 1
+					if (embeddingRequests === 1) {
+						await aiProvider.saveConfiguration({
+							expectedRevision: 1,
+							...providerConfiguration(`${stub.url.origin}/v1`, "model-b"),
+						})
+					}
+					return Response.json({ data: [{ embedding: [1, 0, 0] }] })
+				}
+				return new Response("not found", { status: 404 })
+			},
+		})
+		const fetchSpy = redirectDoclingFetch(doclingUrl, stub.url)
+		const owner = await createOwner("Worker")
+		try {
+			await aiProvider.saveConfiguration({
+				expectedRevision: 0,
+				...providerConfiguration(`${stub.url.origin}/v1`, "model-a"),
+			})
+			await uploadFile(owner.id, "guide.md", new TextEncoder().encode("content").buffer)
+
+			await runOneIngestionBatch()
+			expect(chunkRequests).toBe(1)
+			expect((await repository.statuses(owner.id)).get("guide.md")?.status).toBe("pending")
+		} finally {
+			fetchSpy.mockRestore()
+			await stub.stop(true)
+			await sql`DELETE FROM ai_provider_config`
+			await agent.deleteAgent(owner.id)
 		}
 	})
 })

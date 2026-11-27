@@ -387,9 +387,10 @@ function ingestionDependencies(model: EmbeddingOperation, connection: WorkerConn
 			const currentKey = await currentEmbeddingKey()
 			if (currentKey !== model.key) {
 				await repository.requeue(job)
-				return
+				return false
 			}
 			await repository.complete(job, model.key, chunks)
+			return true
 		},
 		fail: async (job, error) => {
 			console.error("agent-file.embedding.failed", { agentId: job.agentId, file: job.name, error })
