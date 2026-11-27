@@ -45,6 +45,7 @@ describe("knowledge ingestion", () => {
 			},
 			complete: async (job, chunks) => {
 				events.push(`complete:${job.id}:${chunks.length}`)
+				return true
 			},
 			fail: async (job) => {
 				events.push(`fail:${job.id}`)
@@ -59,5 +60,28 @@ describe("knowledge ingestion", () => {
 			"embed:three",
 			"complete:second:1",
 		])
+	})
+	it("stops the batch when the embedding model changes mid-job", async () => {
+		const events: Array<string> = []
+		const jobs = [
+			{ id: "first", name: "first.md" },
+			{ id: "second", name: "second.md" },
+		]
+		await processPendingFiles({
+			claim: async () => jobs.shift(),
+			convert: async (job) => {
+				events.push(`convert:${job.id}`)
+				return ["one"]
+			},
+			embed: async () => [1, 2],
+			complete: async (job, chunks) => {
+				events.push(`complete:${job.id}:${chunks.length}`)
+				return false
+			},
+			fail: async () => {
+				throw new Error("Embedding failure should not occur")
+			},
+		})
+		expect(events).toEqual(["convert:first", "complete:first:1"])
 	})
 })

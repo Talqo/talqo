@@ -15,7 +15,8 @@ type Dependencies<T extends Job> = {
 	claim(): Promise<T | undefined>
 	convert(job: T): Promise<Array<string>>
 	embed(text: string): Promise<Array<number>>
-	complete(job: T, chunks: Array<{ text: string; embedding: Array<number> }>): Promise<void>
+	/** False means the embedding model changed mid-job, so the batch must stop instead of re-converting. */
+	complete(job: T, chunks: Array<{ text: string; embedding: Array<number> }>): Promise<boolean>
 	fail(job: T, error: unknown): Promise<void>
 }
 
@@ -27,7 +28,7 @@ export async function processPendingFiles<T extends Job>(dependencies: Dependenc
 			if (!texts.length) throw new IngestionError("empty-document")
 			const chunks: Array<{ text: string; embedding: Array<number> }> = []
 			for (const text of texts) chunks.push({ text, embedding: await dependencies.embed(text) })
-			await dependencies.complete(job, chunks)
+			if (!(await dependencies.complete(job, chunks))) return
 		} catch (error) {
 			await dependencies.fail(job, error)
 		}
