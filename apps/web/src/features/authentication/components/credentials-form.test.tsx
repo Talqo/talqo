@@ -13,7 +13,7 @@ type Submission = { password: string; username: string }
 let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
-let submissions: Submission[]
+let submissions: Array<Submission>
 
 async function renderForm(
 	props: Partial<{

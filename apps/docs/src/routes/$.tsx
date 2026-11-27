@@ -24,7 +24,7 @@ const LOGO_MASK = { "--logo-mask": `url("${logoUrl}")` } as CSSProperties
 
 // Slugs arrive from the URL splat, so constrain shape and size before lookup.
 // Rejections are missing addresses, not server failures.
-function validSlugs(slugs: unknown): string[] {
+function validSlugs(slugs: unknown): Array<string> {
 	if (!isValidSlugPath(slugs)) throw notFound()
 	return slugs
 }

@@ -1,7 +1,7 @@
 // The statistics filter rides in the ?agents= search param so a filtered view is shareable:
 // accepts one id or a JSON id list and normalizes to a deduped list; only a missing param
 // means "all agents".
-export function parseAgentsParam(value: unknown): string[] | undefined {
+export function parseAgentsParam(value: unknown): Array<string> | undefined {
 	if (value === undefined) return undefined
 	if (typeof value === "string" && value.startsWith("[")) {
 		try {

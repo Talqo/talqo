@@ -26,8 +26,8 @@ afterEach(async () => {
 })
 
 type SessionMock = {
-	agents?: Array<{ id: string; permissions: string[] }>
-	permissions?: string[]
+	agents?: Array<{ id: string; permissions: Array<string> }>
+	permissions?: Array<string>
 	user?: { mustChangePassword: boolean; username: string } | null
 }
 
@@ -43,7 +43,7 @@ function mockSession({
 	}) as typeof fetch)
 }
 
-function mockAdminSession(permissions: string[] = ["admin"]) {
+function mockAdminSession(permissions: Array<string> = ["admin"]) {
 	return mockSession({ permissions })
 }
 
@@ -51,7 +51,7 @@ function mockSignedInAdmin() {
 	return mockAdminSession(["admin", "users:read", "roles:manage", "ai_provider:manage"])
 }
 
-function navItems(host: HTMLElement): (string | null)[] {
+function navItems(host: HTMLElement): Array<string | null> {
 	return [...host.querySelectorAll("aside nav a")].map((link) => link.textContent)
 }
 
@@ -234,7 +234,7 @@ test("marks only the navigation item for the current page as current", async () 
 })
 
 test("logs out, clears protected caches, and returns to login", async () => {
-	const requests: RecordedRequest[] = []
+	const requests: Array<RecordedRequest> = []
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		recordRequest(requests, input, init)

@@ -10,7 +10,7 @@ type Submission = { confirmPassword: string; currentPassword: string; newPasswor
 let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
-let submissions: Submission[]
+let submissions: Array<Submission>
 
 async function renderForm(
 	props: Partial<{

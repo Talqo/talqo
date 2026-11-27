@@ -120,9 +120,9 @@ export function resolveRenameTarget(name: string, requested: string): string {
 	return target
 }
 
-async function list(agentId: string): Promise<StoredFile[]> {
+async function list(agentId: string): Promise<Array<StoredFile>> {
 	const dir = agentDir(agentId)
-	let entries: string[]
+	let entries: Array<string>
 	try {
 		entries = await readdir(dir)
 	} catch (error) {
@@ -137,7 +137,7 @@ function isFileMissing(error: unknown): boolean {
 	return (error as NodeJS.ErrnoException).code === "ENOENT"
 }
 
-async function listAgentDirectories(): Promise<string[]> {
+async function listAgentDirectories(): Promise<Array<string>> {
 	try {
 		const entries = await readdir(UPLOAD_DIR, { withFileTypes: true })
 		return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
@@ -218,11 +218,11 @@ export async function removeAgentDir(agentId: string): Promise<void> {
 	await rm(agentDir(agentId), { force: true, recursive: true })
 }
 
-const WORKER_INTERVAL_MS = 3_000
+const WORKER_INTERVAL_MS = 3000
 // A hung embedding call would stall the strictly-serial ingestion worker, so it is bounded.
 const EMBEDDING_TIMEOUT_MS = 60_000
 // Derive the advisory-lock key from the feature name; mask to a signed bigint for Postgres.
-const WORKER_LOCK_KEY = Bun.hash("knowledge-base-ingestion") & 0x7fff_ffff_ffff_ffffn
+const WORKER_LOCK_KEY = Bun.hash("knowledge-base-ingestion") & 0x7f_ff_ff_ff_ff_ff_ff_ffn
 
 class FileNotRetryableError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
@@ -243,7 +243,7 @@ export async function upload(agentId: string, name: string, data: ArrayBuffer): 
 	return { ...stored, embeddingStatus: "pending", embeddingError: null }
 }
 
-export async function listWithStatus(agentId: string): Promise<IndexedFile[]> {
+export async function listWithStatus(agentId: string): Promise<Array<IndexedFile>> {
 	const listed = await list(agentId)
 	const statuses = await repository.statuses(agentId)
 	return listed.map((file) => {
@@ -286,7 +286,7 @@ export async function retryEmbedding(agentId: string, name: string): Promise<voi
 
 const RETRIEVAL_TOP_K = 5
 
-export async function searchKnowledge(agentId: string, text: string, signal?: AbortSignal): Promise<string[]> {
+export async function searchKnowledge(agentId: string, text: string, signal?: AbortSignal): Promise<Array<string>> {
 	// Without indexed files there is nothing to match, so skip the paid embedding call.
 	if (!(await repository.hasReadyFiles(agentId))) return []
 	const operation = await aiProvider.prepareEmbeddingOperation()
@@ -317,7 +317,7 @@ export async function reconcileDanglingRows(): Promise<void> {
 		return
 	}
 	const rows = await repository.listAll()
-	const missing: { agentId: string; name: string }[] = []
+	const missing: Array<{ agentId: string; name: string }> = []
 	await Promise.all(
 		rows.map(async (row) => {
 			try {
@@ -333,7 +333,7 @@ export async function reconcileDanglingRows(): Promise<void> {
 	console.error("agent-file.recovery.dangling_rows_removed", { scanned: rows.length, removed: missing.length })
 }
 
-async function convert(job: repository.Job): Promise<string[]> {
+async function convert(job: repository.Job): Promise<Array<string>> {
 	try {
 		return await chunkFile(job.name, await get(job.agentId, job.name), env.TALQO_DOCLING_URL)
 	} catch (error) {
@@ -347,7 +347,7 @@ type IngestionDependencies = Parameters<typeof processPendingFiles<repository.Jo
 
 async function acquireWorkerLock(connection: WorkerConnection): Promise<boolean> {
 	const result = await connection<
-		{ acquired: boolean }[]
+		Array<{ acquired: boolean }>
 	>`SELECT pg_try_advisory_lock(${WORKER_LOCK_KEY.toString()}::bigint) AS acquired`
 	return result[0]?.acquired ?? false
 }

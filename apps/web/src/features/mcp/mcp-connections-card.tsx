@@ -41,7 +41,7 @@ function ConnectionsContent({
 	refetch,
 }: {
 	agentId: string
-	servers: McpServer[]
+	servers: Array<McpServer>
 	stdioAllowed: boolean
 	canManage: boolean
 	isLoading: boolean

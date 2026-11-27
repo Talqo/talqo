@@ -8,7 +8,7 @@ await mock.module("./source", () => ({
 		page: async (page: { data: { title: string } }) => `# ${page.data.title}\n`,
 	},
 	source: {
-		getPage: (slugs: string[]) => {
+		getPage: (slugs: Array<string>) => {
 			if (slugs.length === 0) return { data: { title: "Docs home" } }
 			if (slugs.length === 1 && slugs[0] === "deployment") return { data: { title: "Deployment" } }
 			return undefined

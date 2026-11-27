@@ -4,7 +4,7 @@ function normalizeForMatch(value: string): string {
 	return value.normalize("NFD").toLocaleLowerCase("und").normalize("NFD")
 }
 
-export function createBlacklistFilter(words: readonly string[]) {
+export function createBlacklistFilter(words: ReadonlyArray<string>) {
 	const terms = words.filter(Boolean).map(normalizeForMatch)
 	if (terms.length === 0) {
 		return {

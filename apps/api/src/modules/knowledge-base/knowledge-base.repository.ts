@@ -12,13 +12,13 @@ export async function enqueue(agentId: string, name: string): Promise<void> {
 export async function statuses(
 	agentId: string,
 ): Promise<Map<string, { status: FileStatus; error: FailureReason | null }>> {
-	const rows = await sql<{ name: string; status: FileStatus; error: FailureReason | null }[]>`
+	const rows = await sql<Array<{ name: string; status: FileStatus; error: FailureReason | null }>>`
 		SELECT name, status, error FROM agent_file WHERE agent_id = ${agentId}`
 	return new Map(rows.map(({ name, status, error }) => [name, { status, error }]))
 }
 
-export async function listAll(): Promise<{ agentId: string; name: string }[]> {
-	const rows = await sql<{ agentId: string; name: string }[]>`
+export async function listAll(): Promise<Array<{ agentId: string; name: string }>> {
+	const rows = await sql<Array<{ agentId: string; name: string }>>`
 		SELECT agent_id AS "agentId", name FROM agent_file`
 	return rows
 }
@@ -42,7 +42,7 @@ export async function remove(agentId: string, name: string): Promise<void> {
 
 export async function claim(modelKey: string): Promise<Job | undefined> {
 	const rows = await sql<
-		Job[]
+		Array<Job>
 	>`UPDATE agent_file SET status = 'processing', model_key = ${modelKey}, generation = generation + 1
 		WHERE id = (SELECT id FROM agent_file WHERE status = 'pending' ORDER BY created_at, id LIMIT 1 FOR UPDATE SKIP LOCKED)
 		RETURNING id, agent_id AS "agentId", name, generation`
@@ -61,7 +61,7 @@ export async function reindexChanged(modelKey: string): Promise<void> {
 export async function complete(
 	job: Job,
 	modelKey: string,
-	chunks: { text: string; embedding: number[] }[],
+	chunks: Array<{ text: string; embedding: Array<number> }>,
 ): Promise<void> {
 	await sql.begin(async (tx) => {
 		const rows = await tx`SELECT id FROM agent_file WHERE id = ${job.id} AND generation = ${job.generation}
@@ -92,13 +92,18 @@ export async function requeue(job: Job): Promise<void> {
 }
 
 export async function hasReadyFiles(agentId: string): Promise<boolean> {
-	const [row] = await sql<{ ready: boolean }[]>`
+	const [row] = await sql<Array<{ ready: boolean }>>`
 		SELECT EXISTS (SELECT 1 FROM agent_file WHERE agent_id = ${agentId} AND status = 'ready') AS ready`
 	return row?.ready === true
 }
 
-export async function search(agentId: string, embedding: number[], modelKey: string, limit: number): Promise<string[]> {
-	const rows = await sql<{ text: string }[]>`
+export async function search(
+	agentId: string,
+	embedding: Array<number>,
+	modelKey: string,
+	limit: number,
+): Promise<Array<string>> {
+	const rows = await sql<Array<{ text: string }>>`
 		SELECT c.text FROM agent_file_chunk c
 		JOIN agent_file f ON f.id = c.file_id
 		WHERE f.agent_id = ${agentId} AND f.status = 'ready' AND f.model_key = ${modelKey}

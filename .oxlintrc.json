@@ -9,11 +9,14 @@
 		"apps/**/vite-env.d.ts",
 		".claude/**"
 	],
-	"plugins": ["import", "oxc", "typescript", "unicorn"],
+	"plugins": ["import", "jsx-a11y", "oxc", "promise", "react", "typescript", "unicorn"],
 	"jsPlugins": [
 		"@shadcn/lint",
 		{ "name": "@tanstack/router", "specifier": "@tanstack/eslint-plugin-router" },
-		"eslint-plugin-playwright"
+		"eslint-plugin-playwright",
+		{ "name": "@nkzw", "specifier": "@nkzw/eslint-plugin" },
+		{ "name": "no-only-tests", "specifier": "eslint-plugin-no-only-tests" },
+		{ "name": "quality", "specifier": "@nkzw/oxlint-config/quality/index.js" }
 	],
 	"settings": {
 		"shadcn": {
@@ -30,7 +33,174 @@
 		"suspicious": "error"
 	},
 	"rules": {
+		// Imports are explicit and type-first; no namespace bags or self-references.
+		"import/export": "error",
 		"import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
+		"typescript/consistent-type-imports": "error",
+		"typescript/no-import-type-side-effects": "error",
+		"typescript/no-require-imports": "error",
+		"unicorn/prefer-node-protocol": "error",
+
+		// Type declarations use one vocabulary.
+		"typescript/array-type": ["error", { "default": "generic" }],
+		"typescript/ban-ts-comment": "error",
+		"typescript/consistent-type-definitions": ["error", "type"],
+		"typescript/no-empty-object-type": "error",
+		"typescript/no-unsafe-function-type": "error",
+
+		// Values need proven types before they cross a boundary.
+		"quality/no-chained-type-assertions": "error",
+		"quality/no-unknown-type-aliases": "error",
+		"quality/no-widen-then-assert": "error",
+		"typescript/no-explicit-any": "error",
+		"typescript/no-non-null-assertion": "error",
+		"typescript/no-unsafe-argument": "error",
+		"typescript/no-unsafe-assignment": "error",
+		"typescript/no-unsafe-call": "error",
+		"typescript/no-unsafe-declaration-merging": "error",
+		"typescript/no-unsafe-enum-comparison": "error",
+		"typescript/no-unsafe-member-access": "error",
+		"typescript/no-unsafe-return": "error",
+		"typescript/no-unsafe-unary-minus": "error",
+		"typescript/non-nullable-type-assertion-style": "error",
+		"typescript/only-throw-error": "error",
+		"typescript/unbound-method": "error",
+		"typescript/use-unknown-in-catch-callback-variable": "error",
+
+		// TypeScript semantics the compiler cannot enforce by itself.
+		"typescript/no-array-delete": "error",
+		"typescript/no-base-to-string": "error",
+		"typescript/no-duplicate-type-constituents": "error",
+		"typescript/no-for-in-array": "error",
+		// The two `new Function` uses execute the built bundle in a sandbox for tests.
+		"typescript/no-implied-eval": "off",
+		"typescript/no-meaningless-void-operator": "error",
+		"typescript/no-mixed-enums": "error",
+		"typescript/no-redundant-type-constituents": "error",
+		"typescript/no-unnecessary-qualifier": "error",
+		"typescript/no-unnecessary-template-expression": "error",
+		// Flags the vault generic (call sites specialize `T`) and explicit args bun's expect overloads require.
+		"typescript/no-unnecessary-type-arguments": "off",
+		"typescript/no-unnecessary-type-constraint": "error",
+		"typescript/no-unnecessary-type-parameters": "off",
+		"typescript/prefer-find": "error",
+		"typescript/prefer-reduce-type-parameter": "error",
+		"typescript/prefer-return-this-type": "error",
+		"typescript/related-getter-setter-pairs": "error",
+		"typescript/require-array-sort-compare": "error",
+		"typescript/restrict-plus-operands": "error",
+		"typescript/restrict-template-expressions": "error",
+		"typescript/switch-exhaustiveness-check": "error",
+
+		// Async work must be awaited, settled, and surfaced.
+		"no-promise-executor-return": "error",
+		"promise/no-multiple-resolved": "error",
+		"promise/no-return-in-finally": "error",
+		"typescript/no-floating-promises": "error",
+		"typescript/no-misused-promises": ["error", { "checksVoidReturn": { "attributes": false } }],
+		"typescript/return-await": ["error", "error-handling-correctness-only"],
+		"unicorn/no-useless-promise-resolve-reject": "error",
+		// Streams, polling, and ordered writes must await in sequence; parallelizing them changes behavior.
+		"no-await-in-loop": "off",
+
+		// React and JSX.
+		"@nkzw/require-use-effect-arguments": "error",
+		"jsx-a11y/alt-text": "error",
+		"react/button-has-type": "error",
+		"react/checked-requires-onchange-or-readonly": "error",
+		"react/display-name": "error",
+		"react/error-boundaries": "error",
+		"react/exhaustive-deps": "error",
+		"react/globals": "error",
+		"react/immutability": "error",
+		"react/incompatible-library": "error",
+		"react/jsx-key": "error",
+		"react/jsx-no-comment-textnodes": "error",
+		"react/jsx-no-duplicate-props": "error",
+		"react/jsx-no-script-url": "error",
+		"react/jsx-no-target-blank": "error",
+		"react/jsx-no-undef": "error",
+		"react/jsx-props-no-spread-multi": "error",
+		"react/no-children-prop": "error",
+		"react/no-danger-with-children": "error",
+		"react/no-direct-mutation-state": "error",
+		"react/no-find-dom-node": "error",
+		"react/no-is-mounted": "error",
+		"react/no-render-return-value": "error",
+		"react/no-string-refs": "error",
+		"react/no-unescaped-entities": "error",
+		"react/no-unknown-property": "error",
+		"react/preserve-manual-memoization": "error",
+		"react/purity": "error",
+		"react/refs": "error",
+		"react/require-render-return": "error",
+		"react/rules-of-hooks": "error",
+		"react/set-state-in-effect": "error",
+		"react/set-state-in-render": "error",
+		"react/static-components": "error",
+		"react/unsupported-syntax": "error",
+		"react/use-memo": "error",
+		"react/void-dom-elements-no-children": "error",
+
+		// General correctness and readability.
+		"array-callback-return": "error",
+		"eqeqeq": ["error", "smart"],
+		"no-array-constructor": "error",
+		"no-case-declarations": "error",
+		"no-empty": "error",
+		"no-fallthrough": "error",
+		"no-new-wrappers": "error",
+		"no-prototype-builtins": "error",
+		"no-regex-spaces": "error",
+		"no-self-compare": "error",
+		"no-unused-vars": [
+			"error",
+			{
+				"args": "none",
+				"fix": { "imports": "safe-fix", "variables": "off" },
+				"varsIgnorePattern": "^_"
+			}
+		],
+		"no-useless-assignment": "error",
+		"no-var": "error",
+		"no-warning-comments": ["error", { "terms": ["@nocommit"] }],
+		"object-shorthand": "error",
+		"oxc/bad-bitwise-operator": "error",
+		"prefer-arrow-callback": ["error", { "allowNamedFunctions": true }],
+		"prefer-const": "error",
+		"prefer-object-has-own": "error",
+
+		// Keep collections and objects to one shape instead of copying or re-wrapping them.
+		"quality/no-object-parameters": "error",
+		"quality/no-reduce-accumulator-copy": "error",
+		"quality/no-reflect-apply": "error",
+		"quality/no-reflect-get": "error",
+		"unicorn/consistent-empty-array-spread": "error",
+		"unicorn/no-abusive-eslint-disable": "error",
+		"unicorn/no-hex-escape": "error",
+		"unicorn/no-magic-array-flat-depth": "error",
+		"unicorn/no-typeof-undefined": "error",
+		"unicorn/no-unnecessary-slice-end": "error",
+		"unicorn/numeric-separators-style": "error",
+		"unicorn/prefer-array-index-of": "error",
+		"unicorn/prefer-array-some": "error",
+		"unicorn/prefer-at": "error",
+		"unicorn/prefer-dom-node-append": "error",
+		"unicorn/prefer-import-meta-properties": "error",
+		"unicorn/prefer-native-coercion-functions": "error",
+		"unicorn/prefer-number-properties": "error",
+		"unicorn/prefer-optional-catch-binding": "error",
+		"unicorn/prefer-single-call": "error",
+		"unicorn/prefer-string-raw": "error",
+		"unicorn/prefer-string-replace-all": "error",
+		"unicorn/prefer-string-slice": "error",
+		"unicorn/prefer-structured-clone": "error",
+		"unicorn/text-encoding-identifier-case": "error",
+
+		// Test hygiene.
+		"no-only-tests/no-only-tests": "error",
+
+		// Project guardrails.
 		"no-magic-numbers": [
 			"error",
 			{
@@ -43,6 +213,7 @@
 				"ignoreTypeIndexes": true
 			}
 		],
+		"no-restricted-globals": ["error", "close", "open", "print", "focus", "blur", "scroll", "status"],
 		"no-restricted-imports": [
 			"error",
 			{
@@ -60,59 +231,58 @@
 					}
 				]
 			}
-		],
-		"typescript/consistent-type-definitions": ["error", "type"],
-		"typescript/consistent-type-imports": "error",
-		// bun:test matchers return void by design; awaiting them is required under other runners.
-		"typescript/await-thenable": "off",
-		"typescript/no-array-delete": "error",
-		"typescript/no-base-to-string": "error",
-		"typescript/no-duplicate-type-constituents": "error",
-		"typescript/no-floating-promises": "error",
-		"typescript/no-for-in-array": "error",
-		// The two `new Function` uses execute the built bundle in a sandbox for tests.
-		"typescript/no-implied-eval": "off",
-		"typescript/no-meaningless-void-operator": "error",
-		"typescript/no-explicit-any": "error",
-		"typescript/no-misused-promises": ["error", { "checksVoidReturn": { "attributes": false } }],
-		"typescript/no-mixed-enums": "error",
-		"typescript/no-redundant-type-constituents": "error",
-		"typescript/no-unnecessary-qualifier": "error",
-		"typescript/no-unnecessary-template-expression": "error",
-		// Flags the vault generic (call sites specialize `T`) and explicit args bun's expect overloads require.
-		"typescript/no-unnecessary-type-arguments": "off",
-		"typescript/no-unnecessary-type-constraint": "error",
-		"typescript/no-unnecessary-type-parameters": "off",
-		"typescript/no-unsafe-argument": "error",
-		"typescript/no-unsafe-assignment": "error",
-		"typescript/no-unsafe-call": "error",
-		"typescript/no-unsafe-declaration-merging": "error",
-		"typescript/no-unsafe-enum-comparison": "error",
-		"typescript/no-unsafe-member-access": "error",
-		"typescript/no-unsafe-return": "error",
-		// tsgolint flags every narrowing assertion, including `unknown as T`, deviating from typescript-eslint.
-		"typescript/no-unsafe-type-assertion": "off",
-		"typescript/no-unsafe-unary-minus": "error",
-		"typescript/non-nullable-type-assertion-style": "error",
-		"typescript/prefer-find": "error",
-		"typescript/prefer-reduce-type-parameter": "error",
-		"typescript/prefer-return-this-type": "error",
-		"typescript/related-getter-setter-pairs": "error",
-		"typescript/require-array-sort-compare": "error",
-		"typescript/restrict-plus-operands": "error",
-		"typescript/restrict-template-expressions": "error",
-		"typescript/switch-exhaustiveness-check": "error",
-		// Flags explicit `.call()` bindings and this-free closure factories passed to `useSyncExternalStore`.
-		"typescript/unbound-method": "off",
-		// Streams, polling, and ordered writes must await in sequence; parallelizing them changes behavior.
-		"no-await-in-loop": "off",
-		"no-restricted-globals": ["error", "close", "open", "print", "focus", "blur", "scroll", "status"]
+		]
 	},
 	"overrides": [
+		{
+			// Our categories enable these, so they need an explicit off.
+			"files": ["**/*"],
+			"rules": {
+				"promise/always-return": "off",
+				"typescript/await-thenable": "off",
+				"typescript/no-unsafe-type-assertion": "off"
+			}
+		},
+		{
+			// Tests read fixtures and stub modules; keep the strict type rules for product code.
+			"files": ["**/*.{test,spec,integration,e2e}.{ts,tsx,mts,cts}", "**/__tests__/**/*.{ts,tsx,mts,cts}"],
+			"rules": {
+				"quality/no-chained-type-assertions": "off",
+				"typescript/no-non-null-assertion": "off",
+				"typescript/only-throw-error": "off",
+				"typescript/unbound-method": "off"
+			}
+		},
 		{
 			"files": ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/test-helpers.ts"],
 			"rules": {
 				"no-magic-numbers": "off"
+			}
+		},
+		{
+			// TypeScript already catches these in typed files.
+			"files": ["**/*.{ts,tsx,mts,cts}"],
+			"rules": {
+				"constructor-super": "off",
+				"getter-return": "off",
+				"no-class-assign": "off",
+				"no-const-assign": "off",
+				"no-dupe-class-members": "off",
+				"no-dupe-keys": "off",
+				"no-func-assign": "off",
+				"no-import-assign": "off",
+				"no-new-native-nonconstructor": "off",
+				"no-obj-calls": "off",
+				"no-redeclare": "off",
+				"no-setter-return": "off",
+				"no-this-before-super": "off",
+				"no-throw-literal": "off",
+				"no-undef": "off",
+				"no-unreachable": "off",
+				"no-unsafe-negation": "off",
+				"no-with": "off",
+				"prefer-rest-params": "error",
+				"prefer-spread": "error"
 			}
 		},
 		{
@@ -122,16 +292,7 @@
 			}
 		},
 		{
-			"files": ["apps/{web,widget,docs}/src/**/*.{ts,tsx}", "packages/ui/src/**/*.{ts,tsx}"],
-			"plugins": ["react"],
-			"rules": {
-				"react/rules-of-hooks": "error",
-				"react/exhaustive-deps": "error"
-			}
-		},
-		{
 			"files": ["apps/**/*.tsx", "packages/**/*.tsx"],
-			"plugins": ["react", "jsx-a11y"],
 			"rules": {
 				"react/function-component-definition": ["error", { "namedComponents": "function-declaration" }],
 				"react/react-in-jsx-scope": "off",
@@ -206,6 +367,13 @@
 			}
 		},
 		{
+			// The router aborts navigation by throwing redirect() and notFound(), which are not Errors.
+			"files": ["apps/{web,docs}/src/routes/**/*.{ts,tsx}"],
+			"rules": {
+				"typescript/only-throw-error": "off"
+			}
+		},
+		{
 			"files": ["apps/e2e/**/*.ts"],
 			"rules": {
 				"playwright/expect-expect": "error",
@@ -240,7 +408,9 @@
 				"playwright/valid-expect": "error",
 				"playwright/valid-expect-in-promise": "error",
 				"playwright/valid-test-tags": "error",
-				"playwright/valid-title": "error"
+				"playwright/valid-title": "error",
+				// Playwright fixtures receive `use` positionally; there is no React here.
+				"react/rules-of-hooks": "off"
 			}
 		},
 		{

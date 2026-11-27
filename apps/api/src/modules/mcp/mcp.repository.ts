@@ -7,7 +7,7 @@ import { mcpServer } from "./mcp.schema.ts"
 
 export type { McpServerRow }
 
-export async function listForAgent(agentId: string): Promise<McpServerRow[]> {
+export async function listForAgent(agentId: string): Promise<Array<McpServerRow>> {
 	return db.select().from(mcpServer).where(eq(mcpServer.agentId, agentId)).orderBy(asc(mcpServer.createdAt))
 }
 

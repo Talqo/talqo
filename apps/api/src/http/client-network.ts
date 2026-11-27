@@ -29,7 +29,7 @@ function parseAddress(value: string): ipaddr.IPv4 | ipaddr.IPv6 {
 	return address instanceof ipaddr.IPv6 && address.isIPv4MappedAddress() ? address.toIPv4Address() : address
 }
 
-function trusted(address: ipaddr.IPv4 | ipaddr.IPv6, cidrs: readonly string[]): boolean {
+function trusted(address: ipaddr.IPv4 | ipaddr.IPv6, cidrs: ReadonlyArray<string>): boolean {
 	return cidrs.some((cidr) => {
 		const [range, prefix] = ipaddr.parseCIDR(cidr)
 		return address.kind() === range.kind() && address.match(range, prefix)
@@ -44,7 +44,7 @@ function network(address: ipaddr.IPv4 | ipaddr.IPv6, ipv6Prefix: number): string
 function forwardedAddress(
 	address: ipaddr.IPv4 | ipaddr.IPv6,
 	forwardedFor: string,
-	trustedProxyCidrs: readonly string[],
+	trustedProxyCidrs: ReadonlyArray<string>,
 ): ipaddr.IPv4 | ipaddr.IPv6 | null {
 	const chain = forwardedFor.split(",").map(parseAddress)
 	for (let index = chain.length - 1; index >= 0; index -= 1) {
@@ -59,7 +59,7 @@ function forwardedAddress(
 export function resolveClientNetwork(
 	peerAddress: string | undefined,
 	forwardedFor: string | undefined,
-	trustedProxyCidrs: readonly string[],
+	trustedProxyCidrs: ReadonlyArray<string>,
 	ipv6Prefix: number,
 ): string | null {
 	if (!peerAddress) return null

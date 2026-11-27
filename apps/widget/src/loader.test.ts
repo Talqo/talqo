@@ -53,7 +53,7 @@ async function flush() {
 	await Bun.sleep(0)
 }
 
-let injected: HTMLScriptElement[] = []
+let injected: Array<HTMLScriptElement> = []
 
 function mountFake(client: () => unknown = () => fakeClient()) {
 	globals().TalqoWidget?.unmount()
@@ -94,7 +94,7 @@ describe("widget loader", () => {
 		)
 		injected = []
 		originalAppend = document.head.append.bind(document.head)
-		document.head.append = (...nodes: (Node | string)[]) => {
+		document.head.append = (...nodes: Array<Node | string>) => {
 			for (const node of nodes) {
 				if (node instanceof HTMLScriptElement && node.src.includes("widget-chat.js")) {
 					injected.push(node)

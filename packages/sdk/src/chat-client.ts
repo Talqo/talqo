@@ -20,9 +20,9 @@ import {
 	readChatStorageRecord,
 } from "./storage.ts"
 
-const ONE_SECOND_MS = 1_000
-const TWO_SECONDS_MS = 2_000
-const FIVE_SECONDS_MS = 5_000
+const ONE_SECOND_MS = 1000
+const TWO_SECONDS_MS = 2000
+const FIVE_SECONDS_MS = 5000
 const DEFAULT_RECOVERY_DELAYS = [ONE_SECOND_MS, TWO_SECONDS_MS, FIVE_SECONDS_MS] as const
 const MAX_RECOVERY_POLLS = 65
 const HTTP_CLIENT_ERROR = 400
@@ -136,7 +136,7 @@ function isUnauthorizedCancellation(state: CancellationState, cause: unknown): b
 
 export function createChatClient(options: ChatClientOptions): ChatClient {
 	let configuration: ChatConfiguration | undefined
-	let messages: readonly ChatMessage[] = []
+	let messages: ReadonlyArray<ChatMessage> = []
 	let initialization: "loading" | "ready" | "error" = "loading"
 	let generation: GenerationState = "idle"
 	let resetting = false
@@ -145,7 +145,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	let credential: string | undefined
 	let pendingMessage: ChatStorageRecord["pending"]
 	let activeGenerationId: string | undefined
-	let activeTools: ActiveTool[] = []
+	let activeTools: Array<ActiveTool> = []
 	let disposed = false
 	let initializePromise: Promise<void> | undefined
 	let activeSend: ActiveSend | undefined
@@ -193,8 +193,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		return Boolean(error?.retriable && lastMessage?.role === "assistant" && lastMessage.outcome === "failed")
 	}
 
-	function idleActions(): ChatSnapshot["actions"][number][] {
-		const actions: ChatSnapshot["actions"][number][] = []
+	function idleActions(): Array<ChatSnapshot["actions"][number]> {
+		const actions: Array<ChatSnapshot["actions"][number]> = []
 		if (canSend()) {
 			actions.push("send")
 			if (canRetry()) actions.push("retry")
@@ -215,7 +215,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	}
 
 	function snapshotNotices(): ChatSnapshot["notices"] {
-		const notices: ChatSnapshot["notices"][number][] = []
+		const notices: Array<ChatSnapshot["notices"][number]> = []
 		if (storage.isFallback() && error?.code !== "storage-unavailable") notices.push("storage-unavailable")
 		if (generation === "recovery-exhausted") notices.push("recovery-unavailable")
 		return notices

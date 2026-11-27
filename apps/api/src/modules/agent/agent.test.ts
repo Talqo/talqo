@@ -16,20 +16,24 @@ describe("normalizeAgentInput", () => {
 	})
 
 	it.each([
-		["an empty name", { name: "   ", systemPrompt: "Prompt", wordBlacklist: [] as string[] }, "Agent name is required"],
+		[
+			"an empty name",
+			{ name: "   ", systemPrompt: "Prompt", wordBlacklist: [] as Array<string> },
+			"Agent name is required",
+		],
 		[
 			"a name longer than 100 characters",
-			{ name: "x".repeat(101), systemPrompt: "Prompt", wordBlacklist: [] as string[] },
+			{ name: "x".repeat(101), systemPrompt: "Prompt", wordBlacklist: [] as Array<string> },
 			"Agent name must be at most 100 characters",
 		],
 		[
 			"an empty system prompt",
-			{ name: "Agent", systemPrompt: "  ", wordBlacklist: [] as string[] },
+			{ name: "Agent", systemPrompt: "  ", wordBlacklist: [] as Array<string> },
 			"System prompt is required",
 		],
 		[
 			"a system prompt longer than 20000 characters",
-			{ name: "Agent", systemPrompt: "x".repeat(20_001), wordBlacklist: [] as string[] },
+			{ name: "Agent", systemPrompt: "x".repeat(20_001), wordBlacklist: [] as Array<string> },
 			"System prompt must be at most 20000 characters",
 		],
 		[

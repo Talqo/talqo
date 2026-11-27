@@ -49,7 +49,7 @@ function nextId(kind: string): string {
 	return `${MARKER_PREFIX}${sequence}-${kind}`
 }
 
-function line(bank: readonly string[], index: number): string {
+function line(bank: ReadonlyArray<string>, index: number): string {
 	return bank[index % bank.length] ?? "…"
 }
 
@@ -63,10 +63,10 @@ export type SeededAttempt = {
 }
 
 export type PlannedRows = {
-	conversations: (typeof conversation.$inferInsert & { createdAt: Date })[]
-	attempts: (typeof generationAttempt.$inferInsert & { usageRecordedAt: Date })[]
-	messages: (typeof message.$inferInsert & { createdAt: Date })[]
-	usages: SeededAttempt[]
+	conversations: Array<typeof conversation.$inferInsert & { createdAt: Date }>
+	attempts: Array<typeof generationAttempt.$inferInsert & { usageRecordedAt: Date }>
+	messages: Array<typeof message.$inferInsert & { createdAt: Date }>
+	usages: Array<SeededAttempt>
 }
 
 function planConversation(agentId: string, startedAt: Date): PlannedRows {
@@ -93,7 +93,7 @@ function planConversation(agentId: string, startedAt: Date): PlannedRows {
 			updatedAt: createdAt,
 		})
 	}
-	const lastMessageAt = messages[messages.length - 1]?.createdAt ?? startedAt
+	const lastMessageAt = messages.at(-1)?.createdAt ?? startedAt
 	return {
 		conversations: [{ id: conversationId, agentId, embedAccessVersion: 1, createdAt: startedAt }],
 		attempts: [
@@ -167,7 +167,7 @@ export function planRows(now: Date): PlannedRows {
 	return rows
 }
 
-async function seedTraffic(): Promise<SeededAttempt[]> {
+async function seedTraffic(): Promise<Array<SeededAttempt>> {
 	const [marker] = await postgres`SELECT 1 FROM conversation WHERE id LIKE ${`${MARKER_PREFIX}%`} LIMIT 1`
 	if (marker) return []
 	const rows = planRows(new Date())
@@ -186,9 +186,9 @@ const UUID_NODE_DIGITS = 12
 const MILLISECONDS_PER_HOUR = 3_600_000
 
 type TranscriptTurn = { answer: string; outcome: GenerationAttemptOutcome; question: string }
-type TranscriptConversation = { startedHoursAgo: number; turns: TranscriptTurn[] }
+type TranscriptConversation = { startedHoursAgo: number; turns: Array<TranscriptTurn> }
 
-const TRANSCRIPTS: TranscriptConversation[] = [
+const TRANSCRIPTS: Array<TranscriptConversation> = [
 	{
 		startedHoursAgo: 72,
 		turns: [
@@ -267,9 +267,9 @@ function seedId(kind: string, index: number): string {
 export function transcriptRows(now: number) {
 	let attemptCount = 0
 	let messageCount = 0
-	const conversations: (typeof conversation.$inferInsert)[] = []
-	const attempts: (typeof generationAttempt.$inferInsert)[] = []
-	const messages: (typeof message.$inferInsert)[] = []
+	const conversations: Array<typeof conversation.$inferInsert> = []
+	const attempts: Array<typeof generationAttempt.$inferInsert> = []
+	const messages: Array<typeof message.$inferInsert> = []
 	for (const [index, seeded] of TRANSCRIPTS.entries()) {
 		const conversationId = seedId("66666666", index)
 		const startedAt = now - seeded.startedHoursAgo * MILLISECONDS_PER_HOUR
@@ -380,7 +380,7 @@ async function seedTranscripts(): Promise<void> {
 	})
 }
 
-export async function seed(): Promise<SeededAttempt[]> {
+export async function seed(): Promise<Array<SeededAttempt>> {
 	await seedTranscripts()
 	return seedTraffic()
 }

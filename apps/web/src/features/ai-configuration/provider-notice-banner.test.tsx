@@ -11,7 +11,7 @@ let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
-let permissions: string[]
+let permissions: Array<string>
 let configuration: () => Response
 let configurationRequests: number
 

@@ -122,7 +122,7 @@ describe("toggledBody", () => {
 
 function edit(
 	patch: Partial<ConnectionDraft> = {},
-	stored: { headers?: { name: string }[]; env?: { name: string }[] } = {},
+	stored: { headers?: Array<{ name: string }>; env?: Array<{ name: string }> } = {},
 ) {
 	return toEditBody(
 		{ ...EMPTY_DRAFT, name: "Stock", url: "https://example.test/mcp", ...patch },

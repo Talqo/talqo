@@ -1,7 +1,7 @@
 const MAX_SLUGS = 32
 const MAX_SLUG_CHARACTERS = 256
 
-export function isValidSlugPath(slugs: unknown): slugs is string[] {
+export function isValidSlugPath(slugs: unknown): slugs is Array<string> {
 	return (
 		Array.isArray(slugs) &&
 		slugs.length <= MAX_SLUGS &&
@@ -9,6 +9,6 @@ export function isValidSlugPath(slugs: unknown): slugs is string[] {
 	)
 }
 
-export function splitSlugPath(splat: string | undefined): string[] {
+export function splitSlugPath(splat: string | undefined): Array<string> {
 	return (splat ?? "").split("/").filter((segment) => segment.length > 0)
 }

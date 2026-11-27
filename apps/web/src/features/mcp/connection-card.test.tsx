@@ -48,7 +48,9 @@ function renderCard(value: McpServer, canManage = false) {
 
 async function settle() {
 	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0)
+		})
 	})
 }
 
@@ -139,7 +141,7 @@ describe("ConnectionCard", () => {
 			command: "bunx",
 		})
 		const http = server({ id: "remote", name: "Remote", isDisabled: true })
-		const requests: string[] = []
+		const requests: Array<string> = []
 		spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
 			requests.push(typeof input === "string" ? input : input instanceof URL ? input.href : input.url)
 			return json({ server: http })
@@ -232,7 +234,7 @@ describe("ConnectionCard", () => {
 			status: 200,
 			headers: new Headers(),
 		}
-		const bodies: unknown[] = []
+		const bodies: Array<unknown> = []
 		spyOn(globalThis, "fetch").mockImplementation((async (_input: RequestInfo | URL, init?: RequestInit) => {
 			if (init?.method === "PUT") {
 				if (typeof init.body !== "string") throw new Error("missing update body")
@@ -347,7 +349,7 @@ describe("ConnectionCard", () => {
 	})
 
 	test("removes a connection after confirmation and refreshes the list", async () => {
-		const requests: RecordedRequest[] = []
+		const requests: Array<RecordedRequest> = []
 		spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 			recordRequest(requests, input, init)
 			return new Response(null, { status: 204 })

@@ -402,7 +402,7 @@ export const PROBLEMS = [
 		meaning: "Another account uses the submitted username.",
 		guidance: "Choose a unique username.",
 	},
-] satisfies readonly ProblemDefinition[]
+] satisfies ReadonlyArray<ProblemDefinition>
 
 export function renderProblemsMarkdown(): string {
 	const sections = PROBLEMS.map(

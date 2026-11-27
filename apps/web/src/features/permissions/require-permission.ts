@@ -39,7 +39,7 @@ function isAgentScoped(required: Permission): boolean {
 function agentAccessGate(required: Permission, agents: AgentsQuery | undefined): AccessGate {
 	if (!agents || agents.isPending) return "pending"
 	if (agents.isError) return "error"
-	return agents.data?.data.agents.some((agent) => (agent.permissions as readonly string[]).includes(required))
+	return agents.data?.data.agents.some((agent) => (agent.permissions as ReadonlyArray<string>).includes(required))
 		? "open"
 		: "denied"
 }
@@ -51,7 +51,7 @@ function permissionState(query: PermissionQuery): "pending" | "error" | undefine
 }
 
 function hasPermission(query: PermissionQuery, required: Permission): boolean {
-	const permissions: readonly string[] = query.data?.data.permissions ?? []
+	const permissions: ReadonlyArray<string> = query.data?.data.permissions ?? []
 	return permissions.includes("admin") || permissions.includes(required)
 }
 

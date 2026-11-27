@@ -20,7 +20,7 @@ function parseEvents(body: string) {
 
 // "late-error" holds the stream open until `release`, like a generation still running after the 200.
 function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-accept" | "successful-tool" = "none") {
-	const calls: unknown[] = []
+	const calls: Array<unknown> = []
 	const gate = Promise.withResolvers<void>()
 	const service = {
 		send: async (input: unknown, emit: (event: unknown) => void, annotate?: Annotate) => {
@@ -66,7 +66,7 @@ function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-acc
 		getSession: async () => ({ messages: [], activeGeneration: undefined }),
 		cancel: async () => undefined,
 	}
-	const logged: WideEvent[] = []
+	const logged: Array<WideEvent> = []
 	const app = new OpenAPIHono()
 		.use(
 			"*",

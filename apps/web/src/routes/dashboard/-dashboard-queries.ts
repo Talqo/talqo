@@ -8,7 +8,7 @@ import { useEffect } from "react"
 
 import { allowedNavItems } from "./-dashboard-nav"
 
-function deniedDestination(permissions: string[], agents: { permissions: string[] }[]) {
+function deniedDestination(permissions: Array<string>, agents: Array<{ permissions: Array<string> }>) {
 	return allowedNavItems(permissions, agents)[0]?.to ?? "/dashboard/account"
 }
 

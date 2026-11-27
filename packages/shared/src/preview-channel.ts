@@ -41,9 +41,13 @@ export function configMessage(
 	}
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
 function previewEnvelope(data: unknown, type: "ready" | "config"): Record<string, unknown> | undefined {
-	if (typeof data !== "object" || data === null) return undefined
-	const message = data as Record<string, unknown>
+	if (!isRecord(data)) return undefined
+	const message = data
 	return message.source === PREVIEW_CHANNEL_SOURCE &&
 		message.version === PREVIEW_CHANNEL_VERSION &&
 		message.type === type

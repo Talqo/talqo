@@ -9,11 +9,11 @@ type BlacklistWordRow = typeof blacklistWord.$inferSelect
 
 export type AgentWithWords = {
 	agent: AgentRow
-	words: BlacklistWordRow[]
+	words: Array<BlacklistWordRow>
 }
 
 // Postgres now() is identical within a transaction, so stagger timestamps to keep word order.
-function wordRows(agentId: string, words: string[]): (typeof blacklistWord.$inferInsert)[] {
+function wordRows(agentId: string, words: Array<string>): Array<typeof blacklistWord.$inferInsert> {
 	const base = Date.now()
 	return words.map((word, position) => ({
 		id: crypto.randomUUID(),
@@ -23,7 +23,7 @@ function wordRows(agentId: string, words: string[]): (typeof blacklistWord.$infe
 	}))
 }
 
-async function attachWords(rows: AgentRow[]): Promise<AgentWithWords[]> {
+async function attachWords(rows: Array<AgentRow>): Promise<Array<AgentWithWords>> {
 	return Promise.all(
 		rows.map(async (row) => ({
 			agent: row,
@@ -37,8 +37,8 @@ async function attachWords(rows: AgentRow[]): Promise<AgentWithWords[]> {
 }
 
 export async function findAll(
-	scope: readonly string[] | "all",
-): Promise<Pick<AgentRow, "id" | "name" | "createdAt" | "updatedAt">[]> {
+	scope: ReadonlyArray<string> | "all",
+): Promise<Array<Pick<AgentRow, "id" | "name" | "createdAt" | "updatedAt">>> {
 	return db
 		.select({ id: agent.id, name: agent.name, createdAt: agent.createdAt, updatedAt: agent.updatedAt })
 		.from(agent)
@@ -53,7 +53,7 @@ export async function findByIdWithWords(id: string): Promise<AgentWithWords | un
 }
 
 // Insert agent and words atomically; a word failure must not leave a bare agent.
-export async function insertWithWords(values: NewAgent, words: string[]): Promise<AgentWithWords> {
+export async function insertWithWords(values: NewAgent, words: Array<string>): Promise<AgentWithWords> {
 	const row = await db.transaction(async (tx) => {
 		const [inserted] = await tx.insert(agent).values(values).returning()
 		if (!inserted) throw new Error("insertWithWords: insert returned no row")
@@ -70,7 +70,7 @@ export async function insertWithWords(values: NewAgent, words: string[]): Promis
 export async function updateWithWords(
 	id: string,
 	values: Pick<NewAgent, "name" | "systemPrompt">,
-	words: string[],
+	words: Array<string>,
 ): Promise<AgentWithWords | undefined> {
 	return db.transaction(async (tx) => {
 		const [updated] = await tx

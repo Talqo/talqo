@@ -61,7 +61,7 @@ export type StatsCard = {
 }
 
 // Averages read best with one fraction digit, while counts round compactly.
-export function StatsCards({ cards }: { cards: StatsCard[] }) {
+export function StatsCards({ cards }: { cards: Array<StatsCard> }) {
 	const { language } = useLanguage()
 	const compact = useCompactNumber()
 	const decimal = useMemo(() => new Intl.NumberFormat(language, { maximumFractionDigits: 1 }), [language])
@@ -89,9 +89,9 @@ function MetricChart({
 	language,
 	compactNumber,
 }: {
-	daily: DailyStatsPoint[]
-	agentDaily: AgentDailyPoint[]
-	agentLines: AgentLine[]
+	daily: Array<DailyStatsPoint>
+	agentDaily: Array<AgentDailyPoint>
+	agentLines: Array<AgentLine>
 	metric: StatsMetric
 	totalLabel: string
 	chartTitle: string
@@ -199,9 +199,9 @@ export function DailyStatsChart({
 	chartTitle,
 	chartDescription,
 }: {
-	daily: DailyStatsPoint[]
-	agentDaily: AgentDailyPoint[]
-	agentLines: AgentLine[]
+	daily: Array<DailyStatsPoint>
+	agentDaily: Array<AgentDailyPoint>
+	agentLines: Array<AgentLine>
 	labels: StatsMetricLabels
 	totalLabel: string
 	chartTitle: (metricLabel: string) => string

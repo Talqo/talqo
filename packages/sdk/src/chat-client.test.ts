@@ -42,7 +42,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void; reje
 	return { promise, resolve, reject }
 }
 
-function streamFrom(events: ChatEvent[]): AsyncIterable<ChatEvent> {
+function streamFrom(events: Array<ChatEvent>): AsyncIterable<ChatEvent> {
 	return {
 		async *[Symbol.asyncIterator]() {
 			for (const event of events) yield event
@@ -141,7 +141,7 @@ function testClient(overrides: Partial<ChatClientOptions> = {}): ChatClient {
 }
 
 function unresolvedSession(): Promise<SessionState> {
-	return new Promise<SessionState>(() => undefined)
+	return new Promise<SessionState>(() => {})
 }
 
 const cancellationFailures = [
@@ -212,6 +212,7 @@ describe("createChatClient", () => {
 				JSON.stringify({
 					version: 1,
 					name: "Support",
+					isAvailable: true,
 					appearance: {
 						light: {
 							primary: "#111111",
@@ -367,7 +368,7 @@ describe("createChatClient", () => {
 			randomUUID: () => values.shift()!,
 		})
 		await client.initialize()
-		const observed: string[][] = []
+		const observed: Array<Array<string>> = []
 		client.subscribe(() => observed.push(client.getSnapshot().messages.map(({ text }) => text)))
 
 		await client.sendMessage("hello")
@@ -545,7 +546,7 @@ describe("createChatClient", () => {
 	test("polls an uncertain first session to completion without regenerating", async () => {
 		const storage = createMemoryStorage()
 		let loads = 0
-		const sends: { credential: string; requestId: string; text: string }[] = []
+		const sends: Array<{ credential: string; requestId: string; text: string }> = []
 		const credential = "22222222-2222-4222-8222-222222222222"
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
@@ -605,7 +606,7 @@ describe("createChatClient", () => {
 			createChatStorageKey("https://api.example.test", "embed"),
 			JSON.stringify({ version: 1, credential }),
 		)
-		const sends: { credential: string; requestId: string; text: string }[] = []
+		const sends: Array<{ credential: string; requestId: string; text: string }> = []
 		let loads = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
@@ -825,7 +826,7 @@ describe("createChatClient", () => {
 			transport: baseTransport({
 				loadSession: async () => {
 					loads += 1
-					if (loads > 1) return new Promise<never>(() => undefined)
+					if (loads > 1) return new Promise<never>(() => {})
 					recoveryStarted.resolve()
 					return recoveredSession.promise
 				},
@@ -881,7 +882,7 @@ describe("createChatClient", () => {
 	})
 
 	test("retries the latest retriable failed turn as a new attempt", async () => {
-		const sent: string[] = []
+		const sent: Array<string> = []
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
@@ -938,7 +939,7 @@ describe("createChatClient", () => {
 
 	// Without an explicit branch, tool events fall into the terminal case and end every stream early.
 	test("treats tool activity as progress rather than the end of the stream", async () => {
-		const observed: string[][] = []
+		const observed: Array<Array<string>> = []
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
@@ -995,7 +996,7 @@ describe("createChatClient", () => {
 				}),
 				loadSession: async () => {
 					recoveryStarted.resolve()
-					return new Promise<never>(() => undefined)
+					return new Promise<never>(() => {})
 				},
 			}),
 			randomUUID: () => "11111111-1111-4111-8111-111111111111",
@@ -1217,7 +1218,7 @@ describe("createChatClient", () => {
 		const storage = createMemoryStorage()
 		const key = createChatStorageKey("https://api.example.test", "embed")
 		await storage.setItem(key, JSON.stringify({ version: 1, credential: "credential" }))
-		const order: string[] = []
+		const order: Array<string> = []
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
@@ -1939,7 +1940,7 @@ describe("chat send lifecycle", () => {
 			JSON.stringify({ version: 1, credential: CREDENTIAL }),
 		)
 		const rejection = new ChatTransportError({ code: "invalid-request", status: 400 })
-		const credentials: string[] = []
+		const credentials: Array<string> = []
 		const client = testClient({
 			storage,
 			transport: baseTransport({
@@ -2045,7 +2046,7 @@ describe("chat send lifecycle", () => {
 			}),
 		})
 		await client.initialize()
-		const observed: { serverName: string; toolName: string }[][] = []
+		const observed: Array<Array<{ serverName: string; toolName: string }>> = []
 		client.subscribe(() => observed.push([...client.getSnapshot().activeTools]))
 
 		await client.sendMessage("is it in stock?")
@@ -2095,7 +2096,7 @@ describe("chat cancellation", () => {
 	})
 
 	test("passes the active generation and allows cancelling a later response", async () => {
-		const cancellations: { credential: string; generationId?: string }[] = []
+		const cancellations: Array<{ credential: string; generationId?: string }> = []
 		let sends = 0
 		const client = testClient({
 			transport: baseTransport({
@@ -2305,7 +2306,7 @@ describe("chat recovery", () => {
 			storage,
 			now: () => new Date("2026-09-11T00:00:00.000Z"),
 			transport: baseTransport({
-				sendMessage: () => new Promise<AsyncIterable<ChatEvent>>(() => undefined),
+				sendMessage: () => new Promise<AsyncIterable<ChatEvent>>(() => {}),
 			}),
 			recoveryDelays: [0],
 		})
@@ -2350,7 +2351,9 @@ describe("chat recovery", () => {
 
 		await client.initialize()
 		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
-		await new Promise((resolve) => setTimeout(resolve, 20))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20)
+		})
 
 		expect(loads).toBe(2)
 		expect(client.getSnapshot().messages).toEqual([])
@@ -2375,7 +2378,9 @@ describe("chat recovery", () => {
 		})
 
 		await client.initialize()
-		await new Promise((resolve) => setTimeout(resolve, 20))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20)
+		})
 
 		expect(loads).toBe(1)
 		expect(client.getSnapshot().activity).toBe("idle")
@@ -2391,7 +2396,7 @@ describe("chat recovery", () => {
 					if (sends === 1) throw new Error("connection lost")
 					return {
 						[Symbol.asyncIterator]: () => ({
-							next: () => new Promise<IteratorResult<ChatEvent>>(() => undefined),
+							next: () => new Promise<IteratorResult<ChatEvent>>(() => {}),
 							return: async () => {
 								closed += 1
 								return { done: true, value: undefined }

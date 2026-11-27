@@ -45,7 +45,9 @@ async function unmountLanguageSelect() {
 async function click(target: HTMLElement) {
 	await act(async () => target.click())
 	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0)
+		})
 	})
 }
 

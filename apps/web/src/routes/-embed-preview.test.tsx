@@ -29,7 +29,7 @@ let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let embedResponse: Response | Promise<Response> | undefined
-let requests: string[]
+let requests: Array<string>
 
 async function renderPage(initialEntry: string) {
 	const rootRoute = createRootRoute()

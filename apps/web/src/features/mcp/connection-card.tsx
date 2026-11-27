@@ -25,7 +25,7 @@ const NOT_FOUND_STATUS = 404
 
 type ToolUpdateVariables = {
 	serverId: string
-	data: { tools?: { enabled: boolean; name: string }[] }
+	data: { tools?: Array<{ enabled: boolean; name: string }> }
 }
 
 function toolsAfterUpdate(

@@ -27,7 +27,7 @@ describe("knowledge ingestion", () => {
 		expect((failure as IngestionError).reason).toBe("empty-document")
 	})
 	it("processes files and their embedding requests in order, then continues after a failure", async () => {
-		const events: string[] = []
+		const events: Array<string> = []
 		const jobs = [
 			{ id: "first", name: "first.md" },
 			{ id: "second", name: "second.txt" },

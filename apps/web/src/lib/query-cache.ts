@@ -8,7 +8,7 @@ const NOT_FOUND_STATUS = 404
 const DENIED_STATUSES = new Set<unknown>([FORBIDDEN_STATUS, NOT_FOUND_STATUS])
 
 type DeniedQuery = {
-	queryKey: readonly unknown[]
+	queryKey: ReadonlyArray<unknown>
 	setState: (state: { data: undefined }) => void
 }
 

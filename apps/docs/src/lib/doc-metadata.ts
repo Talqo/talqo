@@ -6,8 +6,8 @@ type DocMetadata = {
 }
 
 type DocHead = {
-	meta?: ({ title: string } | { property: string; content: string } | { name: string; content: string })[]
-	links?: { rel: string; href: string; type?: string }[]
+	meta?: Array<{ title: string } | { property: string; content: string } | { name: string; content: string }>
+	links?: Array<{ rel: string; href: string; type?: string }>
 }
 
 export function docHead(loaderData: DocMetadata | undefined): DocHead {

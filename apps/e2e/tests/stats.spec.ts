@@ -20,7 +20,7 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 
 	// Log in through the real web app; the landing page must show the recorded statistics.
 	await openDashboard(page)
-	const agentRow = page.getByRole("row", { name: new RegExp(`^${agentName}`) })
+	const agentRow = page.getByRole("row", { name: new RegExp(`^${RegExp.escape(agentName)}`) })
 	await expect(agentRow.getByRole("rowheader")).toHaveText(agentName)
 	await expect(agentRow.getByRole("cell").nth(0)).toHaveText("1")
 	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("2")

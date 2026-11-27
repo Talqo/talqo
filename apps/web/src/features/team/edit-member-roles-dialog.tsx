@@ -19,7 +19,7 @@ import { Pencil } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-type TargetUser = { id: string; roles: { id: string }[]; username: string }
+type TargetUser = { id: string; roles: Array<{ id: string }>; username: string }
 
 export function EditMemberRolesDialog({
 	heldPermissions,
@@ -29,11 +29,11 @@ export function EditMemberRolesDialog({
 	manageableRoleIds,
 	targetUser,
 }: {
-	heldPermissions: readonly string[]
+	heldPermissions: ReadonlyArray<string>
 	isSelf: boolean
-	ownRoles: readonly Role[]
-	roles: readonly Role[]
-	manageableRoleIds: readonly string[]
+	ownRoles: ReadonlyArray<Role>
+	roles: ReadonlyArray<Role>
+	manageableRoleIds: ReadonlyArray<string>
 	targetUser: TargetUser
 }) {
 	const { t } = useTranslation()
@@ -47,7 +47,7 @@ export function EditMemberRolesDialog({
 		},
 	})
 	const [open, setOpen] = useState(false)
-	const [selected, setSelected] = useState<string[]>([])
+	const [selected, setSelected] = useState<Array<string>>([])
 	const isSaving = assignRoles.isPending
 	const locksOut =
 		isSelf &&

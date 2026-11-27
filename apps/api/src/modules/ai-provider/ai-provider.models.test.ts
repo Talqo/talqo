@@ -13,7 +13,7 @@ type ModelCase = {
 	embeddingProvider?: string
 }
 
-const modelCases: ModelCase[] = [
+const modelCases: Array<ModelCase> = [
 	{ providerId: "openai", settings: {}, textProvider: "openai.responses", embeddingProvider: "openai.embedding" },
 	{ providerId: "anthropic", settings: {}, textProvider: "anthropic.messages" },
 	{
@@ -47,7 +47,7 @@ const embeddingCases = modelCases.flatMap((entry) =>
 	entry.embeddingProvider ? [{ ...entry, embeddingProvider: entry.embeddingProvider }] : [],
 )
 
-const deploymentIdentityCases: { providerId: AiProviderId; settings: Record<string, string> }[] = [
+const deploymentIdentityCases: Array<{ providerId: AiProviderId; settings: Record<string, string> }> = [
 	{ providerId: "azure", settings: { baseURL: "https://example.openai.azure.com" } },
 	{ providerId: "amazon-bedrock", settings: { region: "eu-central-1" } },
 ]
@@ -58,14 +58,10 @@ function build(
 	settings: Record<string, string>,
 	authMode: AuthMode = "static",
 ) {
-	return createProviderModel({
-		providerId,
-		role,
-		modelId: "model-id",
-		authMode,
-		settings,
-		credentials,
-	})
+	const configuration = { providerId, modelId: "model-id", authMode, settings, credentials }
+	return role === "text"
+		? createProviderModel({ ...configuration, role: "text" })
+		: createProviderModel({ ...configuration, role: "embedding" })
 }
 
 describe("createProviderModel", () => {

@@ -27,7 +27,7 @@ function post(path: string, body: string, contentType = "application/json") {
 
 // JSON-legally escaped: two \uXXXX surrogates encode one astral code point in 12 bytes.
 function escapedChatBody(escapePairs: number) {
-	const body = `{"requestId":"123e4567-e89b-12d3-a456-426614174000","text":"${"\\ud83d\\ude00".repeat(escapePairs)}"}`
+	const body = `{"requestId":"123e4567-e89b-12d3-a456-426614174000","text":"${String.raw`\ud83d\ude00`.repeat(escapePairs)}"}`
 	return {
 		body,
 		headers: { "Content-Type": "application/json", "Content-Length": String(body.length) },
@@ -45,13 +45,13 @@ describe("rejectOversizedBody", () => {
 
 	it("rejects a chat body beyond the transport ceiling", async () => {
 		const response = await app().fetch(
-			new Request("http://localhost/api/chat/embed/messages", escapedChatBody(CHAT_LIMIT_CODE_POINTS + 1_000)),
+			new Request("http://localhost/api/chat/embed/messages", escapedChatBody(CHAT_LIMIT_CODE_POINTS + 1000)),
 		)
 		expect(response.status).toBe(413)
 	})
 
 	it.each([
-		[1_024, 200],
+		[1024, 200],
 		[DEFAULT_LIMIT, 413],
 	])("keeps the default body limit on non-chat routes (%i bytes -> %i)", async (size, status) => {
 		const payload = JSON.stringify({ name: "a".repeat(size) })

@@ -15,7 +15,7 @@ import * as service from "./mcp.service.ts"
 const UNREACHABLE_URL = "http://127.0.0.1:1/mcp"
 
 /** Access is declared per route, so a read-only member gets a role with exactly one permission. */
-async function memberSession(permissions: ("agents:read" | "agents:manage")[]): Promise<string> {
+async function memberSession(permissions: Array<"agents:read" | "agents:manage">): Promise<string> {
 	const username = uniqueUsername()
 	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	await giveRole(member.id, permissions)
@@ -77,7 +77,7 @@ describe("mcp schema constraints", () => {
 	// accept/reject matrix stays executable here: a stdio row's null authMode makes
 	// `authMode = 'headers'` evaluate to null rather than false, and a check whose result is null
 	// passes — without the full table a future migration could silently admit corrupt rows.
-	const rejected: [string, Columns][] = [
+	const rejected: Array<[string, Columns]> = [
 		["http carrying a command", { transport: "http", url: UNREACHABLE_URL, authMode: "none", command: "npx" }],
 		["http with no address", { transport: "http", authMode: "none" }],
 		["http carrying arguments", { transport: "http", url: UNREACHABLE_URL, authMode: "none", args: ["x"] }],
@@ -97,7 +97,7 @@ describe("mcp schema constraints", () => {
 		})
 	}
 
-	const accepted: [string, Columns][] = [
+	const accepted: Array<[string, Columns]> = [
 		["http with no headers", { transport: "http", url: UNREACHABLE_URL, authMode: "none" }],
 		["stdio with a command and arguments", { transport: "stdio", command: "npx", args: ["-y", "srv"] }],
 	]
@@ -417,7 +417,7 @@ describe("mcp server lifecycle", () => {
 
 		expect(response.status).toBe(200)
 		const json = (await response.json()) as {
-			server: { tools: { description: string; name: string; enabled: boolean }[] }
+			server: { tools: Array<{ description: string; name: string; enabled: boolean }> }
 		}
 		expect(json.server.tools).toEqual([
 			{ name: "get_stock", description: "", enabled: true },
@@ -546,7 +546,7 @@ describe("http connections", () => {
 						],
 					})
 				return Response.json(
-					{ jsonrpc: "2.0", id: body.id, error: { code: -32601, message: "unknown method" } },
+					{ jsonrpc: "2.0", id: body.id, error: { code: -32_601, message: "unknown method" } },
 					{ status: 404 },
 				)
 			},
@@ -589,7 +589,7 @@ async function runOnlyTool(connection: service.OpenTools): Promise<Record<string
 			),
 		),
 	)
-	const content = (result as { content: { text: string }[] }).content
+	const content = (result as { content: Array<{ text: string }> }).content
 	return JSON.parse(content[0]!.text) as Record<string, unknown>
 }
 
@@ -603,7 +603,7 @@ async function runTool(connection: service.OpenTools, args: Record<string, unkno
 			}),
 		),
 	)
-	const content = (result as { content: { text: string }[] }).content
+	const content = (result as { content: Array<{ text: string }> }).content
 	return JSON.parse(content[0]!.text) as Record<string, unknown>
 }
 

@@ -4,7 +4,7 @@ import { Hono } from "hono"
 import { hasMatchedRoute, matchedRoutePath } from "./route-match.ts"
 
 function probe() {
-	const seen: { matched: boolean; path: string | null }[] = []
+	const seen: Array<{ matched: boolean; path: string | null }> = []
 	const app = new Hono()
 	app.use("*", async (context, next) => {
 		await next()

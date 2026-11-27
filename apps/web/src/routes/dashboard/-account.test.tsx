@@ -22,13 +22,13 @@ let queryClient: InstanceType<typeof QueryClient>
 let updateUserResponse: Response
 let updateUserPending: Promise<Response> | undefined
 let changePasswordResponse: Response
-let userUpdates: unknown[]
-let passwordChanges: unknown[]
+let userUpdates: Array<unknown>
+let passwordChanges: Array<unknown>
 let sessionUser: { id: string; username: string; mustChangePassword: boolean } | null
 let sessionFailure: Response | undefined
-let myPermissions: string[]
+let myPermissions: Array<string>
 let permissionsFailure: Response | undefined
-let myRoles: { id: string; name: string }[]
+let myRoles: Array<{ id: string; name: string }>
 let rolesFailure: Response | undefined
 
 async function respond(request: RequestInfo | URL, init?: RequestInit): Promise<Response> {

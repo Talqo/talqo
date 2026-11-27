@@ -27,7 +27,7 @@ async function requireAgent(agentId: string): Promise<void> {
 
 // RFC 5987: filename* carries the UTF-8 name; a quoted ASCII fallback serves older clients.
 function contentDisposition(name: string): string {
-	const fallback = name.replace(/[^\x20-\x7E]|["\\]/g, "_")
+	const fallback = name.replaceAll(/[^\u0020-\u007E]|["\\]/g, "_")
 	return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`
 }
 

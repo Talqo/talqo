@@ -13,9 +13,9 @@ export function AgentFilter({
 	selectedIds,
 	onChange,
 }: {
-	agentLines: AgentLine[]
-	selectedIds: string[]
-	onChange: (ids: string[]) => void
+	agentLines: Array<AgentLine>
+	selectedIds: Array<string>
+	onChange: (ids: Array<string>) => void
 }) {
 	const { t } = useTranslation()
 	const { capturePreOpenScroll, onOpenChange } = usePreserveScrollOnOpen()
@@ -27,7 +27,7 @@ export function AgentFilter({
 				multiple
 				modal={false}
 				value={selectedIds}
-				onValueChange={(nextIds: string[]) => onChange(nextIds)}
+				onValueChange={(nextIds: Array<string>) => onChange(nextIds)}
 				onOpenChange={onOpenChange}
 			>
 				<SelectTrigger

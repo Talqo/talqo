@@ -1,7 +1,7 @@
 import * as repository from "./conversation.repository.ts"
 
 const CANCELLATION_POLL_MS = 500
-const HEARTBEAT_MS = 5_000
+const HEARTBEAT_MS = 5000
 const POLL_BATCH_SIZE = 100
 
 // Single-flight coordinator: batch-checks cancellation and renews PostgreSQL-time leases for locally owned attempts.
@@ -12,7 +12,10 @@ export function createGenerationPoller() {
 	let pollErrorReported = false
 	let lastHeartbeat = performance.now()
 
-	function abortUnavailable(batch: { id: string; leaseToken: string }[], active: { id: string; cancelled: boolean }[]) {
+	function abortUnavailable(
+		batch: Array<{ id: string; leaseToken: string }>,
+		active: Array<{ id: string; cancelled: boolean }>,
+	) {
 		const cancelled = new Map(active.map((entry) => [entry.id, entry.cancelled]))
 		for (const { id, leaseToken } of batch) {
 			const local = controllers.get(id)
@@ -20,7 +23,7 @@ export function createGenerationPoller() {
 		}
 	}
 
-	async function pollBatches(owned: { id: string; leaseToken: string }[], renew: boolean): Promise<void> {
+	async function pollBatches(owned: Array<{ id: string; leaseToken: string }>, renew: boolean): Promise<void> {
 		// One batch at a time keeps each poll query bounded.
 		for (let offset = 0; offset < owned.length; offset += POLL_BATCH_SIZE) {
 			const batch = owned.slice(offset, offset + POLL_BATCH_SIZE)

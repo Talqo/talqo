@@ -22,7 +22,7 @@ export function useCreateAgentFlow({
 	refreshNames,
 	onCreated,
 }: {
-	names: string[]
+	names: Array<string>
 	refreshNames: () => Promise<unknown>
 	onCreated: (agentId: string) => unknown
 }) {

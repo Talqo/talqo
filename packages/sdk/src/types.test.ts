@@ -37,7 +37,7 @@ describe("isChatErrorCode", () => {
 	})
 
 	test("rejects unknown codes and non-string values", () => {
-		const cases: unknown[] = [
+		const cases: Array<unknown> = [
 			"",
 			"invalid-response ",
 			" invalid-response",

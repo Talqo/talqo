@@ -50,7 +50,7 @@ function scopeWidgetCss(css: string): string {
 }
 
 function assertNoGlobalRules(root: Root): void {
-	const leaked: string[] = []
+	const leaked: Array<string> = []
 	root.walkAtRules("font-face", () => {
 		leaked.push("@font-face")
 	})

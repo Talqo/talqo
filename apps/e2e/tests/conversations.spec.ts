@@ -31,7 +31,9 @@ test("operator finds a visitor conversation from the sidebar and reads it", asyn
 	await expect(agentResponse).toBeOK()
 	const { agent } = (await agentResponse.json()) as { agent: { id: string } }
 	fixture = { agentId: agent.id }
-	const { embeds } = (await (await page.request.get("/api/embeds")).json()) as { embeds: { appearance: unknown }[] }
+	const { embeds } = (await (await page.request.get("/api/embeds")).json()) as {
+		embeds: Array<{ appearance: unknown }>
+	}
 	const embedResponse = await page.request.post("/api/embeds", {
 		data: { agentId: agent.id, name: "Conversations test", appearance: embeds[0]?.appearance },
 	})

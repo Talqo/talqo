@@ -49,8 +49,8 @@ const AGENT_PERMISSION_DESCRIPTIONS = {
 	"agents:delete": "agentAccess.descriptions.deleteAgent",
 } as const satisfies Record<AgentPermission, string>
 
-function expandAgentPermissions(permissions: readonly AgentPermission[]): AgentPermission[] {
-	return (Object.keys(AGENT_PERMISSION_LABELS) as AgentPermission[]).filter(
+function expandAgentPermissions(permissions: ReadonlyArray<AgentPermission>): Array<AgentPermission> {
+	return (Object.keys(AGENT_PERMISSION_LABELS) as Array<AgentPermission>).filter(
 		(permission) =>
 			permissions.includes(permission) ||
 			(permission === "agents:read" &&
@@ -88,9 +88,9 @@ function useRoleAgentAccess(roleId: string) {
 	return { agents, pending, query, remove, save }
 }
 
-function useAccessDrafts(agents: readonly Agent[], onDirtyChange: (dirty: boolean) => void) {
+function useAccessDrafts(agents: ReadonlyArray<Agent>, onDirtyChange: (dirty: boolean) => void) {
 	const [selectedId, setSelectedId] = useState<string>()
-	const [drafts, setDrafts] = useState<Record<string, AgentPermission[]>>({})
+	const [drafts, setDrafts] = useState<Record<string, Array<AgentPermission>>>({})
 	const [notice, setNotice] = useState<Notice>()
 	const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false)
 	const visible = agents.filter((agent) => agent.rolePermissions.length > 0 || drafts[agent.id] !== undefined)
@@ -161,14 +161,14 @@ function AgentPicker({
 	visible,
 }: {
 	addAgentButton: RefObject<HTMLButtonElement | null>
-	agents: readonly Agent[]
+	agents: ReadonlyArray<Agent>
 	editor: RefObject<HTMLFieldSetElement | null>
 	focus: { editor: RefObject<boolean>; set: (value: boolean) => void }
 	onAdd: (id: string) => void
 	onSelect: (id: string) => void
 	pending: boolean
 	selectedAgentId: string | undefined
-	visible: readonly Agent[]
+	visible: ReadonlyArray<Agent>
 }) {
 	const { t } = useTranslation()
 	return (
@@ -241,7 +241,7 @@ function AgentPermissionRow({
 	onToggle: (permission: AgentPermission) => void
 	permission: AgentPermission
 	roleId: string
-	values: readonly AgentPermission[]
+	values: ReadonlyArray<AgentPermission>
 }) {
 	const { t } = useTranslation()
 	const id = `access-${roleId}-${agent.id}-${permission}`
@@ -290,7 +290,7 @@ type EditorState = {
 	roleId: string
 	saveError: unknown
 	savePending: boolean
-	values: readonly AgentPermission[]
+	values: ReadonlyArray<AgentPermission>
 }
 
 type EditorActions = {
@@ -319,7 +319,7 @@ function AgentAccessEditor({
 		<fieldset ref={editor} tabIndex={-1} className="space-y-3" disabled={pending}>
 			<legend className="sr-only">{t("agentAccess.permissionsFor", { agent: agent.name })}</legend>
 			<div className="divide-y">
-				{(Object.keys(AGENT_PERMISSION_LABELS) as AgentPermission[]).map((permission) => (
+				{(Object.keys(AGENT_PERMISSION_LABELS) as Array<AgentPermission>).map((permission) => (
 					<AgentPermissionRow
 						key={permission}
 						agent={agent}

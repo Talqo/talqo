@@ -20,8 +20,8 @@ export type Role = typeof role.$inferSelect
 export type RolePermission = typeof rolePermission.$inferSelect
 
 export async function findAgentPermissionsForUsers(
-	userIds: string[],
-): Promise<{ userId: string; agentId: string; permission: string }[]> {
+	userIds: Array<string>,
+): Promise<Array<{ userId: string; agentId: string; permission: string }>> {
 	if (userIds.length === 0) return []
 	return db
 		.select({
@@ -35,13 +35,16 @@ export async function findAgentPermissionsForUsers(
 }
 
 export async function findAgentPermissionsOfRoles(
-	roleIds: string[],
-): Promise<{ roleId: string; agentId: string; permission: string }[]> {
+	roleIds: Array<string>,
+): Promise<Array<{ roleId: string; agentId: string; permission: string }>> {
 	if (roleIds.length === 0) return []
 	return db.select().from(roleAgentPermission).where(inArray(roleAgentPermission.roleId, roleIds))
 }
 
-export async function findRoleAgentPermissions(roleId: string, agentId: string): Promise<{ permission: string }[]> {
+export async function findRoleAgentPermissions(
+	roleId: string,
+	agentId: string,
+): Promise<Array<{ permission: string }>> {
 	return db
 		.select({ permission: roleAgentPermission.permission })
 		.from(roleAgentPermission)
@@ -51,7 +54,7 @@ export async function findRoleAgentPermissions(roleId: string, agentId: string):
 export async function replaceRoleAgentPermissions(
 	roleId: string,
 	agentId: string,
-	permissions: readonly string[],
+	permissions: ReadonlyArray<string>,
 ): Promise<void> {
 	await db.transaction(async (tx) => {
 		await tx
@@ -95,7 +98,7 @@ export async function adminGrantExists(): Promise<boolean> {
 	return row !== undefined
 }
 
-export async function insertInvitation(values: NewInvitation, roleIds: string[] = []): Promise<Invitation> {
+export async function insertInvitation(values: NewInvitation, roleIds: Array<string> = []): Promise<Invitation> {
 	return db.transaction(async (tx) => {
 		const [row] = await tx.insert(invitation).values(values).returning()
 		if (!row) throw new Error("insertInvitation: insert returned no row")
@@ -106,7 +109,7 @@ export async function insertInvitation(values: NewInvitation, roleIds: string[] 
 	})
 }
 
-export async function findInvitationRoleIds(invitationId: string): Promise<string[]> {
+export async function findInvitationRoleIds(invitationId: string): Promise<Array<string>> {
 	const rows = await db
 		.select({ roleId: invitationRole.roleId })
 		.from(invitationRole)
@@ -155,7 +158,9 @@ export async function insertPermissionGrant(values: NewPermissionGrant): Promise
 	return row
 }
 
-export async function findPermissionsForUsers(userIds: string[]): Promise<{ userId: string; permission: string }[]> {
+export async function findPermissionsForUsers(
+	userIds: Array<string>,
+): Promise<Array<{ userId: string; permission: string }>> {
 	if (userIds.length === 0) return []
 	return union(
 		db
@@ -170,7 +175,7 @@ export async function findPermissionsForUsers(userIds: string[]): Promise<{ user
 	)
 }
 
-export async function findRoles(): Promise<Role[]> {
+export async function findRoles(): Promise<Array<Role>> {
 	return db
 		.select()
 		.from(role)
@@ -182,17 +187,19 @@ export async function findRoleById(id: string): Promise<Role | undefined> {
 	return row
 }
 
-export async function findRolesByIds(ids: string[]): Promise<Role[]> {
+export async function findRolesByIds(ids: Array<string>): Promise<Array<Role>> {
 	if (ids.length === 0) return []
 	return db.select().from(role).where(inArray(role.id, ids))
 }
 
-export async function findPermissionsOfRoles(roleIds: string[]): Promise<RolePermission[]> {
+export async function findPermissionsOfRoles(roleIds: Array<string>): Promise<Array<RolePermission>> {
 	if (roleIds.length === 0) return []
 	return db.select().from(rolePermission).where(inArray(rolePermission.roleId, roleIds))
 }
 
-export async function countMembersByRole(roleIds: string[]): Promise<{ memberCount: number; roleId: string }[]> {
+export async function countMembersByRole(
+	roleIds: Array<string>,
+): Promise<Array<{ memberCount: number; roleId: string }>> {
 	if (roleIds.length === 0) return []
 	return db
 		.select({ roleId: userRole.roleId, memberCount: count() })
@@ -201,11 +208,13 @@ export async function countMembersByRole(roleIds: string[]): Promise<{ memberCou
 		.groupBy(userRole.roleId)
 }
 
-export async function findRolesOfUser(userId: string): Promise<Pick<Role, "id" | "name">[]> {
+export async function findRolesOfUser(userId: string): Promise<Array<Pick<Role, "id" | "name">>> {
 	return (await findRolesOfUsers([userId])).map(({ id, name }) => ({ id, name }))
 }
 
-export async function findRolesOfUsers(userIds: string[]): Promise<{ userId: string; id: string; name: string }[]> {
+export async function findRolesOfUsers(
+	userIds: Array<string>,
+): Promise<Array<{ userId: string; id: string; name: string }>> {
 	if (userIds.length === 0) return []
 	return db
 		.select({ userId: userRole.userId, id: role.id, name: role.name })
@@ -218,7 +227,7 @@ export async function findRolesOfUsers(userIds: string[]): Promise<{ userId: str
 // Role and permissions atomically: a permission failure must not leave a bare role.
 export async function insertRoleWithPermissions(
 	values: { id: string; name: string },
-	permissions: string[],
+	permissions: Array<string>,
 ): Promise<void> {
 	await db.transaction(async (tx) => {
 		await tx.insert(role).values(values)
@@ -228,7 +237,11 @@ export async function insertRoleWithPermissions(
 	})
 }
 
-export async function updateRoleWithPermissions(id: string, name: string, permissions: string[]): Promise<boolean> {
+export async function updateRoleWithPermissions(
+	id: string,
+	name: string,
+	permissions: Array<string>,
+): Promise<boolean> {
 	return db.transaction(async (tx) => {
 		const updated = await tx.update(role).set({ name }).where(eq(role.id, id)).returning({ id: role.id })
 		if (updated.length === 0) return false
@@ -245,7 +258,7 @@ export async function deleteRoleById(id: string): Promise<boolean> {
 	return rows.length > 0
 }
 
-export async function replaceUserRoles(userId: string, roleIds: string[]): Promise<void> {
+export async function replaceUserRoles(userId: string, roleIds: Array<string>): Promise<void> {
 	await db.transaction(async (tx) => {
 		await tx.delete(userRole).where(eq(userRole.userId, userId))
 		if (roleIds.length > 0) {

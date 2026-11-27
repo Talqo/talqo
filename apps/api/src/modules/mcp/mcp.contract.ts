@@ -7,10 +7,10 @@ import { createRoute, z } from "@hono/zod-openapi"
 import { MCP_SERVER_NAME_MAX_LENGTH } from "./mcp.types.ts"
 
 const SECRET_NAME_MAX_LENGTH = 256
-const SECRET_VALUE_MAX_LENGTH = 4_096
+const SECRET_VALUE_MAX_LENGTH = 4096
 const MAX_SECRET_ENTRIES = 50
 const MAX_ARGS = 50
-const ARG_MAX_LENGTH = 1_000
+const ARG_MAX_LENGTH = 1000
 const COMMAND_MAX_LENGTH = 512
 
 const secretRecordSchema = z

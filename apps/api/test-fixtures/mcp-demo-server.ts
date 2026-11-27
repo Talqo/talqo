@@ -111,13 +111,13 @@ function handle(message: JsonRpc): JsonRpcResponse | undefined {
 		const name = params?.["name"]
 		const args = params?.["arguments"]
 		if (typeof name !== "string") {
-			return { jsonrpc: "2.0", id, error: { code: -32602, message: "Invalid params" } }
+			return { jsonrpc: "2.0", id, error: { code: -32_602, message: "Invalid params" } }
 		}
 		return { jsonrpc: "2.0", id, result: callTool(name, isRecord(args) ? args : {}) }
 	}
 	if (message.method === "ping") return { jsonrpc: "2.0", id, result: {} }
 	if (id === undefined) return undefined
-	return { jsonrpc: "2.0", id, error: { code: -32601, message: `Method not found: ${message.method}` } }
+	return { jsonrpc: "2.0", id, error: { code: -32_601, message: `Method not found: ${message.method}` } }
 }
 
 function serveStdio(): void {

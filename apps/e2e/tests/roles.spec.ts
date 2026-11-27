@@ -73,7 +73,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 
 			await page.getByRole("link", { name: web("nav.agents"), exact: true }).click()
 			await expect(page.getByRole("button", { name: web("agents.create") })).toHaveCount(0)
-			await page.getByRole("link", { name: new RegExp(agent.name) }).click()
+			await page.getByRole("link", { name: new RegExp(RegExp.escape(agent.name)) }).click()
 			await expect(page.getByLabel(web("agentFields.systemPrompt"))).toBeEnabled()
 			await expect(page.getByRole("button", { name: web("agentConfig.deleteAgent"), exact: true })).toHaveCount(0)
 
@@ -108,7 +108,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 		await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
 		const response = await request.get("/api/users")
 		await expect(response).toBeOK()
-		const { users } = (await response.json()) as { users: { id: string; username: string }[] }
+		const { users } = (await response.json()) as { users: Array<{ id: string; username: string }> }
 		const user = users.find(({ username }) => username === operator.username)
 		// oxlint-disable-next-line playwright/no-conditional-in-test, playwright/no-conditional-expect -- The journey may already have deleted the user.
 		if (user) await expect(await request.delete(`/api/users/${user.id}`)).toBeOK()

@@ -59,7 +59,7 @@ function CreateAgentButton({ onCreate, pending }: { onCreate: () => void; pendin
 
 type AgentListItem = ListAgents200["agents"][number]
 
-function AgentsGrid({ agents }: { agents: readonly AgentListItem[] }) {
+function AgentsGrid({ agents }: { agents: ReadonlyArray<AgentListItem> }) {
 	const { t } = useTranslation()
 	const { language } = useLanguage()
 	return (
@@ -99,7 +99,7 @@ function AgentsContent({
 	pending,
 }: {
 	query: ReturnType<typeof useListAgents>
-	agents: readonly AgentListItem[]
+	agents: ReadonlyArray<AgentListItem>
 	canManage: boolean
 	onCreate: () => void
 	pending: boolean

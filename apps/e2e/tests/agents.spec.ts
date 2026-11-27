@@ -54,7 +54,7 @@ test("manager creates, configures, and deletes an agent through the real API", a
 		await expect(page.getByRole("button", { name: web("agentConfig.save") })).toBeDisabled()
 
 		await page.getByRole("link", { name: web("nav.agents"), exact: true }).click()
-		await page.getByRole("link", { name: new RegExp(agentName) }).click()
+		await page.getByRole("link", { name: new RegExp(RegExp.escape(agentName)) }).click()
 		await page.getByLabel(web("agentFields.systemPrompt")).fill("Unsaved prompt edit")
 		await page.getByRole("button", { name: web("agentConfig.deleteAgent") }).click()
 		const deleteDialog = page.getByRole("alertdialog")
@@ -72,9 +72,9 @@ test("manager creates, configures, and deletes an agent through the real API", a
 		await expect(confirmButton).toBeEnabled()
 		await confirmButton.click()
 		await expect(page).toHaveURL("/dashboard/agents")
-		await expect(page.getByRole("link", { name: new RegExp(agentName) })).toHaveCount(0)
+		await expect(page.getByRole("link", { name: new RegExp(RegExp.escape(agentName)) })).toHaveCount(0)
 		await page.reload()
-		await expect(page.getByRole("link", { name: new RegExp(agentName) })).toHaveCount(0)
+		await expect(page.getByRole("link", { name: new RegExp(RegExp.escape(agentName)) })).toHaveCount(0)
 		createdAgentId = undefined
 	} finally {
 		// oxlint-disable-next-line playwright/no-conditional-in-test, playwright/no-conditional-expect -- Cleanup must handle partially completed journeys.
@@ -88,7 +88,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 	await expect(await page.request.post("/api/auth/login", { data: ADMIN })).toBeOK()
 	const usersResponse = await page.request.get("/api/users")
 	await expect(usersResponse).toBeOK()
-	const { users } = (await usersResponse.json()) as { users: { id: string; username: string }[] }
+	const { users } = (await usersResponse.json()) as { users: Array<{ id: string; username: string }> }
 	const user = users.find(({ username }) => username === viewer.username)
 	assert(user, "Invited viewer is missing")
 	const roleResponse = await page.request.post("/api/roles", {
@@ -100,7 +100,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 	try {
 		const agentsResponse = await page.request.get("/api/agents")
 		await expect(agentsResponse).toBeOK()
-		const { agents } = (await agentsResponse.json()) as { agents: { id: string; name: string }[] }
+		const { agents } = (await agentsResponse.json()) as { agents: Array<{ id: string; name: string }> }
 		const hidden = agents.find(({ name }) => name === "Product Advisor")
 		assert(hidden, "Missing reporting-only agent")
 		await expect(
@@ -128,7 +128,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(page.getByRole("link", { name: /Product Advisor/ })).toHaveCount(0)
 		await page.goto(`/dashboard/agent/${hidden.id}`)
 		await expect(page).toHaveURL("/dashboard/agents")
-		await page.getByRole("link", { name: new RegExp(agent.name) }).click()
+		await page.getByRole("link", { name: new RegExp(RegExp.escape(agent.name)) }).click()
 
 		await expect(page.getByRole("heading", { name: agent.name, exact: true })).toBeVisible()
 		await expect(page.getByLabel(web("agentFields.name"))).toHaveAttribute("readonly", "")

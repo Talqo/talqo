@@ -9,8 +9,8 @@ export function McpArgumentsEditor({
 	args,
 	onChange,
 }: {
-	args: ArgumentRow[]
-	onChange: (args: ArgumentRow[]) => void
+	args: Array<ArgumentRow>
+	onChange: (args: Array<ArgumentRow>) => void
 }) {
 	const { t } = useTranslation()
 	const set = (id: string, value: string) => onChange(args.map((row) => (row.id === id ? { ...row, value } : row)))

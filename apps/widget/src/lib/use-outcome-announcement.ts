@@ -11,7 +11,7 @@ type OutcomeUpdate = {
 }
 
 function collectOutcomeUpdate(
-	messages: readonly ChatMessage[],
+	messages: ReadonlyArray<ChatMessage>,
 	announced: Map<string, ChatMessage["outcome"]>,
 	t: Translate,
 ): OutcomeUpdate {
@@ -27,7 +27,7 @@ function collectOutcomeUpdate(
 	return { next, terminalText }
 }
 
-export function useOutcomeAnnouncement(messages: readonly ChatMessage[], open: boolean, t: Translate) {
+export function useOutcomeAnnouncement(messages: ReadonlyArray<ChatMessage>, open: boolean, t: Translate) {
 	const [announcement, setAnnouncement] = useState<{ id: number; text: string } | null>(null)
 	const announcedOutcomes = useRef(new Map<string, ChatMessage["outcome"]>())
 	const announcementId = useRef(0)

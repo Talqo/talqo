@@ -25,7 +25,7 @@ const HASH_HEX_LENGTH = 6
 
 /** Provider tool-name grammars reject `shopify.get_product`, so names are sanitized and namespaced. */
 export function namespaceToolName(serverName: string, toolName: string): string {
-	const joined = `${serverName.replace(/[^a-zA-Z0-9_-]/g, "_")}__${toolName.replace(/[^a-zA-Z0-9_-]/g, "_")}`
+	const joined = `${serverName.replaceAll(/[^a-zA-Z0-9_-]/g, "_")}__${toolName.replaceAll(/[^a-zA-Z0-9_-]/g, "_")}`
 	if (joined.length <= TOOL_NAME_MAX_LENGTH) return joined
 	const hash = createHash("sha256").update(joined).digest("hex").slice(0, HASH_HEX_LENGTH)
 	return `${joined.slice(0, TOOL_NAME_MAX_LENGTH - hash.length - 1)}_${hash}`
@@ -33,7 +33,10 @@ export function namespaceToolName(serverName: string, toolName: string): string 
 
 function inheritedEnv(): Record<string, string> {
 	return Object.fromEntries(
-		STDIO_INHERITED_ENV.filter((name) => process.env[name]).map((name) => [name, process.env[name]!]),
+		STDIO_INHERITED_ENV.flatMap((name) => {
+			const value = process.env[name]
+			return value === undefined ? [] : [[name, value]]
+		}),
 	)
 }
 
@@ -60,17 +63,19 @@ function buildTransport(row: McpServerRow, options: McpConnectOptions): MCPClien
 	if (row.transport === "stdio") {
 		// Write-time validation blocks new rows; this stops servers configured before the flag flipped.
 		if (!env.TALQO_MCP_ALLOW_STDIO) throw new Error("Stdio MCP servers are disabled on this deployment")
+		if (row.command === null) throw new Error(`MCP server ${row.name} has no command`)
 		return new Experimental_StdioMCPTransport({
-			command: row.command!,
+			command: row.command,
 			args: row.args,
 			// Only Talqo's harmless variables plus the operator's own; no APP_SECRET, no DATABASE_URL.
 			env: { ...inheritedEnv(), ...secretsOf(row.env, vault, row, "env") },
 		})
 	}
+	if (row.url === null) throw new Error(`MCP server ${row.name} has no URL`)
 	const headers = secretsOf(row.headers, vault, row, "header")
 	return {
 		type: "http",
-		url: row.url!,
+		url: row.url,
 		...(Object.keys(headers).length > 0 ? { headers } : {}),
 		redirect: "error",
 	}
@@ -130,7 +135,7 @@ export async function withListTimeout<T>(listing: Promise<T>, signal?: AbortSign
 /**
  * Connects, lists tools, closes. Returns an empty list when unreachable. No tools counts as not working.
  */
-export async function discoverTools(row: McpServerRow, options: McpConnectOptions): Promise<McpToolSnapshot[]> {
+export async function discoverTools(row: McpServerRow, options: McpConnectOptions): Promise<Array<McpToolSnapshot>> {
 	let client: MCPClient | undefined
 	try {
 		client = await connect(row, options)
@@ -158,12 +163,12 @@ export type OpenToolsResult = {
  * broken integration cannot cost the agent every tool it has.
  */
 export async function openTools(
-	rows: McpServerRow[],
+	rows: Array<McpServerRow>,
 	options: McpConnectOptions & { onDegraded: (row: McpServerRow, error: unknown) => void },
 ): Promise<OpenToolsResult> {
 	const tools: ToolSet = {}
 	const names = new Map<string, { serverName: string; toolName: string }>()
-	const clients: MCPClient[] = []
+	const clients: Array<MCPClient> = []
 	await Promise.all(
 		rows.map(async (row) => {
 			const enabled = new Set(row.tools.filter((tool) => tool.enabled).map((tool) => tool.name))
@@ -224,7 +229,7 @@ function isTextPart(part: unknown): part is { type: "text"; text: string } {
 class ToolResultBudget {
 	remaining = MAX_TOOL_RESULT_CHARACTERS
 	marked = false
-	content: unknown[] = []
+	content: Array<unknown> = []
 
 	appendText(part: { type: "text"; text: string }): void {
 		const { text } = part
@@ -253,7 +258,7 @@ class ToolResultBudget {
 	}
 }
 
-function hasResultContent(result: unknown): result is { content: unknown[] } {
+function hasResultContent(result: unknown): result is { content: Array<unknown> } {
 	return result !== null && typeof result === "object" && "content" in result && Array.isArray(result.content)
 }
 

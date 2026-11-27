@@ -8,7 +8,7 @@ import { PROBLEM_CODES } from "@talqo/shared/problem-codes"
 export { PROBLEM_CODES }
 
 export type ProblemCode = (typeof PROBLEM_CODES)[keyof typeof PROBLEM_CODES]
-export type ProblemCodeSet = readonly [ProblemCode, ...ProblemCode[]]
+export type ProblemCodeSet = readonly [ProblemCode, ...Array<ProblemCode>]
 
 const PROBLEM_TYPE_BASE = "https://docs.talqo.chat/problems#" as const
 const [firstProblemCode, ...remainingProblemCodes] = Object.values(PROBLEM_CODES)

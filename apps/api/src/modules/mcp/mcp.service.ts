@@ -74,7 +74,7 @@ async function ownedRow(agentId: string, serverId: string): Promise<McpServerRow
 	return row
 }
 
-function secretNames(map: Record<string, unknown> | null): McpSecretName[] {
+function secretNames(map: Record<string, unknown> | null): Array<McpSecretName> {
 	return Object.keys(map ?? {}).map((name) => ({ name, hasValue: true }))
 }
 
@@ -115,7 +115,8 @@ function assertValid(input: McpCreateInput): void {
 	if (!input.name.trim() || input.name.length > MCP_SERVER_NAME_MAX_LENGTH)
 		throw new InvalidMcpServerNameError(`Name must be 1-${MCP_SERVER_NAME_MAX_LENGTH} characters`)
 	// The name becomes part of provider tool names, whose grammars accept printable ASCII only.
-	if (!/^[\x20-\x7E]+$/.test(input.name)) throw new InvalidMcpServerNameError("Name must contain ASCII characters only")
+	if (!/^[\u0020-\u007E]+$/.test(input.name))
+		throw new InvalidMcpServerNameError("Name must contain ASCII characters only")
 	if (input.transport === "stdio" && !env.TALQO_MCP_ALLOW_STDIO)
 		throw new McpStdioDisabledError("Stdio MCP servers are disabled on this deployment (TALQO_MCP_ALLOW_STDIO=false)")
 	if (input.transport === "http") assertValidHttpConnection(input)
@@ -129,7 +130,7 @@ function mergeSecrets(
 	existing: CredentialSecretMap | null | undefined,
 	serverId: string,
 	input: Record<string, string> | undefined,
-	remove: string[] | undefined,
+	remove: Array<string> | undefined,
 	purpose: "env" | "header",
 ): CredentialSecretMap {
 	const merged: CredentialSecretMap = { ...existing }
@@ -168,13 +169,16 @@ function stdioColumns(serverId: string, input: McpStdioInput, existing?: Credent
 }
 
 /** Existing tools keep their enabled flag. New tools start enabled. */
-function mergeTools(previous: McpToolSnapshot[], discovered: McpToolSnapshot[]): McpToolSnapshot[] {
+function mergeTools(previous: Array<McpToolSnapshot>, discovered: Array<McpToolSnapshot>): Array<McpToolSnapshot> {
 	const previousByName = new Map(previous.map((tool) => [tool.name, tool.enabled]))
 	return discovered.map((tool) => ({ ...tool, enabled: previousByName.get(tool.name) ?? true }))
 }
 
 /** The toggle path always sends the complete list, so an explicit empty list disables everything. */
-function applySelection(previous: McpToolSnapshot[], updates: { enabled: boolean; name: string }[]): McpToolSnapshot[] {
+function applySelection(
+	previous: Array<McpToolSnapshot>,
+	updates: Array<{ enabled: boolean; name: string }>,
+): Array<McpToolSnapshot> {
 	const enabled = new Set(updates.filter((entry) => entry.enabled).map((entry) => entry.name))
 	return previous.map((tool) => ({ ...tool, enabled: enabled.has(tool.name) }))
 }
@@ -193,7 +197,7 @@ async function withDiscoveredTools(row: McpServerRow, annotate: Annotate): Promi
 	return (await repo.update(row.id, { tools: mergeTools(row.tools, discovered) })) ?? row
 }
 
-export async function listServers(agentId: string): Promise<McpServerView[]> {
+export async function listServers(agentId: string): Promise<Array<McpServerView>> {
 	return (await repo.listForAgent(agentId)).map(toView)
 }
 

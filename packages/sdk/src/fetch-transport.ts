@@ -1,7 +1,6 @@
 import type {
 	CancelChatGenerationBody,
 	ChatEventV1,
-	EmbedConfig,
 	GetChatSession200,
 	GetChatSession200MessagesItem,
 	GetChatSession200MessagesItemOutcome as MessageOutcome,
@@ -30,7 +29,7 @@ export class ChatTransportError extends Error {
 	}
 }
 
-const MILLISECONDS_PER_SECOND = 1_000
+const MILLISECONDS_PER_SECOND = 1000
 const HTTP_OK = 200
 const JSON_HEADERS = { Accept: "application/json" } as const
 const JSON_POST_HEADERS = { Accept: "application/json", "Content-Type": "application/json" } as const
@@ -100,7 +99,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
-function isOneOf<const Values extends readonly string[]>(value: unknown, values: Values): value is Values[number] {
+function isOneOf<const Values extends ReadonlyArray<string>>(value: unknown, values: Values): value is Values[number] {
 	return typeof value === "string" && values.some((candidate) => candidate === value)
 }
 
@@ -125,9 +124,22 @@ function isSession(value: unknown): value is GetChatSession200 {
 	)
 }
 
-function embedConfiguration(value: unknown): EmbedConfig | undefined {
-	if (!isRecord(value) || typeof value.name !== "string" || !isRecord(value.appearance)) return undefined
-	return value as unknown as EmbedConfig
+type EmbedConfiguration = {
+	appearance: Readonly<Record<string, unknown>>
+	isAvailable: boolean
+	name: string
+}
+
+function embedConfiguration(value: unknown): EmbedConfiguration | undefined {
+	if (
+		!isRecord(value) ||
+		typeof value.name !== "string" ||
+		typeof value.isAvailable !== "boolean" ||
+		!isRecord(value.appearance)
+	) {
+		return undefined
+	}
+	return { appearance: value.appearance, isAvailable: value.isAvailable, name: value.name }
 }
 
 function retryAt(response: Response, now: () => Date): string | undefined {
@@ -255,7 +267,7 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			if (configuration === undefined) throw invalidResponse(response.status)
 			return {
 				title: configuration.name,
-				appearance: configuration.appearance as unknown as Readonly<Record<string, unknown>>,
+				appearance: configuration.appearance,
 				isAvailable: configuration.isAvailable,
 			}
 		},

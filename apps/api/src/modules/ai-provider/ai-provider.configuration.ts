@@ -12,7 +12,7 @@ type RoleInput = (SaveConfigurationInput["text"] | SaveConfigurationInput["embed
 
 function assertNonEmptyFields(
 	values: Record<string, string> | undefined,
-	fields: readonly string[],
+	fields: ReadonlyArray<string>,
 	label: string,
 ): void {
 	for (const field of fields) {

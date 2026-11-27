@@ -37,9 +37,9 @@ type RequestRecord = { url: string; method: string; body?: unknown }
 let agent: typeof INITIAL_AGENT
 let canonicalAgent: typeof INITIAL_AGENT
 let canRead: boolean
-let agentPermissions: string[]
-let agentListFailures: Response[]
-let agentDetailFailures: Response[]
+let agentPermissions: Array<string>
+let agentListFailures: Array<Response>
+let agentDetailFailures: Array<Response>
 let agentDetailMissing: boolean
 let agentDetailResponse: Promise<Response> | undefined
 let embeds: Array<typeof EMBED>
@@ -49,7 +49,7 @@ let createFailures: Array<Response | Promise<Response>>
 let createdBodies: Array<Record<string, unknown>>
 let updateFailures: Array<Response | Promise<Response>>
 let deleteFailures: Array<Response | Promise<Response>>
-let requests: RequestRecord[]
+let requests: Array<RequestRecord>
 let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
@@ -175,7 +175,7 @@ function blacklistInput(): HTMLInputElement {
 	return input
 }
 
-function blacklistTerms(): string[] {
+function blacklistTerms(): Array<string> {
 	const list = [...host.querySelectorAll("ul")].find(
 		(element) => element.getAttribute("aria-label") === t("blacklist.termsLabel"),
 	)

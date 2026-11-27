@@ -12,8 +12,8 @@ export function McpEnvEditor({
 	invalidRowId,
 	errorId,
 }: {
-	env: EnvVariable[]
-	onChange: (env: EnvVariable[]) => void
+	env: Array<EnvVariable>
+	onChange: (env: Array<EnvVariable>) => void
 	kind?: "env" | "headers"
 	invalidRowId?: string
 	errorId?: string

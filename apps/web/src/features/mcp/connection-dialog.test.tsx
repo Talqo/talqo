@@ -40,7 +40,7 @@ type RecordedRequest = { url: string; method: string; body: unknown }
 let harness: ReturnType<typeof createTestHarness>
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
-let requests: RecordedRequest[]
+let requests: Array<RecordedRequest>
 let responses: Array<Response | Error | Promise<Response>>
 
 function json(body: unknown, status = 200): Response {

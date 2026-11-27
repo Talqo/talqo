@@ -6,7 +6,7 @@ import { createStaticResponder, resolveStaticDirs } from "./http/static.ts"
 import { stdoutWideEventLog } from "./http/wide-event-stdout.ts"
 import { runIngestion } from "./modules/knowledge-base/knowledge-base.service.ts"
 
-const WORKER_RESTART_DELAY_MS = 3_000
+const WORKER_RESTART_DELAY_MS = 3000
 const SIGNAL_EXIT_BASE = 128
 
 export async function runIngestionLoop(): Promise<never> {

@@ -5,7 +5,10 @@ import { useEffect, useMemo } from "react"
 import type { ConversationsSearch } from "./conversations-search"
 
 /** Drops unreadable IDs. Undefined means all agents; an unchanged selection keeps its reference. */
-function reconcileAgentIds(requested: string[] | undefined, readableIds: string[]): string[] | undefined {
+function reconcileAgentIds(
+	requested: Array<string> | undefined,
+	readableIds: Array<string>,
+): Array<string> | undefined {
 	if (requested === undefined || requested.length === 0) return requested
 	const valid = requested.filter((id) => readableIds.includes(id))
 	if (valid.length === requested.length) return requested

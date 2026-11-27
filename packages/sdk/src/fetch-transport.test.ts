@@ -40,8 +40,8 @@ function requestUrl(input: string | URL | Request): string {
 	return input instanceof URL ? input.href : input.url
 }
 
-function recordingFetch(responses: Response[]) {
-	const calls: FetchCall[] = []
+function recordingFetch(responses: Array<Response>) {
+	const calls: Array<FetchCall> = []
 	const fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
 		calls.push({ url: requestUrl(input), init })
 		const response = responses.shift()
@@ -63,7 +63,7 @@ function problem(code: string, status: number, headers: HeadersInit = {}): Respo
 	return jsonResponse({ code, type: `https://docs.talqo.chat/problems#${code}` }, { status, headers: merged })
 }
 
-function streamResponse(chunks: string[]): Response {
+function streamResponse(chunks: Array<string>): Response {
 	const encoder = new TextEncoder()
 	return new Response(
 		new ReadableStream<Uint8Array>({
@@ -99,7 +99,7 @@ function chatStream(payload: unknown, eventName: string | null = "chat"): Respon
 	return streamResponse([`${header}data: ${JSON.stringify(payload)}\n\n`])
 }
 
-async function streamedEvents(payload: unknown, eventName: string | null = "chat"): Promise<ChatEvent[]> {
+async function streamedEvents(payload: unknown, eventName: string | null = "chat"): Promise<Array<ChatEvent>> {
 	const fake = recordingFetch([chatStream(payload, eventName)])
 	const transport = createFetchChatTransport({ fetch: fake.fetch })
 	return Array.fromAsync(
@@ -290,7 +290,7 @@ describe("createFetchChatTransport", () => {
 		)
 		const fake = recordingFetch(responses)
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
-		const observed: ChatEvent[][] = await Promise.all(
+		const observed: Array<Array<ChatEvent>> = await Promise.all(
 			terminals.map(async () =>
 				Array.fromAsync(
 					await transport.sendMessage({ ...context(), requestId: REQUEST_ID, credential: CREDENTIAL, text: "hello" }),
@@ -315,7 +315,7 @@ describe("createFetchChatTransport", () => {
 	})
 
 	test("parses tool lifecycle events and rejects malformed tool facts", async () => {
-		const valid: ChatEvent[] = [
+		const valid: Array<ChatEvent> = [
 			{ type: "tool-start", serverName: "Shopify", toolName: "get_product" },
 			{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "completed" },
 			{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "failed" },
@@ -664,7 +664,7 @@ describe("createFetchChatTransport", () => {
 	})
 
 	test("normalizes tool, delta, and terminal events", async () => {
-		const cases: { payload: unknown; expected: ChatEvent }[] = [
+		const cases: Array<{ payload: unknown; expected: ChatEvent }> = [
 			{
 				payload: { version: 1, type: "delta", assistantMessageId: "assistant", text: "Hi", extra: true },
 				expected: { type: "delta", assistantMessageId: "assistant", text: "Hi" },
@@ -707,11 +707,11 @@ describe("createFetchChatTransport", () => {
 			outcome: "failed",
 			error: { code: "provider-error", retriable: true, newChatAvailable: false },
 		}
-		const cases: {
+		const cases: Array<{
 			shape: string
 			payload: unknown
 			eventName?: string | null
-		}[] = [
+		}> = [
 			{ shape: "untyped event", payload: delta, eventName: null },
 			{ shape: "custom event name", payload: delta, eventName: "message" },
 			{ shape: "unknown event type", payload: { version: 1, type: "heartbeat" } },
@@ -834,7 +834,7 @@ describe("createFetchChatTransport", () => {
 			createdAt: "2026-09-12T12:00:00Z",
 			outcome: "completed",
 		}
-		const sessionCases: { shape: string; payload: unknown }[] = [
+		const sessionCases: Array<{ shape: string; payload: unknown }> = [
 			{ shape: "null session", payload: null },
 			{ shape: "session without messages", payload: {} },
 			{ shape: "session with non-array messages", payload: { messages: {} } },
@@ -859,7 +859,7 @@ describe("createFetchChatTransport", () => {
 			}),
 		)
 
-		const configurationCases: { shape: string; payload: unknown }[] = [
+		const configurationCases: Array<{ shape: string; payload: unknown }> = [
 			{ shape: "array configuration", payload: [] },
 			{ shape: "array appearance", payload: { name: "Support", appearance: [] } },
 			{ shape: "null appearance", payload: { name: "Support", appearance: null } },
@@ -877,7 +877,7 @@ describe("createFetchChatTransport", () => {
 
 	test("derives retry hints only from usable rate-limit headers", async () => {
 		const now = new Date("2026-09-12T12:00:00Z")
-		const cases: { shape: string; headers: HeadersInit; retryAt: string }[] = [
+		const cases: Array<{ shape: string; headers: HeadersInit; retryAt: string }> = [
 			{ shape: "numeric Retry-After", headers: { "Retry-After": "9" }, retryAt: "2026-09-12T12:00:09.000Z" },
 			{ shape: "zero Retry-After", headers: { "Retry-After": "0" }, retryAt: "2026-09-12T12:00:00.000Z" },
 			{
@@ -911,7 +911,7 @@ describe("createFetchChatTransport", () => {
 			}),
 		)
 
-		const unusable: HeadersInit[] = [
+		const unusable: Array<HeadersInit> = [
 			{ "Retry-After": "later" },
 			{ "Retry-After": "Infinity" },
 			{ "X-RateLimit-Reset": "soon" },
@@ -939,7 +939,7 @@ describe("createFetchChatTransport", () => {
 		const { retryAt } = await rejectedDetail(transport.loadConfiguration(context()))
 		const after = Date.now()
 
-		expect(Date.parse(retryAt ?? "")).toBeGreaterThanOrEqual(before + 5_000)
-		expect(Date.parse(retryAt ?? "")).toBeLessThanOrEqual(after + 5_000)
+		expect(Date.parse(retryAt ?? "")).toBeGreaterThanOrEqual(before + 5000)
+		expect(Date.parse(retryAt ?? "")).toBeLessThanOrEqual(after + 5000)
 	})
 })

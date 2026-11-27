@@ -74,7 +74,7 @@ test("built widget boots in a sandboxed CDN-only preview frame", async ({ page, 
 })
 
 test("widget fetches and paints its palette across origins", async ({ page, chatEmbed }) => {
-	const errors: string[] = []
+	const errors: Array<string> = []
 	page.on("pageerror", (error) => errors.push(String(error)))
 	// A blocked CORS request only logs, so pageerror alone would miss a CORS regression.
 	page.on("console", (message) => {
@@ -103,7 +103,7 @@ test("widget streams a multi-turn chat and verifies history", async ({ page, req
 	await send("Prove you received the earlier turn")
 	await expect(dialog.getByText("Second streamed answer.", { exact: true })).toBeVisible()
 	const captured = (await (await request.get(`${providerControlOrigin}/requests`)).json()) as {
-		requests: { messages: { content: unknown; role: string }[] }[]
+		requests: Array<{ messages: Array<{ content: unknown; role: string }> }>
 	}
 	expect(captured.requests[1]?.messages).toEqual([
 		{ role: "system", content: expect.stringContaining("support assistant") },
@@ -159,7 +159,7 @@ test("widget cancels a stream and starts a new chat preserving history", async (
 		headers: { Authorization: `Bearer ${oldCredential}` },
 	})
 	await expect(response).toBeOK()
-	const oldSession = (await response.json()) as { messages: { outcome: string; role: string; text: string }[] }
+	const oldSession = (await response.json()) as { messages: Array<{ outcome: string; role: string; text: string }> }
 	expect(oldSession.messages).toEqual(
 		expect.arrayContaining([
 			expect.objectContaining({ role: "assistant", text: "First streamed answer.", outcome: "completed" }),

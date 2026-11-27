@@ -38,11 +38,13 @@ async function renderCard(canManage: boolean) {
 		),
 	)
 	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0)
+		})
 	})
 }
 
-function addButtons(): HTMLButtonElement[] {
+function addButtons(): Array<HTMLButtonElement> {
 	return [...host.querySelectorAll("button")].filter((element) => element.textContent?.trim() === t("mcp.add"))
 }
 
@@ -107,7 +109,9 @@ describe("McpConnectionsCard empty state", () => {
 
 		await act(async () => response.resolve(json({ servers: [], stdioAllowed: false })))
 		await act(async () => {
-			await new Promise((resolve) => setTimeout(resolve, 0))
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0)
+			})
 		})
 		expect(host.textContent).not.toContain(t("mcp.loading"))
 		expect(addButtons()).toHaveLength(2)
@@ -142,7 +146,9 @@ describe("McpConnectionsCard empty state", () => {
 		body = { servers: [server()], stdioAllowed: false }
 		await act(async () => queryClient.refetchQueries())
 		await act(async () => {
-			await new Promise((resolve) => setTimeout(resolve, 0))
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0)
+			})
 		})
 		expect(host.querySelector("[data-testid='mcp-server-card']")?.textContent).toContain(t("mcp.stdioDisabled"))
 	})

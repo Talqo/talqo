@@ -11,7 +11,7 @@ const test = applicationTest.extend<{ member: { username: string; password: stri
 		await use(member)
 		const response = await request.get("/api/users")
 		await expect(response).toBeOK()
-		const { users } = (await response.json()) as { users: { id: string; username: string }[] }
+		const { users } = (await response.json()) as { users: Array<{ id: string; username: string }> }
 		const user = users.find(({ username }) => username === member.username)
 		if (user) await expect(await request.delete(`/api/users/${user.id}`)).toBeOK()
 	},

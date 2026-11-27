@@ -24,7 +24,7 @@ type NavItem = {
 	requires?: NavRequirement
 }
 
-const navItems: readonly NavItem[] = [
+const navItems: ReadonlyArray<NavItem> = [
 	{ to: "/dashboard", icon: LayoutDashboard, requires: "statsRead" },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
 	{ to: "/dashboard/conversations", icon: MessagesSquare, requires: "conversationsRead" },
@@ -42,7 +42,10 @@ const navLabels = {
 	"/dashboard/account": "nav.account",
 } as const satisfies Record<NavItem["to"], string>
 
-export function allowedNavItems(permissions: string[], agents: { permissions: string[] }[]): readonly NavItem[] {
+export function allowedNavItems(
+	permissions: Array<string>,
+	agents: Array<{ permissions: Array<string> }>,
+): ReadonlyArray<NavItem> {
 	const admin = permissions.includes("admin")
 	const canReadAgents = admin || agents.some((agent) => agent.permissions.includes("agents:read"))
 	const canReadConversations = admin || agents.some((agent) => agent.permissions.includes("conversations:read"))

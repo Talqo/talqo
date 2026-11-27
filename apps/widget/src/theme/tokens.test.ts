@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs"
 const css = readFileSync(new URL("./tokens.css", import.meta.url), "utf8")
 
 function customProperty(name: string): string | undefined {
-	return new RegExp(String.raw`--talqo-${name}-input:\s*(#[0-9a-fA-F]{6});`).exec(css)?.[1]
+	return new RegExp(String.raw`--talqo-${RegExp.escape(name)}-input:\s*(#[0-9a-fA-F]{6});`).exec(css)?.[1]
 }
 
 function baseDestructiveToken(): string | undefined {

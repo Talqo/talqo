@@ -16,8 +16,8 @@ let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
-let requests: { method: string; url: string }[]
-let listedAgents: unknown[]
+let requests: Array<{ method: string; url: string }>
+let listedAgents: Array<unknown>
 
 function emptyOverview(days: number) {
 	return {

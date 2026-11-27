@@ -22,7 +22,7 @@ export function estimateTokens(text: string): number {
 	return Math.ceil(Array.from(text).length / APPROXIMATION_CHARACTERS_PER_TOKEN)
 }
 
-function sumIfComplete(values: unknown[]): number | undefined {
+function sumIfComplete(values: Array<unknown>): number | undefined {
 	const counts = values.map(count)
 	if (!counts.every((value): value is number => value !== undefined)) return undefined
 	return counts.reduce((total, value) => total + value, 0)

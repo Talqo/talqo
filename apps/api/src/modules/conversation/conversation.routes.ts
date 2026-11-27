@@ -88,7 +88,7 @@ export function createConversationRoutes(
 		if (!normalized) {
 			return problemResponse(c, PROBLEM_CODES.CHAT_CLIENT_ADDRESS_UNAVAILABLE, HTTP_STATUS.BAD_REQUEST)
 		}
-		const pending: Uint8Array[] = []
+		const pending: Array<Uint8Array> = []
 		let controller: ReadableStreamDefaultController<Uint8Array> | undefined
 		const toolCounts: ToolCounts = { calls: 0, failures: 0 }
 		const emit = (event: ChatEvent) => {

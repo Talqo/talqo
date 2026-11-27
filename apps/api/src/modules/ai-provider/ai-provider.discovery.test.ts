@@ -20,7 +20,7 @@ function fetchUrl(input: string | URL | Request): string {
 	return input instanceof URL ? input.href : input.url
 }
 
-const mistralCases: { expected: string; name: string; settings: Record<string, string> }[] = [
+const mistralCases: Array<{ expected: string; name: string; settings: Record<string, string> }> = [
 	{
 		name: "configured",
 		settings: { baseURL: "https://mistral.internal/v1" },
@@ -31,11 +31,11 @@ const mistralCases: { expected: string; name: string; settings: Record<string, s
 
 const staticOpenAi = { providerId: "openai", authMode: "static", settings: {} } as const
 
-const unsupportedDiscoveryCases: {
+const unsupportedDiscoveryCases: Array<{
 	name: string
 	providerId: "amazon-bedrock" | "azure"
 	settings: Record<string, string>
-}[] = [
+}> = [
 	{ name: "Azure", providerId: "azure", settings: { baseURL: "https://example.openai.azure.com" } },
 	{ name: "Amazon Bedrock", providerId: "amazon-bedrock", settings: { region: "eu-central-1" } },
 ]

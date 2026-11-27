@@ -171,7 +171,7 @@ describe("AI provider seed", () => {
 		await aiProviderSeed.seed()
 
 		const [row] = await sql<
-			{ embedding: StoredEmbeddingConfiguration; revision: number; text: StoredTextConfiguration }[]
+			Array<{ embedding: StoredEmbeddingConfiguration; revision: number; text: StoredTextConfiguration }>
 		>`SELECT revision, text_config AS text, embedding_config AS embedding FROM ai_provider_config`
 		expect(row?.revision).toBe(1)
 		expect(row?.text).toMatchObject({

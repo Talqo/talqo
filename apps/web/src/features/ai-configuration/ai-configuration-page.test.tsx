@@ -129,12 +129,12 @@ function separateEmbeddingConfiguration(): AiProviderConfiguration {
 }
 
 let server: AiProviderConfiguration
-let providers: ProviderMetadata[]
+let providers: Array<ProviderMetadata>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let harness: ReturnType<typeof createTestHarness>
-let saveRequests: SaveAiProviderConfigurationInput[]
+let saveRequests: Array<SaveAiProviderConfigurationInput>
 let saveResponse: Promise<Response> | undefined
 let configurationRequests: number
 let configurationFailure: Response | undefined
@@ -165,7 +165,9 @@ async function type(element: HTMLInputElement, text: string) {
 
 async function wait(milliseconds: number) {
 	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, milliseconds))
+		await new Promise((resolve) => {
+			setTimeout(resolve, milliseconds)
+		})
 	})
 }
 
@@ -206,7 +208,7 @@ function triggerText(id: string): string | undefined {
 	return document.getElementById(id)?.textContent?.trim()
 }
 
-function savedCredentialSections(): Element[] {
+function savedCredentialSections(): Array<Element> {
 	return [...host.querySelectorAll("p")].filter(
 		(element) => element.textContent?.trim() === t("aiConfiguration.savedCredentials"),
 	)

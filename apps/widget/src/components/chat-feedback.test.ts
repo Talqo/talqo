@@ -31,7 +31,7 @@ describe("errorText", () => {
 		["cancel-failed", "errorCancelFailed"],
 		["reset-failed", "errorResetFailed"],
 		["chat-unavailable", "chatUnavailable"],
-	] as const satisfies readonly (readonly [ChatErrorCode, string])[]
+	] as const satisfies ReadonlyArray<readonly [ChatErrorCode, string]>
 
 	test("maps every SDK error code to its own message key", () => {
 		for (const [code, key] of cases) {
@@ -46,7 +46,7 @@ describe("outcomeText", () => {
 		["cancelled", "outcomeCancelled"],
 		["blocked", "outcomeBlocked"],
 		["interrupted", "outcomeInterrupted"],
-	] as const satisfies readonly (readonly [ChatMessage["outcome"], string])[]
+	] as const satisfies ReadonlyArray<readonly [ChatMessage["outcome"], string]>
 
 	test("labels every terminal failure outcome", () => {
 		for (const [outcome, key] of cases) {

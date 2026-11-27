@@ -7,7 +7,7 @@ function deniedError(status: number) {
 	return Object.assign(new Error("Request failed"), { status })
 }
 
-function query(client: QueryClient, queryKey: readonly unknown[]) {
+function query(client: QueryClient, queryKey: ReadonlyArray<unknown>) {
 	const found = client.getQueryCache().find({ queryKey })
 	if (!found) throw new Error("Query not cached")
 	return found

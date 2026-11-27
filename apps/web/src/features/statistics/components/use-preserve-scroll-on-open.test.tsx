@@ -15,7 +15,7 @@ const scrollYDescriptor = Object.getOwnPropertyDescriptor(window, "scrollY")
 let host: HTMLDivElement
 let root: Root
 let hook: ReturnType<typeof usePreserveScrollOnOpen>
-let scrollCalls: ScrollToOptions[]
+let scrollCalls: Array<ScrollToOptions>
 
 function Harness() {
 	const api = usePreserveScrollOnOpen()

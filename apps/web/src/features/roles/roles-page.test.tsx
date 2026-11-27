@@ -21,12 +21,12 @@ const GRANTABLE = [
 const EVERYTHING = ["admin", ...GRANTABLE.map(({ permission }) => permission)]
 const ME = { id: "me", username: "operator", mustChangePassword: false }
 
-type RoleAgent = { id: string; name: string; permissions: string[]; rolePermissions: string[] }
+type RoleAgent = { id: string; name: string; permissions: Array<string>; rolePermissions: Array<string> }
 
-let myPermissions: string[]
-let myRoleIds: string[]
-let roles: Role[]
-let roleAgents: Record<string, RoleAgent[]>
+let myPermissions: Array<string>
+let myRoleIds: Array<string>
+let roles: Array<Role>
+let roleAgents: Record<string, Array<RoleAgent>>
 let createFailure: Response | undefined
 let createResponse: Promise<Response> | undefined
 let updateFailure: Response | undefined
@@ -35,7 +35,7 @@ let rolesFailure: Response | undefined
 let refreshedRolesResponse: Promise<Response> | undefined
 let responseDelays: Record<string, Promise<void> | undefined>
 let responseFailures: Record<string, Response | undefined>
-let requests: { body: unknown; method: string; url: string }[]
+let requests: Array<{ body: unknown; method: string; url: string }>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>

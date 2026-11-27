@@ -7,7 +7,7 @@ import { access, isAccessPolicy, requireAccessPolicy } from "./access.ts"
 type ChatEnv = { Variables: { chatCredential: string } }
 
 function chatApp() {
-	const logged: WideEvent[] = []
+	const logged: Array<WideEvent> = []
 	const app = new Hono<ChatEnv>()
 	app.use(
 		"*",
@@ -52,7 +52,7 @@ describe("chat bearer access", () => {
 
 describe("session access", () => {
 	it("rejects a request without a session cookie before touching the database", async () => {
-		const logged: WideEvent[] = []
+		const logged: Array<WideEvent> = []
 		const app = new Hono()
 		app.use(
 			"*",

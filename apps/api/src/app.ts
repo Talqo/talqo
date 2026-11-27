@@ -123,15 +123,19 @@ function apiErrorResponse(error: ApiError, context: Context): Response {
 	return problemResponse(context, error.problemCode, error.status)
 }
 
+function hasResponse(error: Error): error is Error & { getResponse: () => unknown } {
+	return "getResponse" in error && typeof error.getResponse === "function"
+}
+
 // Response-carrying errors retain their status and headers, but error bodies use our problem contract.
 export async function handleError(error: Error, context: Context): Promise<Response> {
 	if (error instanceof ApiError) {
 		return apiErrorResponse(error, context)
 	}
-	if ("getResponse" in error && typeof error.getResponse === "function") {
+	if (hasResponse(error)) {
 		let response: unknown
 		try {
-			response = (error.getResponse as () => unknown)()
+			response = error.getResponse()
 		} catch (responseError) {
 			console.error(responseError)
 			return problemResponse(context, PROBLEM_CODES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR)

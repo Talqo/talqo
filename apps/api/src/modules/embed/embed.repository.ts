@@ -7,7 +7,7 @@ export type Embed = typeof embed.$inferSelect
 export type NewEmbed = typeof embed.$inferInsert
 export type EmbedPatch = Omit<NewEmbed, "accessVersion" | "createdAt" | "embedToken" | "id">
 
-export async function listEmbeds(scope: readonly string[] | "all"): Promise<Embed[]> {
+export async function listEmbeds(scope: ReadonlyArray<string> | "all"): Promise<Array<Embed>> {
 	return db
 		.select()
 		.from(embed)

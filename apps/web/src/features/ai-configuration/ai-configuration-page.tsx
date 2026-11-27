@@ -127,7 +127,7 @@ function ProviderSelect({
 	disabled = false,
 }: {
 	id: string
-	providers: ProviderMetadata[]
+	providers: Array<ProviderMetadata>
 	value: AiProviderId
 	onChange: (providerId: AiProviderId) => void
 	disabled?: boolean
@@ -249,7 +249,7 @@ function ConnectionFields({
 	modelRole: "text" | "embedding"
 	value: RoleValue
 	onChange: (value: RoleValue) => void
-	providers: ProviderMetadata[]
+	providers: Array<ProviderMetadata>
 	stored: RedactedRoleConfiguration | null
 	drafts: RefObject<Map<string, RoleValue>>
 	disabled?: boolean
@@ -469,7 +469,7 @@ function RoleFields(props: {
 	modelRole: "text" | "embedding"
 	value: RoleValue
 	onChange: (value: RoleValue) => void
-	providers: ProviderMetadata[]
+	providers: Array<ProviderMetadata>
 	stored: RedactedRoleConfiguration | null
 	drafts: RefObject<Map<string, RoleValue>>
 	disabled?: boolean
@@ -505,7 +505,7 @@ type SaveMutation = ReturnType<typeof useSaveAiProviderConfiguration>
 
 function findMissingField(
 	values: AiConfigurationFormValues,
-	providers: ProviderMetadata[],
+	providers: Array<ProviderMetadata>,
 	storedText: RedactedRoleConfiguration | null,
 	storedEmbedding: RedactedRoleConfiguration | null,
 ): MissingField | undefined {
@@ -520,7 +520,7 @@ function findMissingField(
 function missingRoleField(
 	role: "text" | "embedding",
 	values: AiConfigurationFormValues,
-	providers: ProviderMetadata[],
+	providers: Array<ProviderMetadata>,
 	stored: RedactedRoleConfiguration | null,
 ): MissingField | undefined {
 	const roleValues = values[role]
@@ -555,8 +555,8 @@ function embeddingChanged(
 function embeddingForTextChange(
 	next: RoleValue,
 	embedding: AiConfigurationFormValues["embedding"],
-	providers: ProviderMetadata[],
-	embeddingProviders: ProviderMetadata[],
+	providers: Array<ProviderMetadata>,
+	embeddingProviders: Array<ProviderMetadata>,
 ): AiConfigurationFormValues["embedding"] | undefined {
 	if (embedding.credentialSource !== "text") return undefined
 	const nextProvider = providers.find((provider) => provider.id === next.providerId)
@@ -599,7 +599,7 @@ function useConfigurationForm(configuration: AiProviderConfiguration | undefined
 }
 
 function useConfigurationSave(props: {
-	providers: ProviderMetadata[]
+	providers: Array<ProviderMetadata>
 	storedText: RedactedRoleConfiguration | null
 	storedEmbedding: RedactedRoleConfiguration | null
 	save: SaveMutation
@@ -643,7 +643,7 @@ function useConfigurationSave(props: {
 type TextRoleCardProps = {
 	control: Control<AiConfigurationFormValues>
 	errors: FieldErrors<AiConfigurationFormValues>
-	providers: ProviderMetadata[]
+	providers: Array<ProviderMetadata>
 	stored: RedactedRoleConfiguration | null
 	drafts: RefObject<Map<string, RoleValue>>
 	credentialRevision: number
@@ -690,7 +690,7 @@ type EmbeddingSourceFieldsProps = {
 	field: ControllerRenderProps<AiConfigurationFormValues, "embedding">
 	textRole: AiConfigurationFormValues["text"]
 	textProvider: ProviderMetadata | undefined
-	embeddingProviders: ProviderMetadata[]
+	embeddingProviders: Array<ProviderMetadata>
 	errors: FieldErrors<AiConfigurationFormValues>
 	storedText: RedactedRoleConfiguration | null
 	storedEmbedding: RedactedRoleConfiguration | null
@@ -839,8 +839,8 @@ function SameEmbeddingPanel(props: {
 type EmbeddingRoleCardProps = {
 	control: Control<AiConfigurationFormValues>
 	errors: FieldErrors<AiConfigurationFormValues>
-	providers: ProviderMetadata[]
-	embeddingProviders: ProviderMetadata[]
+	providers: Array<ProviderMetadata>
+	embeddingProviders: Array<ProviderMetadata>
 	textRole: AiConfigurationFormValues["text"]
 	storedText: RedactedRoleConfiguration | null
 	storedEmbedding: RedactedRoleConfiguration | null
@@ -911,8 +911,8 @@ type ConfigurationFormProps = {
 	isDirty: boolean
 	saved: boolean
 	save: SaveMutation
-	providers: ProviderMetadata[]
-	embeddingProviders: ProviderMetadata[]
+	providers: Array<ProviderMetadata>
+	embeddingProviders: Array<ProviderMetadata>
 	textRole: AiConfigurationFormValues["text"]
 	storedText: RedactedRoleConfiguration | null
 	storedEmbedding: RedactedRoleConfiguration | null
@@ -1026,7 +1026,7 @@ function ReembedDialog(props: {
 
 function AiConfigurationEditor(props: {
 	configuration: AiProviderConfiguration
-	providers: ProviderMetadata[]
+	providers: Array<ProviderMetadata>
 	save: SaveMutation
 	refetch: () => Promise<unknown>
 }) {

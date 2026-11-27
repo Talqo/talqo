@@ -7,7 +7,7 @@ import { createStaticResponder, resolveStaticDirs } from "./static.ts"
 
 const ORIGIN = "http://app.example.com"
 
-const tempRoots: string[] = []
+const tempRoots: Array<string> = []
 
 function fixtureDirs() {
 	const root = mkdtempSync(join(tmpdir(), "talqo-static-"))

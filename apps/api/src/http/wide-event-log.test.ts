@@ -16,7 +16,7 @@ const EVENT: WideEvent = {
 // Mirrors the capped pino destination: a full buffer emits `drop` instead of writing.
 function destination() {
 	const emitter = new EventEmitter()
-	const lines: Record<string, unknown>[] = []
+	const lines: Array<Record<string, unknown>> = []
 	let full = false
 	return {
 		lines,

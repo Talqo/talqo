@@ -38,8 +38,8 @@ const MILLISECONDS_PER_SECOND = 1000
 const MAX_HISTORY_ACCEPT_ATTEMPTS = 3
 const USAGE_FINALIZATION_BATCH = 20
 const USAGE_FINALIZATION_CONCURRENCY = 5
-const RECOVERY_INTERVAL_MS = 5_000
-const OUTPUT_BATCH_SIZE = 1_024
+const RECOVERY_INTERVAL_MS = 5000
+const OUTPUT_BATCH_SIZE = 1024
 const OUTPUT_FLUSH_MS = 100
 const UUID_SCHEMA = z.uuid({ version: "v4" })
 
@@ -68,11 +68,11 @@ type Dependencies = {
 	beforeAccept?: (attempt: number) => Promise<void>
 	concurrencyLimit: number
 	dailyLimit: number
-	prepare(input: {
+	prepare: (input: {
 		maxOutputTokens: number
-		messages: aiProvider.TextMessage[]
+		messages: Array<aiProvider.TextMessage>
 		timeoutMs: number
-	}): Promise<PreparedOperation>
+	}) => Promise<PreparedOperation>
 	maxInputCharacters: number
 	maxOutputTokens: number
 	timeoutMs: number
@@ -149,8 +149,8 @@ function isCompletedExchange(user: StoredMessage, assistant: StoredMessage): boo
 	return user.outcome === "completed" && assistant.outcome === "completed"
 }
 
-function completedPrompt(systemPrompt: string, messages: StoredMessage[], text: string) {
-	const prompt: aiProvider.TextMessage[] = [{ role: "system", content: systemPrompt }]
+function completedPrompt(systemPrompt: string, messages: Array<StoredMessage>, text: string) {
+	const prompt: Array<aiProvider.TextMessage> = [{ role: "system", content: systemPrompt }]
 	for (let index = 0; index < messages.length - 1; index += COMPLETED_PAIR_WIDTH) {
 		const user = messages[index]
 		const assistant = messages[index + 1]
@@ -162,7 +162,7 @@ function completedPrompt(systemPrompt: string, messages: StoredMessage[], text: 
 	return prompt
 }
 
-function promptText(messages: aiProvider.TextMessage[]): string {
+function promptText(messages: Array<aiProvider.TextMessage>): string {
 	return messages.map((message) => message.content).join("\n")
 }
 
@@ -257,7 +257,7 @@ async function retrieveContext(input: {
 	question: string
 	signal: AbortSignal
 	timeoutMs: number
-}): Promise<string[]> {
+}): Promise<Array<string>> {
 	try {
 		const chunks = await knowledgeBase.searchKnowledge(
 			input.agentId,
@@ -276,15 +276,15 @@ async function retrieveContext(input: {
 
 async function applyRetrievedContext(input: {
 	annotate: Annotate
-	baseMessages: aiProvider.TextMessage[]
-	chunks: string[]
+	baseMessages: Array<aiProvider.TextMessage>
+	chunks: Array<string>
 	initialOperation: PreparedOperation
 	maxInputCharacters: number
 	maxOutputTokens: number
 	prepare: Dependencies["prepare"]
 	question: string
 	timeoutMs: number
-}): Promise<{ messages: aiProvider.TextMessage[]; prepared: PreparedOperation }> {
+}): Promise<{ messages: Array<aiProvider.TextMessage>; prepared: PreparedOperation }> {
 	if (input.chunks.length === 0) return { messages: input.baseMessages, prepared: input.initialOperation }
 	const question = `Use the context below only if relevant to the question, otherwise ignore it.\n${input.chunks.join("\n---\n")}\n\nQuestion: ${input.question}`
 	const messages = [...input.baseMessages.slice(0, -1), { role: "user" as const, content: question }]
@@ -438,7 +438,7 @@ async function finalizeGeneration(input: {
 	accepted: repository.AcceptedGenerationAttempt
 	annotate: Annotate
 	emit: (event: ChatEvent) => void
-	messages: aiProvider.TextMessage[]
+	messages: Array<aiProvider.TextMessage>
 	model: string
 	outcome: GenerationAttemptOutcome
 	outputText: string
@@ -566,7 +566,7 @@ export function createConversationService(dependencies: Dependencies) {
 	async function run(
 		accepted: repository.AcceptedGenerationAttempt,
 		agent: agentService.Agent,
-		baseMessages: aiProvider.TextMessage[],
+		baseMessages: Array<aiProvider.TextMessage>,
 		initialOperation: PreparedOperation,
 		emit: (event: ChatEvent) => void,
 		annotate: Annotate,
@@ -683,7 +683,7 @@ export function createConversationService(dependencies: Dependencies) {
 	function startGeneration(
 		accepted: repository.AcceptedGenerationAttempt,
 		agent: agentService.Agent,
-		messages: aiProvider.TextMessage[],
+		messages: Array<aiProvider.TextMessage>,
 		prepared: PreparedOperation,
 		emit: (event: ChatEvent) => void,
 		annotate: Annotate,
@@ -723,7 +723,7 @@ export function createConversationService(dependencies: Dependencies) {
 			}
 			async function prepareAndAccept(attempt: number): Promise<{
 				accepted: repository.AcceptedGenerationAttempt
-				messages: aiProvider.TextMessage[]
+				messages: Array<aiProvider.TextMessage>
 				prepared: PreparedOperation
 			}> {
 				const { history, messages, promptContent } = await preparePrompt()
@@ -835,7 +835,7 @@ type ConversationSummary = {
 }
 
 export type ConversationPage = {
-	conversations: ConversationSummary[]
+	conversations: Array<ConversationSummary>
 	page: number
 	pageSize: number
 	total: number
@@ -844,16 +844,16 @@ export type ConversationPage = {
 export type ConversationTranscript = {
 	agentId: string
 	id: string
-	messages: ChatMessage[]
+	messages: Array<ChatMessage>
 	startedAt: string
 }
 
 export async function listConversations(
-	filter: { agentId?: string[]; page: number },
+	filter: { agentId?: Array<string>; page: number },
 	actorId: string,
 ): Promise<ConversationPage> {
 	const scope = await roles.requireAgentScope(actorId, roles.AgentPermission.ConversationsRead)
-	let agentIds: string[] | undefined = scope === "all" ? undefined : scope
+	let agentIds: Array<string> | undefined = scope === "all" ? undefined : scope
 	if (filter.agentId) {
 		agentIds = scope === "all" ? filter.agentId : filter.agentId.filter((id) => scope.includes(id))
 	}
