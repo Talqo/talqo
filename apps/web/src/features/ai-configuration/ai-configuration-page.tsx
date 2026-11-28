@@ -1,8 +1,8 @@
+import type { GetAiProviderConfiguration200 } from "@/api/generated/models/ai-providers/getAiProviderConfiguration200.zod.ts"
 import type { AiConfigurationFormValues } from "@/features/ai-configuration/ai-configuration-form"
 import type { DiscoveryContext } from "@/features/ai-configuration/discovery-readiness.ts"
 import type {
 	AiProviderAuthMode,
-	AiProviderConfiguration,
 	AiProviderId,
 	ProviderMetadata,
 	RedactedRoleConfiguration,
@@ -581,7 +581,7 @@ function embeddingForTextChange(
 	}
 }
 
-function useConfigurationForm(configuration: AiProviderConfiguration | undefined) {
+function useConfigurationForm(configuration: GetAiProviderConfiguration200 | undefined) {
 	const drafts = useRef(new Map<string, RoleValue>())
 	const form = useForm<AiConfigurationFormValues>({
 		resolver: zodResolver(aiConfigurationFormSchema),
@@ -1025,7 +1025,7 @@ function ReembedDialog(props: {
 }
 
 function AiConfigurationEditor(props: {
-	configuration: AiProviderConfiguration
+	configuration: GetAiProviderConfiguration200
 	providers: Array<ProviderMetadata>
 	save: SaveMutation
 	refetch: () => Promise<unknown>

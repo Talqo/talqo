@@ -12,7 +12,6 @@ export async function seed(attempts: Array<SeededAttempt>): Promise<void> {
 			...attempt,
 			provider: "seed",
 			model: "chat-model",
-			outcome: "completed" as const,
 		})),
 	)
 }

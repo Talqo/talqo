@@ -1,6 +1,7 @@
 {
 	"agentLabel": "Agent",
 	"agentResponding": "Agent is responding",
+	"backendTool": "Backend tool",
 	"chatUnavailable": "This chat isn't available right now.",
 	"closeChat": "Close chat",
 	"defaultTitle": "AI Chat",
@@ -50,7 +51,15 @@
 	"stopping": "Stopping…",
 	"switchToDark": "Switch to dark theme",
 	"switchToLight": "Switch to light theme",
+	"toolCancelled": "Cancelled",
+	"toolCompleted": "Completed",
+	"toolFailed": "Failed",
+	"toolInterrupted": "Interrupted",
+	"toolRunning": "Running",
+	"toolsCalled_one": "{{count}} tool called",
+	"toolsCalled_other": "{{count}} tools called",
 	"transcriptLabel": "Conversation",
-	"usingTool": "Using a tool…",
+	"websiteActionUncertain": "The reply stopped after a website tool ran. Its action may already have happened. Check the page before asking again.",
+	"websiteTool": "Website tool",
 	"youLabel": "You"
 }

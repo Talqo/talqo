@@ -7,6 +7,7 @@ export type AsyncStorage = {
 export const CHAT_STORAGE_VERSION = 1 as const
 
 type PendingMessage = {
+	clientTools?: boolean
 	requestId: string
 	text: string
 }
@@ -70,14 +71,10 @@ export function createChatStorageKey(apiUrl: string, embedToken: string): string
 }
 
 function isPendingMessage(value: unknown): value is PendingMessage {
-	return (
-		typeof value === "object" &&
-		value !== null &&
-		"requestId" in value &&
-		typeof value.requestId === "string" &&
-		"text" in value &&
-		typeof value.text === "string"
-	)
+	if (typeof value !== "object" || value === null) return false
+	const candidate = value as Record<string, unknown>
+	if ("clientTools" in candidate && typeof candidate.clientTools !== "boolean") return false
+	return typeof candidate.requestId === "string" && typeof candidate.text === "string"
 }
 
 function hasStorageCredential(value: unknown): value is Pick<ChatStorageRecord, "version" | "credential"> {

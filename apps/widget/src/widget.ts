@@ -16,8 +16,8 @@ import { launcherText } from "./lib/launcher-text"
 import "./launcher.css"
 
 export type MountTarget = string | HTMLElement
-export type ChatClientFactory = (options: Pick<ChatClientOptions, "apiUrl" | "embedToken">) => ChatClient
-export type MountOptions = { createClient?: ChatClientFactory }
+export type ChatClientFactory = (options: Pick<ChatClientOptions, "apiUrl" | "embedToken" | "tools">) => ChatClient
+export type MountOptions = { createClient?: ChatClientFactory; tools?: ChatClientOptions["tools"] }
 
 const DEFAULT_TARGET = "#talqo-widget"
 const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)"
@@ -48,6 +48,7 @@ let generation = 0
 let loading = false
 let loadFailed = false
 let handedOff = false
+let mountAttempted = false
 
 function findEmbedScript(): HTMLScriptElement | null {
 	const scripts = document.querySelectorAll<HTMLScriptElement>(
@@ -292,7 +293,7 @@ function mountConnected(target: HTMLElement, dataset: DOMStringMap | undefined, 
 
 	appearanceOverrides = appearanceFromDataset(dataset)
 	datasetTitle = dataset?.talqoTitle
-	client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken })
+	client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken, tools: options.tools })
 	unsubscribe = client.subscribe(syncLauncher)
 	attachMediaListener()
 	syncLauncher()
@@ -307,6 +308,7 @@ export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOption
 	}
 
 	unmount()
+	mountAttempted = true
 
 	const dataset = embedScript?.dataset
 	container = createMountRoot(element)
@@ -344,7 +346,13 @@ const globalScope = window as { TalqoWidget?: { mount: typeof mount; unmount: ty
 globalScope.TalqoWidget = { mount, unmount }
 
 if (document.readyState === "loading") {
-	document.addEventListener("DOMContentLoaded", () => mount())
+	document.addEventListener(
+		"DOMContentLoaded",
+		() => {
+			if (!mountAttempted) mount()
+		},
+		{ once: true },
+	)
 } else {
 	mount()
 }

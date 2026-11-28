@@ -24,6 +24,10 @@ Keep `async`, so the widget never delays the host page's own content. Omit `data
 
 Talqo sends the saved system prompt and completed conversation history with each message. It does not truncate or summarize history. Failed, cancelled, blocked, and interrupted replies are excluded from later model input.
 
+## Browser tools
+
+To give the widget browser tools, define AI SDK function tools in your bundled page code and call `window.TalqoWidget.mount("#talqo-widget", { tools })` after `widget.js` loads. Keep the snippet's embed token and API attributes. The widget uses the same tool registration, limits, and interruption rules as the [SDK](/sdk#browser-tools). Dashboard appearance previews never execute these tools.
+
 ## Limits and network identity
 
 Chat limits apply per agent and visitor network, not per embed or conversation. Visitors sharing a network may share the same allowance. See [Deployment](/deployment) for limits and proxy configuration.

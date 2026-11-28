@@ -2,38 +2,57 @@ import type { Context } from "hono"
 
 import { env } from "@/config/env.ts"
 import { hashClientNetwork, resolveClientNetwork } from "@/http/client-network.ts"
-import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
+import { ApiError, PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate, annotator, deferWideEvent } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
+import { upgradeWebSocket } from "hono/bun"
+import { createHash } from "node:crypto"
 
+import type { MessagePart } from "./conversation.messages.ts"
 import type { ChatEvent } from "./conversation.service.ts"
 
 import {
+	type ClientToolChannel,
+	createClientToolChannel,
+	MANIFEST_BYTES,
+	TOOL_PAYLOAD_BYTES,
+} from "./conversation.client-tools.ts"
+import {
 	cancelRoute,
+	chatClientFrameSchema,
+	chatServerFrameSchema,
 	conversationListResponseSchema,
 	conversationTranscriptResponseSchema,
 	getConversationRoute,
 	listConversationsRoute,
-	sendRoute,
 	sessionRoute,
 	sessionStateSchema,
+	socketRoute,
 } from "./conversation.contract.ts"
-import { InvalidChatInputError } from "./conversation.errors.ts"
 import { getConversationService, getConversationTranscript, listConversations } from "./conversation.service.ts"
 
 type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
-export type ChatBindings = { peerAddress?: string }
-type ChatEnv = { Bindings: ChatBindings; Variables: { chatCredential: string } }
+const SOCKET_POLICY_VIOLATION = 1008
+const SOCKET_NORMAL_CLOSE = 1000
+const SOCKET_START_DEADLINE_MS = 10_000
+const FRAME_ENVELOPE_BYTES = 4096
+const MAX_JSON_BYTES_PER_CODE_POINT = 12
+const MILLISECONDS_PER_SECOND = 1000
+const MAX_SERVER_FRAME_BYTES = 8_388_608
+export type ChatBindings = { peerAddress?: string; server?: unknown }
+type ChatEnv = { Bindings: ChatBindings }
 type PeerSource = (context: { env?: ChatBindings; req: { header(name: string): string | undefined } }) => {
 	forwardedFor: string | undefined
 	peerAddress: string | undefined
 }
 
 type ToolCounts = { calls: number; failures: number }
-
-function sse(event: ChatEvent): Uint8Array {
-	return new TextEncoder().encode(`event: chat\ndata: ${JSON.stringify(event)}\n\n`)
+type ClientFrame = ReturnType<typeof chatClientFrameSchema.parse>
+type StartFrame = Extract<ClientFrame, { type: "start" }>
+type ChatSocket = {
+	close(code?: number, reason?: string): void
+	send(data: string): void
 }
 
 function annotateOutcome(c: Context<ChatEnv>, event: Extract<ChatEvent, { type: "terminal" | "error" }>): void {
@@ -41,22 +60,38 @@ function annotateOutcome(c: Context<ChatEnv>, event: Extract<ChatEvent, { type: 
 	else annotate(c, { "chat.outcome": event.outcome, "error.code": event.error.code })
 }
 
-function annotateToolEvent(
-	c: Context<ChatEnv>,
-	event: Extract<ChatEvent, { type: "tool-start" | "tool-end" }>,
-	counts: ToolCounts,
-): void {
-	if (event.type === "tool-start") {
+function annotateToolEvent(c: Context<ChatEnv>, part: MessagePart, counts: ToolCounts): void {
+	if (part.type !== "dynamic-tool") return
+	if (part.state === "input-available") {
 		annotate(c, { "chat.tool_calls": (counts.calls += 1) })
 		return
 	}
-	if (event.outcome === "failed") annotate(c, { "chat.tool_failures": (counts.failures += 1) })
+	if (part.toolMetadata.outcome === "failed") annotate(c, { "chat.tool_failures": (counts.failures += 1) })
 }
 
 function annotateChatEvent(c: Context<ChatEnv>, event: ChatEvent, counts: ToolCounts): void {
 	if (event.type === "accepted") annotate(c, { "generation.id": event.generationId })
 	else if (event.type === "terminal" || event.type === "error") annotateOutcome(c, event)
-	else if (event.type === "tool-start" || event.type === "tool-end") annotateToolEvent(c, event, counts)
+	else if (event.type === "part") annotateToolEvent(c, event.part, counts)
+}
+
+function parseClientFrame(data: string): ClientFrame | undefined {
+	try {
+		const parsed = chatClientFrameSchema.safeParse(JSON.parse(data))
+		return parsed.success ? parsed.data : undefined
+	} catch {
+		return undefined
+	}
+}
+
+function rejectionFrame(error: unknown) {
+	return {
+		version: 1,
+		type: "rejected",
+		code: error instanceof ApiError ? error.problemCode : PROBLEM_CODES.INTERNAL_SERVER_ERROR,
+		status: error instanceof ApiError ? error.status : HTTP_STATUS.INTERNAL_SERVER_ERROR,
+		retryAt: error instanceof ApiError ? error.headers?.["X-RateLimit-Reset"] : undefined,
+	}
 }
 
 export function createConversationRoutes(
@@ -76,8 +111,20 @@ export function createConversationRoutes(
 	})
 
 	const activeService = () => service ?? getConversationService()
-
-	async function send(c: Context<ChatEnv>) {
+	routes.openAPIRegistry.register("ChatClientFrameV1", chatClientFrameSchema)
+	routes.openAPIRegistry.register("ChatServerFrameV1", chatServerFrameSchema)
+	routes.openapi(socketRoute, async (c) => {
+		if (c.req.header("upgrade")?.toLowerCase() !== "websocket")
+			return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+		const origin = c.req.header("origin")
+		if (origin) {
+			try {
+				const url = new URL(origin)
+				if (!["http:", "https:"].includes(url.protocol) || url.origin !== origin) throw new Error("Invalid origin")
+			} catch {
+				return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+			}
+		}
 		const peer = peerSource(c)
 		const normalized = resolveClientNetwork(
 			peer.peerAddress,
@@ -85,65 +132,163 @@ export function createConversationRoutes(
 			env.TALQO_TRUSTED_PROXY_CIDRS,
 			env.TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH,
 		)
-		if (!normalized) {
-			return problemResponse(c, PROBLEM_CODES.CHAT_CLIENT_ADDRESS_UNAVAILABLE, HTTP_STATUS.BAD_REQUEST)
-		}
-		const pending: Array<Uint8Array> = []
-		let controller: ReadableStreamDefaultController<Uint8Array> | undefined
+		if (!normalized) return problemResponse(c, PROBLEM_CODES.CHAT_CLIENT_ADDRESS_UNAVAILABLE, HTTP_STATUS.BAD_REQUEST)
+		const networkHash = hashClientNetwork(normalized, env.APP_SECRET)
+		const embedToken = c.req.valid("param").embedToken
+		let channel: ClientToolChannel | undefined
+		let started = false
+		let closed = false
+		const cancellation = new AbortController()
+		let terminal = false
+		let deadline: ReturnType<typeof setTimeout>
+		let timeout: ReturnType<typeof setTimeout> | undefined
+		const completion = Promise.withResolvers<void>()
 		const toolCounts: ToolCounts = { calls: 0, failures: 0 }
-		const emit = (event: ChatEvent) => {
-			// The stream already answered 200, so a failure code lives only in the wide event.
-			annotateChatEvent(c, event, toolCounts)
-			const bytes = sse(event)
-			if (controller) {
-				try {
-					controller.enqueue(bytes)
-				} catch {
-					controller = undefined
-				}
-			} else pending.push(bytes)
+		deferWideEvent(c, completion.promise)
+
+		function sendFrame(ws: ChatSocket, message: unknown): void {
+			if (closed) return
+			const serialized = JSON.stringify(message)
+			if (Buffer.byteLength(serialized) > MAX_SERVER_FRAME_BYTES) throw new Error("Chat frame too large")
+			ws.send(serialized)
 		}
-		const embedToken = c.req.param("embedToken")
-		if (!embedToken) throw new InvalidChatInputError()
-		const body = await c.req.json<{ requestId: string; text: string }>()
-		const result = await activeService().send(
-			{
-				...body,
-				credential: c.get("chatCredential"),
-				embedToken,
-				networkHash: hashClientNetwork(normalized, env.APP_SECRET),
+
+		function failFrame(ws: ChatSocket): void {
+			if (!started)
+				ws.send(
+					JSON.stringify({
+						version: 1,
+						type: "rejected",
+						code: PROBLEM_CODES.INVALID_REQUEST,
+						status: HTTP_STATUS.BAD_REQUEST,
+					}),
+				)
+			terminal = true
+			channel?.interrupt()
+			ws.close(SOCKET_POLICY_VIOLATION, "Invalid chat frame")
+		}
+
+		function frameLimit(): number {
+			return started
+				? TOOL_PAYLOAD_BYTES + FRAME_ENVELOPE_BYTES
+				: env.TALQO_CHAT_MAX_INPUT_CHARACTERS * MAX_JSON_BYTES_PER_CODE_POINT + MANIFEST_BYTES + FRAME_ENVELOPE_BYTES
+		}
+
+		async function runTurn(frame: StartFrame, ws: ChatSocket): Promise<void> {
+			try {
+				const result = await activeService().send(
+					{
+						...frame,
+						embedToken,
+						networkHash,
+						clientTools: channel,
+						cancellationSignal: cancellation.signal,
+						clientManifestFingerprint: frame.tools.length
+							? createHash("sha256").update(JSON.stringify(frame.tools)).digest("hex")
+							: undefined,
+					},
+					(message) => {
+						if (message.type === "terminal" || message.type === "error") terminal = true
+						annotateChatEvent(c, message, toolCounts)
+						sendFrame(ws, message)
+					},
+					annotator(c),
+				)
+				await result.done
+			} catch (error) {
+				sendFrame(ws, rejectionFrame(error))
+			} finally {
+				clearTimeout(timeout)
+				completion.resolve()
+				ws.close(SOCKET_NORMAL_CLOSE)
+			}
+		}
+
+		function startTurn(frame: StartFrame, ws: ChatSocket): void {
+			if (started) {
+				failFrame(ws)
+				return
+			}
+			started = true
+			clearTimeout(deadline)
+			if (frame.tools.length)
+				channel = createClientToolChannel(
+					frame.tools,
+					(message) => sendFrame(ws, message),
+					env.TALQO_CHAT_MAX_INPUT_CHARACTERS,
+				)
+			timeout = setTimeout(() => {
+				channel?.interrupt()
+				ws.close(SOCKET_POLICY_VIOLATION, "Turn deadline exceeded")
+			}, env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS * MILLISECONDS_PER_SECOND)
+			void runTurn(frame, ws)
+		}
+
+		function acceptToolFrame(
+			frame: Extract<ClientFrame, { type: "tool-result" | "tool-error" }>,
+			ws: ChatSocket,
+		): void {
+			if (cancellation.signal.aborted) return
+			try {
+				if (!channel) throw new Error("No client tools")
+				channel.accept(
+					frame.type === "tool-error"
+						? { toolCallId: frame.toolCallId, error: frame.error }
+						: { toolCallId: frame.toolCallId, output: frame.output },
+				)
+			} catch {
+				failFrame(ws)
+			}
+		}
+
+		function handleClientFrame(frame: ClientFrame, ws: ChatSocket): void {
+			if (frame.type === "start") startTurn(frame, ws)
+			else if (!started) failFrame(ws)
+			else if (frame.type === "cancel") cancellation.abort()
+			else acceptToolFrame(frame, ws)
+		}
+
+		return upgradeWebSocket(c, {
+			onOpen(_event, ws) {
+				deadline = setTimeout(() => {
+					ws.close(SOCKET_POLICY_VIOLATION, "Start deadline exceeded")
+					completion.resolve()
+				}, SOCKET_START_DEADLINE_MS)
 			},
-			emit,
-			annotator(c),
-		)
-		deferWideEvent(c, result.done)
-		const stream = new ReadableStream<Uint8Array>({
-			start(value) {
-				controller = value
-				for (const bytes of pending.splice(0)) value.enqueue(bytes)
-				void result.done
-					.finally(() => {
-						try {
-							value.close()
-						} catch {
-							// Client disconnects do not cancel persisted generation work.
-						}
-					})
-					// Swallow stream-tail failures; they stay recoverable from persisted state.
-					.catch(() => undefined)
+			onMessage(event, ws) {
+				if (terminal) return
+				if (typeof event.data !== "string") {
+					failFrame(ws)
+					return
+				}
+				if (Buffer.byteLength(event.data) > frameLimit()) {
+					failFrame(ws)
+					return
+				}
+				const frame = parseClientFrame(event.data)
+				if (!frame) {
+					failFrame(ws)
+					return
+				}
+				handleClientFrame(frame, ws)
 			},
-			cancel() {
-				controller = undefined
+			onClose() {
+				closed = true
+				clearTimeout(deadline)
+				clearTimeout(timeout)
+				channel?.interrupt()
+				if (!started) completion.resolve()
 			},
+			onError() {
+				channel?.interrupt()
+			},
+		}).catch((error: unknown) => {
+			completion.resolve()
+			throw error
 		})
-		return new Response(stream, {
-			status: HTTP_STATUS.OK,
-			headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache" },
-		})
-	}
+	})
 
 	return routes
-		.openapi(sendRoute, send)
 		.openapi(sessionRoute, async (c) => {
 			const session = await activeService().getSession(c.get("chatCredential"))
 			return c.json(sessionStateSchema.parse(session), HTTP_STATUS.OK)

@@ -3,6 +3,7 @@ import * as repository from "./conversation.repository.ts"
 const CANCELLATION_POLL_MS = 500
 const HEARTBEAT_MS = 5000
 const POLL_BATCH_SIZE = 100
+export const CANCELLATION_REASON = "chat-cancelled"
 
 // Single-flight coordinator: batch-checks cancellation and renews PostgreSQL-time leases for locally owned attempts.
 export function createGenerationPoller() {
@@ -19,7 +20,8 @@ export function createGenerationPoller() {
 		const cancelled = new Map(active.map((entry) => [entry.id, entry.cancelled]))
 		for (const { id, leaseToken } of batch) {
 			const local = controllers.get(id)
-			if (local?.leaseToken === leaseToken && cancelled.get(id) !== false) local.controller.abort()
+			if (local?.leaseToken === leaseToken && cancelled.get(id) !== false)
+				local.controller.abort(cancelled.get(id) ? CANCELLATION_REASON : undefined)
 		}
 	}
 
@@ -65,7 +67,7 @@ export function createGenerationPoller() {
 			}
 		},
 		abort(id: string): void {
-			controllers.get(id)?.controller.abort()
+			controllers.get(id)?.controller.abort(CANCELLATION_REASON)
 		},
 	}
 }

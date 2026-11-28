@@ -58,6 +58,14 @@
 	background: transparent;
 }
 
+.talqo-widget summary {
+	list-style: none;
+}
+
+.talqo-widget summary::-webkit-details-marker {
+	display: none;
+}
+
 .talqo-widget .talqo-scrollbar {
 	scrollbar-color: color-mix(in srgb, var(--talqo-muted-foreground) 55%, transparent) transparent;
 	scrollbar-width: thin;

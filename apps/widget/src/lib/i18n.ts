@@ -5,9 +5,7 @@ import en from "@/locales/en.json"
 import { createInstance, type i18n as I18nInstance } from "i18next"
 import { initReactI18next } from "react-i18next"
 
-export type WidgetLanguage = SupportedLanguage
-
-export function createWidgetI18n(language: WidgetLanguage = "en"): I18nInstance {
+export function createWidgetI18n(language: SupportedLanguage = "en"): I18nInstance {
 	const instance = createInstance()
 	void instance.use(initReactI18next).init({
 		lng: language,
