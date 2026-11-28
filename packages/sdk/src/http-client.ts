@@ -21,7 +21,7 @@ export class ChatTransportError extends Error {
 	}
 }
 
-const MILLISECONDS_PER_SECOND = 1_000
+const MILLISECONDS_PER_SECOND = 1000
 const JSON_HEADERS = { Accept: "application/json" } as const
 const JSON_POST_HEADERS = { Accept: "application/json", "Content-Type": "application/json" } as const
 

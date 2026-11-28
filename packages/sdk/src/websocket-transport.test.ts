@@ -28,9 +28,9 @@ const call = (id: string) => ({
 
 function recordingChatServer(onFrame: (ws: Bun.ServerWebSocket<undefined>, frame: { type: string }) => void): {
 	server: ReturnType<typeof Bun.serve>
-	frames: string[]
+	frames: Array<string>
 } {
-	const frames: string[] = []
+	const frames: Array<string> = []
 	const server = Bun.serve({
 		port: 0,
 		fetch(request, host) {
@@ -110,7 +110,7 @@ test("rejects unknown error codes after validating the frame", async () => {
 test("uses first-frame credentials and enforces the 16-call budget across parallel calls, failures, and duplicates", async () => {
 	let executed = 0
 	let requestUrl = ""
-	const received: unknown[] = []
+	const received: Array<unknown> = []
 	const registry = captureClientTools({
 		lookup: tool({
 			inputSchema: z.object({}),
@@ -318,7 +318,7 @@ test("does not start a turn when the handshake finishes after a cancel", async (
 	const upgradeStarted = Promise.withResolvers<void>()
 	const releaseUpgrade = Promise.withResolvers<void>()
 	const handshakeSettled = Promise.withResolvers<void>()
-	const frames: string[] = []
+	const frames: Array<string> = []
 	const server = Bun.serve({
 		port: 0,
 		async fetch(request, host) {

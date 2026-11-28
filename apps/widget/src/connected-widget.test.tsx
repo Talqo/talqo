@@ -247,7 +247,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		["interrupted", "Interrupted"],
 	] as const) {
 		test(`shows general tool labels with accessible ${status} status instead of internal names`, async () => {
-			const parts: ChatMessage["parts"][number][] = []
+			const parts: Array<ChatMessage["parts"][number]> = []
 			for (const source of ["client", "mcp"] as const) {
 				parts.push({
 					type: "dynamic-tool",
@@ -284,7 +284,7 @@ describe("ConnectedEmbeddedWidget", () => {
 				),
 			).toEqual(["Website tool", "Backend tool"])
 			for (const row of rows) {
-				expect(row.querySelector(".tw\\:sr-only")?.textContent).toBe(` ${row.title}`)
+				expect(row.querySelector(String.raw`.tw\:sr-only`)?.textContent).toBe(` ${row.title}`)
 				expect(row.textContent).not.toContain("internal_tool_name")
 				expect(row.textContent).not.toContain("Internal server")
 			}

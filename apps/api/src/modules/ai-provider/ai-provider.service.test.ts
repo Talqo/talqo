@@ -901,7 +901,7 @@ describe("AI provider service", () => {
 		})
 	})
 	it("preserves text, tool execution, and step order through the real AI SDK loop", async () => {
-		const events: string[] = []
+		const events: Array<string> = []
 		const usage = {
 			inputTokens: { total: 3, noCache: 3, cacheRead: undefined, cacheWrite: undefined },
 			outputTokens: { total: 2, text: 2, reasoning: undefined },
@@ -964,7 +964,9 @@ describe("AI provider service", () => {
 			},
 		)) {
 			events.push(event.type === "text" ? event.text : event.type)
-			await new Promise<void>((resolve) => setImmediate(resolve))
+			await new Promise<void>((resolve) => {
+				setImmediate(resolve)
+			})
 		}
 		expect(events).toEqual([
 			"step-start",

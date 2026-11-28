@@ -118,7 +118,7 @@ function serve(app: ReturnType<typeof routes>["app"]) {
 }
 
 function connect(origin: string, frame: unknown, onAccepted?: (socket: WebSocket) => void) {
-	const events: unknown[] = []
+	const events: Array<unknown> = []
 	const accepted = Promise.withResolvers<void>()
 	const socket = new WebSocket(`${origin.replace("http:", "ws:")}/chat/embed/socket`)
 	const closed = new Promise<number>((resolve, reject) => {
@@ -181,7 +181,7 @@ describe("public conversation routes", () => {
 	it("requires a JSON tool output within the payload limit", () => {
 		const frame = { version: 1, type: "tool-result", toolCallId: "call" }
 		expect(chatClientFrameSchema.safeParse({ ...frame, output: null }).success).toBe(true)
-		for (const output of [undefined, NaN, new Date(), "x".repeat(262_144)])
+		for (const output of [undefined, Number.NaN, new Date(), "x".repeat(262_144)])
 			expect(chatClientFrameSchema.safeParse({ ...frame, output }).success).toBe(false)
 		expect(chatClientFrameSchema.safeParse(frame).success).toBe(false)
 	})
@@ -272,7 +272,7 @@ describe("public conversation routes", () => {
 		const server = serve(app)
 		try {
 			// Two escaped surrogates encode one astral code point in 12 JSON bytes.
-			const text = "\\ud83d\\ude00".repeat(CHAT_INPUT_LIMIT + 1)
+			const text = String.raw`\ud83d\ude00`.repeat(CHAT_INPUT_LIMIT + 1)
 			const frame = `{"version":1,"type":"start","credential":"${CREDENTIAL}","requestId":"${REQUEST_ID}","text":"${text}","tools":[]}`
 			expect(await connect(server.url.origin, frame).closed).toBe(1008)
 			expect(calls).toBeEmpty()
@@ -285,7 +285,7 @@ describe("public conversation routes", () => {
 		const { app, calls, release } = routes("late-error")
 		const server = serve(app)
 		try {
-			const events: unknown[] = []
+			const events: Array<unknown> = []
 			const closed = await new Promise<number>((resolve, reject) => {
 				const socket = new WebSocket(`${server.url.origin.replace("http:", "ws:")}/chat/embed/socket`)
 				socket.addEventListener("open", () => {

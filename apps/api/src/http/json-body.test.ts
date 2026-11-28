@@ -24,9 +24,9 @@ function post(path: string, body: string, contentType = "application/json") {
 
 describe("rejectOversizedBody", () => {
 	it.each([
-		["/api/chat/cancel", 1_024, 200],
+		["/api/chat/cancel", 1024, 200],
 		["/api/chat/cancel", 262_144, 413],
-		["/api/agents", 1_024, 200],
+		["/api/agents", 1024, 200],
 		["/api/agents", 262_144, 413],
 	] as const)("limits JSON bodies on %s (%i bytes)", async (path, size, status) => {
 		const routeApp = new Hono()

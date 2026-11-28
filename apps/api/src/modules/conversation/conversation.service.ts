@@ -75,7 +75,11 @@ type Dependencies = {
 	beforeAccept?: (attempt: number) => Promise<void>
 	concurrencyLimit: number
 	dailyLimit: number
-	prepare(input: { maxOutputTokens: number; messages: Array<ModelMessage>; timeoutMs: number }): Promise<PreparedOperation>
+	prepare(input: {
+		maxOutputTokens: number
+		messages: Array<ModelMessage>
+		timeoutMs: number
+	}): Promise<PreparedOperation>
 	maxInputCharacters: number
 	maxOutputTokens: number
 	timeoutMs: number
@@ -88,7 +92,7 @@ type ChatMessage = {
 	outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted" | "streaming"
 	role: "assistant" | "user"
 	text: string
-	parts: MessagePart[]
+	parts: Array<MessagePart>
 }
 
 export type ChatEvent =
@@ -158,7 +162,7 @@ async function completedPrompt(
 	messages: Awaited<ReturnType<typeof repository.listMessages>>,
 	text: string,
 ) {
-	const history: UIMessage[] = []
+	const history: Array<UIMessage> = []
 	for (let index = 0; index < messages.length - 1; index += COMPLETED_PAIR_WIDTH) {
 		const user = messages[index]
 		const assistant = messages[index + 1]
@@ -275,7 +279,7 @@ function completedToolPart(
 function mergeClientTools(
 	tools: aiProvider.ToolBinding,
 	clientTools: ClientToolChannel,
-	publicMessages: ModelMessage[],
+	publicMessages: Array<ModelMessage>,
 ): void {
 	for (const [name, identity] of clientTools.binding.names) {
 		if (tools.names.has(name)) throw new InvalidChatInputError("Tool name collision")
@@ -297,7 +301,7 @@ function mergeClientTools(
 async function createGenerationTools(input: {
 	clientTools: ClientToolChannel | undefined
 	connection: mcp.OpenTools | undefined
-	publicMessages: ModelMessage[]
+	publicMessages: Array<ModelMessage>
 }): Promise<{ toolDefinitions: string; tools: aiProvider.ToolBinding }> {
 	const tools: aiProvider.ToolBinding = input.connection
 		? { names: new Map(input.connection.names), tools: { ...input.connection.tools } }
@@ -388,7 +392,7 @@ async function streamGeneration(input: {
 	controller: AbortController
 	emit: (event: ChatEvent) => void
 	filter: ReturnType<typeof createBlacklistFilter>
-	parts: MessagePart[]
+	parts: Array<MessagePart>
 	prepared: PreparedOperation
 	signal: AbortSignal
 	state: StreamedGeneration
@@ -401,7 +405,7 @@ async function streamGeneration(input: {
 	let bufferedIndex: number | undefined
 	let activeTextIndex: number | undefined
 	// Blacklist look-behind can release text after a tool call. Keep each span's original part.
-	const textOrigins: { index: number; remaining: number }[] = []
+	const textOrigins: Array<{ index: number; remaining: number }> = []
 	let flushTimer: ReturnType<typeof setTimeout> | undefined
 	let flushing: Promise<void> | undefined
 	let mutations = Promise.resolve()
@@ -646,7 +650,7 @@ async function finalizeGeneration(input: {
 	model: string
 	outcome: GenerationAttemptOutcome
 	outputText: string
-	parts: MessagePart[]
+	parts: Array<MessagePart>
 	provider: aiProvider.AiProviderId
 	providerInvoked: boolean
 	providerUsage: usageService.ProviderUsage | undefined
@@ -798,7 +802,7 @@ export function createConversationService(dependencies: Dependencies) {
 		const filter = createBlacklistFilter(agent.wordBlacklist)
 		let messages = baseMessages
 		let prepared = initialOperation
-		const parts: MessagePart[] = []
+		const parts: Array<MessagePart> = []
 		const stream: StreamedGeneration = {
 			outcome: "failed",
 			provider: prepared.provider,
@@ -832,7 +836,7 @@ export function createConversationService(dependencies: Dependencies) {
 				initialOperation,
 				maxInputCharacters: dependencies.maxInputCharacters,
 				maxOutputTokens: dependencies.maxOutputTokens,
-				prepare: dependencies.prepare,
+				prepare: (input) => dependencies.prepare(input),
 				question: accepted.userMessage.text,
 				timeoutMs: dependencies.timeoutMs,
 			})

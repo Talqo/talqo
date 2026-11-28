@@ -108,7 +108,7 @@ export const message = pgTable(
 			.notNull()
 			.references(() => generationAttempt.id, { onDelete: "cascade" }),
 		role: messageRole("role").notNull(),
-		parts: jsonb("parts").$type<MessagePart[]>().notNull().default([]),
+		parts: jsonb("parts").$type<Array<MessagePart>>().notNull().default([]),
 		outcome: messageOutcome("outcome").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),

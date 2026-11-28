@@ -16,8 +16,8 @@ const APPEARANCE = {
 	language: "en",
 } as const
 
-function recordingFetch(responses: Response[]) {
-	const calls: { url: string; init: RequestInit | undefined }[] = []
+function recordingFetch(responses: Array<Response>) {
+	const calls: Array<{ url: string; init: RequestInit | undefined }> = []
 	const fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
 		calls.push({ url: input instanceof Request ? input.url : String(input), init })
 		const response = responses.shift()

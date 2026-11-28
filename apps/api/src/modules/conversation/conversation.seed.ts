@@ -11,7 +11,7 @@ import { conversation, generationAttempt, type GenerationAttemptOutcome, message
 // attempts so the usage seed can meter them.
 const DAYS = 30
 const MARKER_PREFIX = "seed-stats-"
-const MILLISECONDS_PER_SECOND = 1_000
+const MILLISECONDS_PER_SECOND = 1000
 const MILLISECONDS_PER_MINUTE = 60_000
 const MILLISECONDS_PER_HOUR = 3_600_000
 const MILLISECONDS_PER_DAY = 86_400_000
@@ -20,14 +20,14 @@ const MINUTES_PER_HOUR = 60
 const ACTIVE_MINUTES_AGO = 12
 const RECENT_CONVERSATION_COUNT = 2
 const RECENT_CONVERSATION_STAGGER_MINUTES = 7
-const RECENT_CONVERSATION_SEED = 0x5eed
+const RECENT_CONVERSATION_SEED = 0x5e_ed
 const SYSTEM_PROMPT_TOKENS = 360
 const TOOL_SCHEMA_TOKENS = 180
 const UUID_NODE_DIGITS = 12
-const TRANSCRIPT_ANSWER_DELAY_MS = 2_400
+const TRANSCRIPT_ANSWER_DELAY_MS = 2400
 const TRANSCRIPT_ANSWER_DELAY_STEP_MS = 350
-const ANSWER_DELAY_MIN_MS = 1_800
-const ANSWER_DELAY_MAX_MS = 9_000
+const ANSWER_DELAY_MIN_MS = 1800
+const ANSWER_DELAY_MAX_MS = 9000
 const TURN_GAP_MIN_SECONDS = 20
 const TURN_GAP_MAX_SECONDS = 180
 const WEEKEND_FACTOR = 0.45
@@ -39,9 +39,9 @@ const QUIET_DAY_CHANCE = 0.08
 const SATURDAY_DAY_INDEX = 6
 const SPIKE_CHANCE = 0.12
 const SPIKE_FACTOR = 1.7
-const RANDOM_INCREMENT = 0x6d2b79f5
-const RANDOM_HASH_X = 0x9e3779b1
-const RANDOM_HASH_Y = 0x85ebca6b
+const RANDOM_INCREMENT = 0x6d_2b_79_f5
+const RANDOM_HASH_X = 0x9e_37_79_b1
+const RANDOM_HASH_Y = 0x85_eb_ca_6b
 const RANDOM_MIX_PRIME = 61
 const RANDOM_SHIFT_WIDE = 15
 const RANDOM_SHIFT_NARROW = 7
@@ -61,10 +61,10 @@ type SeedToolCall = {
 type SeedQa = {
 	answer: string
 	question: string
-	tools?: readonly SeedToolCall[]
+	tools?: ReadonlyArray<SeedToolCall>
 }
 
-const WEBSITE_QA: readonly SeedQa[] = [
+const WEBSITE_QA: ReadonlyArray<SeedQa> = [
 	{
 		question: "Where can I see your pricing tiers?",
 		answer: "Every plan is listed on the **pricing page**. Monthly and yearly billing include the same features.",
@@ -154,7 +154,7 @@ const WEBSITE_QA: readonly SeedQa[] = [
 	},
 ]
 
-const PRODUCT_QA: readonly SeedQa[] = [
+const PRODUCT_QA: ReadonlyArray<SeedQa> = [
 	{
 		question: "Which plan fits a small shop?",
 		answer: "For a small shop, **Starter** covers one website and email support. You can move up without losing data.",
@@ -205,7 +205,7 @@ const PRODUCT_QA: readonly SeedQa[] = [
 	},
 ]
 
-const DOCS_QA: readonly SeedQa[] = [
+const DOCS_QA: ReadonlyArray<SeedQa> = [
 	{
 		question: "How do I install the SDK?",
 		answer: "Install it with `bun add @talqo/sdk`, then create a client with your embed token.",
@@ -276,10 +276,10 @@ export type SeededAttempt = {
 }
 
 export type PlannedRows = {
-	conversations: (typeof conversation.$inferInsert & { createdAt: Date })[]
-	attempts: (typeof generationAttempt.$inferInsert & { usageRecordedAt: Date })[]
-	messages: (typeof message.$inferInsert & { createdAt: Date })[]
-	usages: SeededAttempt[]
+	conversations: Array<typeof conversation.$inferInsert & { createdAt: Date }>
+	attempts: Array<typeof generationAttempt.$inferInsert & { usageRecordedAt: Date }>
+	messages: Array<typeof message.$inferInsert & { createdAt: Date }>
+	usages: Array<SeededAttempt>
 }
 
 function mulberry32(initialState: number): () => number {
@@ -301,7 +301,7 @@ function between(random: () => number, minimum: number, maximum: number): number
 	return minimum + Math.floor(random() * (maximum - minimum + 1))
 }
 
-function shuffled<T>(random: () => number, items: readonly T[]): T[] {
+function shuffled<T>(random: () => number, items: ReadonlyArray<T>): Array<T> {
 	const copy = [...items]
 	for (let index = copy.length - 1; index > 0; index -= 1) {
 		const swap = Math.floor(random() * (index + 1))
@@ -314,7 +314,7 @@ function shuffled<T>(random: () => number, items: readonly T[]): T[] {
 	return copy
 }
 
-function takeQuestions(random: () => number, questions: readonly SeedQa[], count: number): SeedQa[] {
+function takeQuestions(random: () => number, questions: ReadonlyArray<SeedQa>, count: number): Array<SeedQa> {
 	return shuffled(random, questions).slice(0, count)
 }
 
@@ -323,7 +323,7 @@ function valueTokens(value: unknown): number {
 	return estimateTokens(typeof value === "string" ? value : JSON.stringify(value))
 }
 
-function partsTokenCount(parts: readonly MessagePart[]): number {
+function partsTokenCount(parts: ReadonlyArray<MessagePart>): number {
 	let total = 0
 	for (const part of parts) {
 		if (part.type === "text") total += estimateTokens(part.text)
@@ -375,8 +375,12 @@ function toolPart(call: SeedToolCall, toolCallId: string): MessagePart {
 	}
 }
 
-function assistantParts(calls: readonly SeedToolCall[] | undefined, answer: string, idPrefix: string): MessagePart[] {
-	const parts: MessagePart[] = []
+function assistantParts(
+	calls: ReadonlyArray<SeedToolCall> | undefined,
+	answer: string,
+	idPrefix: string,
+): Array<MessagePart> {
+	const parts: Array<MessagePart> = []
 	if (calls && calls.length > 0) {
 		parts.push({ type: "step-start" })
 		calls.forEach((call, index) => parts.push(toolPart(call, `${idPrefix}-tool-${index}`)))
@@ -388,9 +392,9 @@ function assistantParts(calls: readonly SeedToolCall[] | undefined, answer: stri
 
 function turnUsage(input: {
 	contextTokens: number
-	parts: readonly MessagePart[]
+	parts: ReadonlyArray<MessagePart>
 	question: string
-	tools?: readonly SeedToolCall[]
+	tools?: ReadonlyArray<SeedToolCall>
 }): { inputTokens: number; outputTokens: number } {
 	const toolOverhead = input.tools && input.tools.length > 0 ? TOOL_SCHEMA_TOKENS : 0
 	return {
@@ -403,7 +407,7 @@ function planConversation(input: {
 	agentId: string
 	nextId: (kind: string) => string
 	now: Date
-	questions: readonly SeedQa[]
+	questions: ReadonlyArray<SeedQa>
 	random: () => number
 	startedAt: Date
 }): PlannedRows | undefined {
@@ -585,7 +589,7 @@ export function planRows(now: Date): PlannedRows {
 	return rows
 }
 
-async function seedTraffic(now: Date): Promise<SeededAttempt[]> {
+async function seedTraffic(now: Date): Promise<Array<SeededAttempt>> {
 	const rows = planRows(now)
 	await db.transaction(async (tx) => {
 		// Refresh the fixtures on every seed run so the rolling month never goes stale.
@@ -600,10 +604,15 @@ async function seedTraffic(now: Date): Promise<SeededAttempt[]> {
 const TRANSCRIPT_AGENT_ID = SEED_AGENTS[0].agentId
 const TRANSCRIPT_EMBED_ID = "22222222-2222-4222-8222-222222222222"
 
-type TranscriptTurn = { answer: string; outcome: GenerationAttemptOutcome; question: string; tools?: SeedToolCall[] }
-type TranscriptConversation = { startedHoursAgo: number; turns: TranscriptTurn[] }
+type TranscriptTurn = {
+	answer: string
+	outcome: GenerationAttemptOutcome
+	question: string
+	tools?: Array<SeedToolCall>
+}
+type TranscriptConversation = { startedHoursAgo: number; turns: Array<TranscriptTurn> }
 
-const TRANSCRIPTS: TranscriptConversation[] = [
+const TRANSCRIPTS: Array<TranscriptConversation> = [
 	{
 		startedHoursAgo: 71.6,
 		turns: [
@@ -753,10 +762,10 @@ function seedId(kind: string, index: number): string {
 export function transcriptRows(now: number) {
 	let attemptCount = 0
 	let messageCount = 0
-	const conversations: (typeof conversation.$inferInsert)[] = []
-	const attempts: (typeof generationAttempt.$inferInsert)[] = []
-	const messages: (typeof message.$inferInsert)[] = []
-	const usages: SeededAttempt[] = []
+	const conversations: Array<typeof conversation.$inferInsert> = []
+	const attempts: Array<typeof generationAttempt.$inferInsert> = []
+	const messages: Array<typeof message.$inferInsert> = []
+	const usages: Array<SeededAttempt> = []
 	for (const [index, seeded] of TRANSCRIPTS.entries()) {
 		const conversationId = seedId("66666666", index)
 		const startedAt = now - seeded.startedHoursAgo * MILLISECONDS_PER_HOUR
@@ -848,7 +857,7 @@ export function transcriptRows(now: number) {
 	return { attempts, conversations, messages, usages }
 }
 
-async function seedTranscripts(now: number): Promise<SeededAttempt[]> {
+async function seedTranscripts(now: number): Promise<Array<SeededAttempt>> {
 	const rows = transcriptRows(now)
 	await db.transaction(async (tx) => {
 		await tx.delete(conversation).where(like(conversation.id, "66666666-%"))
@@ -859,7 +868,7 @@ async function seedTranscripts(now: number): Promise<SeededAttempt[]> {
 	return rows.usages
 }
 
-export async function seed(): Promise<SeededAttempt[]> {
+export async function seed(): Promise<Array<SeededAttempt>> {
 	const now = Date.now()
 	const transcriptAttempts = await seedTranscripts(now)
 	const trafficAttempts = await seedTraffic(new Date(now))

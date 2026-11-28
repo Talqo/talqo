@@ -63,7 +63,7 @@ test("browser and backend tool results survive the live answer, reload, and oper
 	)
 	expect(await page.evaluate(() => sessionStorage.getItem("tool-executions"))).toBe("1")
 	const captured = (await (await adminRequest.get(`${chatEmbed.providerControlOrigin}/requests`)).json()) as {
-		requests: { messages: { role: string; content: unknown }[] }[]
+		requests: Array<{ messages: Array<{ role: string; content: unknown }> }>
 	}
 	const followingTurn = captured.requests.at(-1)?.messages
 	expect(followingTurn).toEqual(
@@ -109,7 +109,7 @@ test("disconnect interrupts an executing browser tool without replaying its page
 	)
 	expect(await page.evaluate(() => sessionStorage.getItem("tool-executions"))).toBe("1")
 	const captured = (await (await adminRequest.get(`${chatEmbed.providerControlOrigin}/requests`)).json()) as {
-		requests: unknown[]
+		requests: Array<unknown>
 	}
 	expect(captured.requests).toHaveLength(1)
 })

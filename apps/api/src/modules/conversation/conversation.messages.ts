@@ -14,7 +14,7 @@ export type MessagePart =
 			}
 	  })
 
-export function messageText(parts: readonly MessagePart[]): string {
+export function messageText(parts: ReadonlyArray<MessagePart>): string {
 	return parts
 		.filter((part) => part.type === "text")
 		.map((part) => part.text)

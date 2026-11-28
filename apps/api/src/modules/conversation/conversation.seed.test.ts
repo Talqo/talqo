@@ -18,24 +18,24 @@ function isToolPart(part: MessagePart): part is ToolPart {
 	return part.type === "dynamic-tool"
 }
 
-function countBy(items: { agentId: string }[]): Record<string, number> {
+function countBy(items: Array<{ agentId: string }>): Record<string, number> {
 	return items.reduce<Record<string, number>>((counts, item) => {
 		counts[item.agentId] = (counts[item.agentId] ?? 0) + 1
 		return counts
 	}, {})
 }
 
-function expectBothToolSources(tools: readonly ToolPart[]): void {
+function expectBothToolSources(tools: ReadonlyArray<ToolPart>): void {
 	expect(tools.some((part) => part.toolMetadata.source === "client")).toBe(true)
 	expect(tools.some((part) => part.toolMetadata.source === "mcp")).toBe(true)
 }
 
-function toolsOf(messages: readonly { parts?: MessagePart[] }[]): ToolPart[] {
+function toolsOf(messages: ReadonlyArray<{ parts?: Array<MessagePart> }>): Array<ToolPart> {
 	return messages.flatMap((message) => (message.parts ?? []).filter(isToolPart))
 }
 
-function messagesByAttempt<T extends { generationAttemptId: string }>(messages: readonly T[]) {
-	const grouped = new Map<string, T[]>()
+function messagesByAttempt<T extends { generationAttemptId: string }>(messages: ReadonlyArray<T>) {
+	const grouped = new Map<string, Array<T>>()
 	for (const message of messages) {
 		const stored = grouped.get(message.generationAttemptId) ?? []
 		stored.push(message)

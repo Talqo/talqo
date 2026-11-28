@@ -19,7 +19,7 @@ export type ChatMessage = {
 	readonly id: string
 	readonly role: ChatMessageRole
 	readonly text: string
-	readonly parts: readonly MessagePart[]
+	readonly parts: ReadonlyArray<MessagePart>
 	readonly createdAt: string
 	readonly outcome: ChatMessageOutcome
 }

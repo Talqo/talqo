@@ -235,7 +235,7 @@ describe("structured tool history", () => {
 				systemPrompt: "System",
 				wordBlacklist: ["forbidden"],
 			})
-			const requests: ClientToolRequest[] = []
+			const requests: Array<ClientToolRequest> = []
 			using _ = spyOn(knowledge, "searchKnowledge").mockResolvedValue(["Private retrieval chunk"])
 			const dispatched = Promise.withResolvers<void>()
 			const channel = createClientToolChannel(
@@ -247,7 +247,7 @@ describe("structured tool history", () => {
 				400_000,
 			)
 			let invocation = 0
-			const prompts: ModelMessage[][] = []
+			const prompts: Array<Array<ModelMessage>> = []
 			const instance = createConversationService({
 				dailyLimit: 100,
 				concurrencyLimit: 2,
@@ -257,7 +257,7 @@ describe("structured tool history", () => {
 				prepare: async ({ messages }) => ({
 					provider: "openai-compatible",
 					model: "fake-model",
-					invoke: async function* (_signal, binding, onToolEvent) {
+					async *invoke(_signal, binding, onToolEvent) {
 						prompts.push(messages)
 						if (invocation++ === 0) {
 							yield { type: "step-start" }
@@ -414,16 +414,16 @@ describe("structured tool history", () => {
 			prepare: async () => ({
 				provider: "openai-compatible",
 				model: "fake-model",
-				invoke: async function* (_signal, binding, onToolEvent) {
+				async *invoke(_signal, binding, onToolEvent) {
 					const name = Object.keys(binding?.tools ?? {})[0]
 					const toolIdentity = name ? binding?.names.get(name) : undefined
 					if (!name || !toolIdentity) throw new Error("Expected a client tool")
 					const toolCallId = "read-1"
 					await onToolEvent?.({ type: "tool-start", toolCallId, toolName: name, identity: toolIdentity, input: {} })
 					started.resolve()
-					await new Promise<void>((resolve) =>
-						channel.signal.addEventListener("abort", () => resolve(), { once: true }),
-					)
+					await new Promise<void>((resolve) => {
+						channel.signal.addEventListener("abort", () => resolve(), { once: true })
+					})
 					await onToolEvent?.({
 						type: "tool-end",
 						toolCallId,
@@ -462,7 +462,9 @@ describe("structured tool history", () => {
 		const channel = createClientToolChannel([], () => {}, 400_000)
 		const started = Promise.withResolvers<void>()
 		const instance = customService(async function* ({ signal }) {
-			const aborted = new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }))
+			const aborted = new Promise<void>((resolve) => {
+				signal.addEventListener("abort", () => resolve(), { once: true })
+			})
 			started.resolve()
 			await aborted
 			channel.interrupt()

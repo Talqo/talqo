@@ -5,7 +5,7 @@ type CompletionRequest = {
 	messages?: unknown
 	model?: unknown
 	stream?: unknown
-	tools?: { function: { name: string } }[]
+	tools?: Array<{ function: { name: string } }>
 }
 type PendingStream = { release(): void }
 

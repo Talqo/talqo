@@ -91,7 +91,7 @@ describe("client tool registration and execution", () => {
 	test("rejects values JSON would silently change and oversized payloads", () => {
 		for (const value of [
 			undefined,
-			NaN,
+			Number.NaN,
 			Infinity,
 			1n,
 			{ nested: undefined },

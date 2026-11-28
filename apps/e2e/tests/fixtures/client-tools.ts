@@ -13,9 +13,9 @@ export function mountTools(): void {
 					const executions = Number(sessionStorage.getItem("tool-executions") ?? "0") + 1
 					sessionStorage.setItem("tool-executions", String(executions))
 					if (new URLSearchParams(location.search).has("hold")) {
-						await new Promise<never>((_resolve, reject) =>
-							abortSignal?.addEventListener("abort", () => reject(new Error("Cancelled")), { once: true }),
-						)
+						await new Promise<never>((_resolve, reject) => {
+							abortSignal?.addEventListener("abort", () => reject(new Error("Cancelled")), { once: true })
+						})
 					}
 					const pageText = document.querySelector("p")?.textContent
 					if (!pageText) throw new Error("Host page text is missing")

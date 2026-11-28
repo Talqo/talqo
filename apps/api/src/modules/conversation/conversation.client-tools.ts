@@ -16,7 +16,7 @@ export type ClientToolDefinition = {
 	inputSchema: Record<string, unknown>
 	outputSchema?: Record<string, unknown>
 	strict?: boolean
-	inputExamples?: { input: unknown }[]
+	inputExamples?: Array<{ input: unknown }>
 }
 export type ClientToolRequest = {
 	version: 1
@@ -24,7 +24,7 @@ export type ClientToolRequest = {
 	toolCallId: string
 	toolName: string
 	input: unknown
-	messages: ModelMessage[]
+	messages: Array<ModelMessage>
 }
 type ClientToolResult = { toolCallId: string } & (
 	{ output: unknown; error?: never } | { error: string; output?: never }
@@ -40,7 +40,7 @@ export type ClientToolChannel = {
 }
 
 export function createClientToolChannel(
-	definitions: ClientToolDefinition[],
+	definitions: Array<ClientToolDefinition>,
 	dispatch: (request: ClientToolRequest) => void,
 	maxContextCharacters: number,
 ): ClientToolChannel {

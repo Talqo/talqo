@@ -158,7 +158,7 @@ const cancellationFailures = [
 	},
 ] as const
 
-function recoveredTranscript(outcome: "completed" | "streaming"): ChatMessage[] {
+function recoveredTranscript(outcome: "completed" | "streaming"): Array<ChatMessage> {
 	return [
 		{
 			id: "u1",
@@ -1857,7 +1857,7 @@ describe("createChatClient", () => {
 		const storage = createMemoryStorage()
 		const sent = Promise.withResolvers<void>()
 		const sendRejected = Promise.withResolvers<void>()
-		let sending: Promise<unknown> | undefined
+		const sendSettled = Promise.withResolvers<unknown>()
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
@@ -1869,7 +1869,7 @@ describe("createChatClient", () => {
 					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
 				},
 				cancelResponse: async () => {
-					await sending
+					await sendSettled.promise
 					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
 				},
 				// Keeps recovery from settling through a success path before the assertions run.
@@ -1881,7 +1881,8 @@ describe("createChatClient", () => {
 			recoveryDelays: [0],
 		})
 		await client.initialize()
-		sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+		const sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+		sendSettled.resolve(sending)
 		await sent.promise
 		const cancelling = client.cancelResponse()
 		sendRejected.resolve()
@@ -2543,7 +2544,7 @@ describe("chat send lifecycle", () => {
 			}),
 		})
 		await client.initialize()
-		const observed: string[][] = []
+		const observed: Array<Array<string>> = []
 		client.subscribe(() => observed.push(client.getSnapshot().activeTools.map((tool) => tool.toolCallId ?? "")))
 
 		await client.sendMessage("is it in stock?")

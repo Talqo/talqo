@@ -12,7 +12,7 @@ function executeTool(channel: ReturnType<typeof createClientToolChannel>) {
 
 describe("browser tool channel", () => {
 	test("correlates parallel calls, accepts identical duplicate results, and counts failures toward the call budget", async () => {
-		const requests: ClientToolRequest[] = []
+		const requests: Array<ClientToolRequest> = []
 		const channel = createClientToolChannel(
 			[{ name: "lookup", inputSchema: { type: "object" } }],
 			(request) => requests.push(request),

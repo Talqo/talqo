@@ -8,7 +8,7 @@ import { type ChatHttpOptions, ChatTransportError, createChatHttpClient } from "
 import { isChatErrorCode } from "./types.ts"
 
 const SOCKET_BUFFER_BYTES = 8_388_608
-const CANCEL_TIMEOUT_MS = 5_000
+const CANCEL_TIMEOUT_MS = 5000
 const encoder = new TextEncoder()
 
 async function settlesWithin(promise: Promise<void>, milliseconds: number): Promise<void> {
@@ -74,7 +74,7 @@ export function createWebSocketChatTransport(
 				activeSends.delete(input.credential)
 				throw error
 			}
-			const queue: { event: ChatEvent; bytes: number }[] = []
+			const queue: Array<{ event: ChatEvent; bytes: number }> = []
 			let bufferedBytes = 0
 			let wake: (() => void) | undefined
 			let failure: ChatTransportError | undefined
