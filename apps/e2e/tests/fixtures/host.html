@@ -1,9 +1,23 @@
 <!doctype html>
 <html>
+	<head>
+		<title>Talqo test page</title>
+	</head>
 	<body>
-		<p>host text</p>
 		<script>
 			const params = new URLSearchParams(location.search)
+			if (params.has("shop")) {
+				const shop = document.createElement("script")
+				shop.type = "module"
+				shop.src = "/dev-shop.js"
+				document.body.append(shop)
+			}
+			if (params.has("sdk")) {
+				const sdk = document.createElement("script")
+				sdk.type = "module"
+				sdk.src = "/sdk-ui.js"
+				document.body.append(sdk)
+			}
 			const script = document.createElement("script")
 			script.src = "/widget.js"
 			script.async = true
@@ -14,7 +28,7 @@
 					const { mountTools } = await import("/client-tools.js")
 					mountTools()
 				})
-			document.body.append(script)
+			if (!params.has("sdk")) document.body.append(script)
 		</script>
 	</body>
 </html>

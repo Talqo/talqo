@@ -26,6 +26,7 @@ import {
 	SYSTEM_PROMPT_MAX_LENGTH,
 } from "@/features/agents/agent-schema"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
+import { WebsiteActionsCard } from "@/features/agents/website-actions-card"
 import { AgentFilesCard } from "@/features/context/agent-files-card"
 import { EMBED_FORM_DEFAULTS } from "@/features/embeds/embed-appearance-form"
 import { McpConnectionsCard } from "@/features/mcp/mcp-connections-card"
@@ -52,7 +53,7 @@ import { Textarea } from "@talqo/ui/components/textarea"
 import { useQueryClient, type UseQueryResult } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, CodeXml, Plus, Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { type FieldErrors, useForm, type UseFormRegister, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -160,9 +161,13 @@ function useAgentSettingsForm(agentId: string, agent: Agent | undefined) {
 		defaultValues: { name: "", systemPrompt: "" },
 	})
 	const [editedTerms, setEditedTerms] = useState<{ agentId: string; terms: Array<string> } | null>(null)
+	const formAgentId = useRef<string | undefined>(undefined)
 	useEffect(() => {
-		// keepDirtyValues so a background refetch never discards the operator's typing.
-		if (agent) reset({ name: agent.name, systemPrompt: agent.systemPrompt }, { keepDirtyValues: true })
+		if (!agent) return
+		// keepDirtyValues so a background refetch never discards the operator's typing, but a
+		// different agent must still show its own values.
+		reset({ name: agent.name, systemPrompt: agent.systemPrompt }, { keepDirtyValues: formAgentId.current === agent.id })
+		formAgentId.current = agent.id
 	}, [agent, reset])
 	const savedTerms = agent?.wordBlacklist ?? []
 	const terms = editedTerms?.agentId === agentId ? editedTerms.terms : savedTerms
@@ -696,8 +701,18 @@ function AgentDetailTabs(props: {
 			<TabsContent value="embeds">
 				<AgentEmbedsPanel agentId={props.agentId} canManage={props.canManage} />
 			</TabsContent>
-			<TabsContent value="mcp">
-				<McpConnectionsCard agentId={props.agentId} canManage={props.canManage} />
+			<TabsContent value="mcp" keepMounted>
+				<div className="space-y-6">
+					<WebsiteActionsCard key={props.agent.id} agent={props.agent} canManage={props.canManage} />
+					{props.tab === "mcp" && (
+						<section className="space-y-4" aria-labelledby="connected-tools-heading">
+							<h2 id="connected-tools-heading" className="text-lg font-semibold">
+								{t("pageControl.connectedTools")}
+							</h2>
+							<McpConnectionsCard agentId={props.agentId} canManage={props.canManage} />
+						</section>
+					)}
+				</div>
 			</TabsContent>
 		</Tabs>
 	)

@@ -7,7 +7,6 @@ import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate, annotator, deferWideEvent } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { upgradeWebSocket } from "hono/bun"
-import { createHash } from "node:crypto"
 
 import type { MessagePart } from "./conversation.messages.ts"
 import type { ChatEvent } from "./conversation.service.ts"
@@ -18,6 +17,7 @@ import {
 	MANIFEST_BYTES,
 	TOOL_PAYLOAD_BYTES,
 } from "./conversation.client-tools.ts"
+import { createPageConnection } from "./conversation.connection.ts"
 import {
 	cancelRoute,
 	chatClientFrameSchema,
@@ -32,7 +32,10 @@ import {
 } from "./conversation.contract.ts"
 import { getConversationService, getConversationTranscript, listConversations } from "./conversation.service.ts"
 
-type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
+type ConversationService = Pick<
+	ReturnType<typeof getConversationService>,
+	"authorizePageResume" | "cancel" | "getSession" | "send"
+>
 const SOCKET_POLICY_VIOLATION = 1008
 const SOCKET_NORMAL_CLOSE = 1000
 const SOCKET_START_DEADLINE_MS = 10_000
@@ -111,6 +114,7 @@ export function createConversationRoutes(
 	})
 
 	const activeService = () => service ?? getConversationService()
+	const pageConnections = new Map<string, ReturnType<typeof createPageConnection>>()
 	routes.openAPIRegistry.register("ChatClientFrameV1", chatClientFrameSchema)
 	routes.openAPIRegistry.register("ChatServerFrameV1", chatServerFrameSchema)
 	routes.openapi(socketRoute, async (c) => {
@@ -136,7 +140,12 @@ export function createConversationRoutes(
 		const networkHash = hashClientNetwork(normalized, env.APP_SECRET)
 		const embedToken = c.req.valid("param").embedToken
 		let channel: ClientToolChannel | undefined
+		let pageConnection: ReturnType<typeof createPageConnection> | undefined
+		let socketSender: ((message: string) => void) | undefined
+		let resuming = false
+		let resumeCancellationRequested = false
 		let started = false
+		let ownsTurn = false
 		let closed = false
 		const cancellation = new AbortController()
 		let terminal = false
@@ -174,6 +183,14 @@ export function createConversationRoutes(
 				: env.TALQO_CHAT_MAX_INPUT_CHARACTERS * MAX_JSON_BYTES_PER_CODE_POINT + MANIFEST_BYTES + FRAME_ENVELOPE_BYTES
 		}
 
+		function sendTurnFrame(ws: ChatSocket, message: unknown): void {
+			if (pageConnection) {
+				pageConnection.send(message)
+				return
+			}
+			sendFrame(ws, message)
+		}
+
 		async function runTurn(frame: StartFrame, ws: ChatSocket): Promise<void> {
 			try {
 				const result = await activeService().send(
@@ -184,44 +201,124 @@ export function createConversationRoutes(
 						clientTools: channel,
 						cancellationSignal: cancellation.signal,
 						clientManifestFingerprint: frame.tools.length
-							? createHash("sha256").update(JSON.stringify(frame.tools)).digest("hex")
+							? new Bun.CryptoHasher("sha256").update(JSON.stringify(frame.tools)).digest("hex")
 							: undefined,
 					},
 					(message) => {
 						if (message.type === "terminal" || message.type === "error") terminal = true
 						annotateChatEvent(c, message, toolCounts)
-						sendFrame(ws, message)
+						sendTurnFrame(ws, message)
 					},
 					annotator(c),
 				)
 				await result.done
 			} catch (error) {
-				sendFrame(ws, rejectionFrame(error))
+				sendTurnFrame(ws, rejectionFrame(error))
 			} finally {
 				clearTimeout(timeout)
 				completion.resolve()
+				if (frame.pageSession) pageConnections.delete(frame.pageSession)
+				pageConnection?.finish()
 				ws.close(SOCKET_NORMAL_CLOSE)
 			}
 		}
 
+		function isPageStartRejected(frame: StartFrame): boolean {
+			if (started) return true
+			if (!frame.pageSession) return false
+			return pageConnections.has(frame.pageSession) || !frame.tools.some((tool) => tool.name === "talqo_page")
+		}
+
+		function registerPageSession(frame: StartFrame, ws: ChatSocket): void {
+			if (!frame.pageSession) return
+			const send = (message: string) => ws.send(message)
+			socketSender = send
+			pageConnection = createPageConnection({
+				credential: frame.credential,
+				embedToken,
+				origin,
+				send,
+				close: () => ws.close(SOCKET_NORMAL_CLOSE),
+				cancel: () => cancellation.abort(),
+			})
+			pageConnections.set(frame.pageSession, pageConnection)
+		}
+
+		function createTurnChannel(frame: StartFrame, ws: ChatSocket): void {
+			if (!frame.tools.length) return
+			channel = createClientToolChannel(
+				frame.tools,
+				(message) => sendTurnFrame(ws, message),
+				env.TALQO_CHAT_MAX_INPUT_CHARACTERS,
+			)
+			pageConnection?.setChannel(channel)
+		}
+
 		function startTurn(frame: StartFrame, ws: ChatSocket): void {
-			if (started) {
+			if (isPageStartRejected(frame)) {
 				failFrame(ws)
 				return
 			}
 			started = true
+			ownsTurn = true
 			clearTimeout(deadline)
-			if (frame.tools.length)
-				channel = createClientToolChannel(
-					frame.tools,
-					(message) => sendFrame(ws, message),
-					env.TALQO_CHAT_MAX_INPUT_CHARACTERS,
-				)
+			registerPageSession(frame, ws)
+			createTurnChannel(frame, ws)
 			timeout = setTimeout(() => {
 				channel?.interrupt()
+				pageConnection?.finish()
 				ws.close(SOCKET_POLICY_VIOLATION, "Turn deadline exceeded")
 			}, env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS * MILLISECONDS_PER_SECOND)
 			void runTurn(frame, ws)
+		}
+
+		function resumeTurn(frame: Extract<ClientFrame, { type: "resume" }>, ws: ChatSocket): void {
+			if (started) {
+				failFrame(ws)
+				return
+			}
+			const connection = pageConnections.get(frame.pageSession)
+			if (
+				!connection ||
+				connection.credential !== frame.credential ||
+				connection.embedToken !== embedToken ||
+				connection.origin !== origin
+			) {
+				failFrame(ws)
+				return
+			}
+			started = true
+			resuming = true
+			const send = (message: string) => ws.send(message)
+			socketSender = send
+			clearTimeout(deadline)
+			void (async () => {
+				try {
+					await activeService().authorizePageResume(frame.credential, embedToken)
+					if (resumeCancellationRequested) connection.cancel()
+					if (closed || terminal) return
+					const attached = connection.attach(
+						send,
+						() => {
+							terminal = true
+							completion.resolve()
+							ws.close(SOCKET_NORMAL_CLOSE)
+						},
+						() => ws.close(SOCKET_NORMAL_CLOSE),
+					)
+					if (!attached) {
+						failFrame(ws)
+						return
+					}
+					pageConnection = connection
+					channel = connection.channel
+				} catch {
+					failFrame(ws)
+				} finally {
+					resuming = false
+					if (!pageConnection) completion.resolve()
+				}
+			})()
 		}
 
 		function acceptToolFrame(
@@ -241,10 +338,28 @@ export function createConversationRoutes(
 			}
 		}
 
+		function isStalePageFrame(): boolean {
+			return !!(pageConnection && socketSender && !pageConnection.owns(socketSender))
+		}
+
+		function cancelTurn(): void {
+			if (resuming) resumeCancellationRequested = true
+			else if (pageConnection) pageConnection.cancel()
+			else cancellation.abort()
+		}
+
+		function detachPageSocket(): boolean {
+			if (!pageConnection || !socketSender || terminal) return false
+			pageConnection.detach(socketSender)
+			return true
+		}
+
 		function handleClientFrame(frame: ClientFrame, ws: ChatSocket): void {
 			if (frame.type === "start") startTurn(frame, ws)
+			else if (frame.type === "resume") resumeTurn(frame, ws)
 			else if (!started) failFrame(ws)
-			else if (frame.type === "cancel") cancellation.abort()
+			else if (isStalePageFrame()) return
+			else if (frame.type === "cancel") cancelTurn()
 			else acceptToolFrame(frame, ws)
 		}
 
@@ -275,12 +390,14 @@ export function createConversationRoutes(
 			onClose() {
 				closed = true
 				clearTimeout(deadline)
-				clearTimeout(timeout)
-				channel?.interrupt()
-				if (!started) completion.resolve()
+				if (!detachPageSocket()) {
+					clearTimeout(timeout)
+					channel?.interrupt()
+				}
+				if (!ownsTurn) completion.resolve()
 			},
 			onError() {
-				channel?.interrupt()
+				if (!detachPageSocket()) channel?.interrupt()
 			},
 		}).catch((error: unknown) => {
 			completion.resolve()

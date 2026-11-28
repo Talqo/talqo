@@ -6,10 +6,21 @@
  */
 import * as zod from 'zod';
 
+export const agentPageControlApprovalInstructionsMax = 2000;
+
+export const agentPageControlDefaultApprovalInstructionsMax = 2000;
+
+
+
 export const Agent = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "systemPrompt": zod.string(),
+  "pageControl": zod.object({
+  "enabled": zod.boolean(),
+  "approvalInstructions": zod.string().min(1).max(agentPageControlApprovalInstructionsMax),
+  "defaultApprovalInstructions": zod.string().min(1).max(agentPageControlDefaultApprovalInstructionsMax)
+}),
   "wordBlacklist": zod.array(zod.string()),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true})

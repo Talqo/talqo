@@ -54,18 +54,26 @@ type EmbedConfiguration = {
 	appearance: Readonly<Record<string, unknown>>
 	isAvailable: boolean
 	name: string
+	pageControl?: { readonly enabled: boolean }
+}
+
+function isPageControl(value: unknown): value is { readonly enabled: boolean } | undefined {
+	return value === undefined || (isRecord(value) && typeof value.enabled === "boolean")
+}
+
+function isEmbedConfiguration(value: unknown): value is EmbedConfiguration {
+	return (
+		isRecord(value) &&
+		typeof value.name === "string" &&
+		typeof value.isAvailable === "boolean" &&
+		isRecord(value.appearance) &&
+		isPageControl(value.pageControl)
+	)
 }
 
 function embedConfiguration(value: unknown): EmbedConfiguration | undefined {
-	if (
-		!isRecord(value) ||
-		typeof value.name !== "string" ||
-		typeof value.isAvailable !== "boolean" ||
-		!isRecord(value.appearance)
-	) {
-		return undefined
-	}
-	return { appearance: value.appearance, isAvailable: value.isAvailable, name: value.name }
+	if (!isEmbedConfiguration(value)) return undefined
+	return value
 }
 
 function retryAt(response: Response, now: () => Date): string | undefined {
@@ -117,6 +125,7 @@ export function createChatHttpClient(
 				title: configuration.name,
 				appearance: configuration.appearance,
 				isAvailable: configuration.isAvailable,
+				pageControl: configuration.pageControl,
 			}
 		},
 		async loadSession(input) {

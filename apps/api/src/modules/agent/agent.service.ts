@@ -2,6 +2,7 @@ export const AGENT_NAME_MAX_LENGTH = 100
 export const SYSTEM_PROMPT_MAX_LENGTH = 20_000
 export const BLACKLIST_WORD_MAX_LENGTH = 100
 export const BLACKLIST_MAX_WORDS = 100
+export const APPROVAL_INSTRUCTIONS_MAX_LENGTH = 2000
 
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
@@ -11,6 +12,7 @@ import * as roles from "@/modules/roles/roles.service.ts"
 
 import { PLATFORM_SYSTEM_PROMPT } from "./agent.platform-prompt.ts"
 import * as repo from "./agent.repository.ts"
+import { DEFAULT_APPROVAL_INSTRUCTIONS } from "./agent.schema.ts"
 
 export class InvalidAgentInputError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
@@ -38,6 +40,11 @@ function toAgent({ agent, words }: repo.AgentWithWords): Agent {
 		id: agent.id,
 		name: agent.name,
 		systemPrompt: agent.systemPrompt,
+		pageControl: {
+			enabled: agent.pageControlEnabled,
+			approvalInstructions: agent.pageApprovalInstructions,
+			defaultApprovalInstructions: DEFAULT_APPROVAL_INSTRUCTIONS,
+		},
 		wordBlacklist: words.map((word) => word.word),
 		createdAt: agent.createdAt,
 		updatedAt: agent.updatedAt,
@@ -49,11 +56,13 @@ export type Agent = {
 	id: string
 	name: string
 	systemPrompt: string
+	pageControl: { enabled: boolean; approvalInstructions: string; defaultApprovalInstructions: string }
 	updatedAt: Date
 	wordBlacklist: Array<string>
 }
 
 export type AgentInput = {
+	pageControl?: Pick<Agent["pageControl"], "enabled" | "approvalInstructions">
 	name: string
 	systemPrompt: string
 	wordBlacklist: Array<string>
@@ -84,20 +93,39 @@ function normalizeWordBlacklist(words: Array<string>): Array<string> {
 	return wordBlacklist
 }
 
-export function normalizeAgentInput(input: AgentInput): AgentInput {
-	const name = input.name.trim()
+function normalizeName(value: string): string {
+	const name = value.trim()
 	if (name.length === 0) throw new InvalidAgentInputError("Agent name is required")
 	if (name.length > AGENT_NAME_MAX_LENGTH) {
 		throw new InvalidAgentInputError(`Agent name must be at most ${AGENT_NAME_MAX_LENGTH} characters`)
 	}
+	return name
+}
 
-	const systemPrompt = input.systemPrompt.trim()
+function normalizeSystemPrompt(value: string): string {
+	const systemPrompt = value.trim()
 	if (systemPrompt.length === 0) throw new InvalidAgentInputError("System prompt is required")
 	if (systemPrompt.length > SYSTEM_PROMPT_MAX_LENGTH) {
 		throw new InvalidAgentInputError(`System prompt must be at most ${SYSTEM_PROMPT_MAX_LENGTH} characters`)
 	}
+	return systemPrompt
+}
 
-	return { name, systemPrompt, wordBlacklist: normalizeWordBlacklist(input.wordBlacklist) }
+function normalizePageControl(input: AgentInput["pageControl"]): AgentInput["pageControl"] {
+	if (!input) return undefined
+	const approvalInstructions = input.approvalInstructions.trim()
+	if (!approvalInstructions || approvalInstructions.length > APPROVAL_INSTRUCTIONS_MAX_LENGTH)
+		throw new InvalidAgentInputError("Approval instructions must be between 1 and 2000 characters")
+	return { enabled: input.enabled, approvalInstructions }
+}
+
+export function normalizeAgentInput(input: AgentInput): AgentInput {
+	return {
+		name: normalizeName(input.name),
+		systemPrompt: normalizeSystemPrompt(input.systemPrompt),
+		wordBlacklist: normalizeWordBlacklist(input.wordBlacklist),
+		pageControl: normalizePageControl(input.pageControl),
+	}
 }
 
 export async function listAgents(
@@ -158,6 +186,8 @@ export async function createAgent(input: AgentInput): Promise<Agent> {
 					id: crypto.randomUUID(),
 					name: value.name,
 					systemPrompt: value.systemPrompt,
+					pageControlEnabled: value.pageControl?.enabled,
+					pageApprovalInstructions: value.pageControl?.approvalInstructions,
 				},
 				value.wordBlacklist,
 			),
@@ -173,7 +203,16 @@ export async function updateAgent(id: string, input: AgentInput): Promise<Agent>
 	try {
 		const updated = await repo.updateWithWords(
 			id,
-			{ name: value.name, systemPrompt: value.systemPrompt },
+			{
+				name: value.name,
+				systemPrompt: value.systemPrompt,
+				...(value.pageControl
+					? {
+							pageControlEnabled: value.pageControl.enabled,
+							pageApprovalInstructions: value.pageControl.approvalInstructions,
+						}
+					: {}),
+			},
 			value.wordBlacklist,
 		)
 		if (!updated) throw new AgentNotFoundError(`updateAgent: agent ${id} not found`)

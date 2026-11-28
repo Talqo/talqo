@@ -1,5 +1,8 @@
 import { sql } from "drizzle-orm"
-import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+
+export const DEFAULT_APPROVAL_INSTRUCTIONS = `Browse, search, select products, prepare carts, and fill drafts without approval.
+Ask before purchases, payments, important account changes, or actions with unclear consequences.`
 
 export const agent = pgTable(
 	"agent",
@@ -7,6 +10,8 @@ export const agent = pgTable(
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
 		systemPrompt: text("system_prompt").notNull(),
+		pageControlEnabled: boolean("page_control_enabled").notNull().default(true),
+		pageApprovalInstructions: text("page_approval_instructions").notNull().default(DEFAULT_APPROVAL_INSTRUCTIONS),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},

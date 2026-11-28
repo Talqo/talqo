@@ -16,7 +16,7 @@ async function openToolChat(page: Page, widgetUrl: string, params: Record<string
 async function reopenChat(page: Page) {
 	await page.reload()
 	await page.waitForFunction(() => document.documentElement.dataset.toolsReady === "true")
-	await page.getByRole("button", { name: widget("openChat") }).click()
+	await expect(page.getByRole("dialog")).toBeVisible()
 }
 
 async function expandToolGroup(scope: Page | Locator, label: string) {
@@ -43,7 +43,7 @@ test("browser and backend tool results survive the live answer, reload, and oper
 	const input = dialog.getByRole("textbox", { name: widget("messageLabel") })
 	await input.fill("Read this page")
 	await dialog.getByRole("button", { name: widget("send") }).click()
-	await expect(dialog.getByText("Page says host text.", { exact: true })).toBeVisible()
+	await expect(dialog.getByText("Page says Talqo test page.", { exact: true })).toBeVisible()
 	await expandToolGroup(dialog, widget("toolsCalled", { count: 2 }))
 	await expect(dialog.getByRole("status").filter({ hasText: widget("websiteTool") })).toContainText(
 		widget("toolCompleted"),
@@ -55,7 +55,7 @@ test("browser and backend tool results survive the live answer, reload, and oper
 	await expect(dialog.getByText("get_stock_level", { exact: false })).toHaveCount(0)
 	await input.fill("Remember the page result")
 	await dialog.getByRole("button", { name: widget("send") }).click()
-	await expect(dialog.getByText("Page says host text.", { exact: true })).toHaveCount(2)
+	await expect(dialog.getByText("Page says Talqo test page.", { exact: true })).toHaveCount(2)
 	await reopenChat(page)
 	await expandToolGroup(dialog, widget("toolsCalled", { count: 2 }))
 	await expect(dialog.getByRole("status").filter({ hasText: widget("websiteTool") })).toContainText(
@@ -68,7 +68,7 @@ test("browser and backend tool results survive the live answer, reload, and oper
 	const followingTurn = captured.requests.at(-1)?.messages
 	expect(followingTurn).toEqual(
 		expect.arrayContaining([
-			expect.objectContaining({ role: "tool", content: expect.stringContaining('"pageText":"host text"') }),
+			expect.objectContaining({ role: "tool", content: expect.stringContaining('"pageText":"Talqo test page"') }),
 			expect.objectContaining({ role: "tool", content: expect.stringContaining("inStock") }),
 		]),
 	)

@@ -15,7 +15,10 @@ const START = { version: 1, type: "start", credential: CREDENTIAL, requestId: RE
 // Mirrors TALQO_CHAT_MAX_INPUT_CHARACTERS in apps/api/.env.example.
 const CHAT_INPUT_LIMIT = 400_000
 
-function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-accept" | "successful-tool" = "none") {
+function routes(
+	failure: "disabled" | "embed" | "late-error" | "none" | "pre-accept" | "successful-tool" = "none",
+	authorizePageResume = async () => {},
+) {
 	const calls: Array<unknown> = []
 	const gate = Promise.withResolvers<void>()
 	const service = {
@@ -98,23 +101,35 @@ function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-acc
 		},
 		getSession: async () => ({ messages: [], activeGeneration: undefined }),
 		cancel: async () => undefined,
+		authorizePageResume,
 	}
 	const logged: Array<WideEvent> = []
+	const loggedEvent = Promise.withResolvers<void>()
 	const app = new OpenAPIHono()
 		.use(
 			"*",
-			createWideEvents((event) => logged.push(event)),
+			createWideEvents((event) => {
+				logged.push(event)
+				loggedEvent.resolve()
+			}),
 		)
 		.route(
 			"/chat",
 			createConversationRoutes(service, () => ({ peerAddress: "::ffff:192.0.2.4", forwardedFor: undefined })),
 		)
 	app.onError(handleError)
-	return { app, calls, logged, release: () => gate.resolve() }
+	return { app, calls, logged, loggedEvent: loggedEvent.promise, release: () => gate.resolve() }
 }
 
 function serve(app: ReturnType<typeof routes>["app"]) {
 	return Bun.serve({ port: 0, fetch: (request, host) => app.fetch(request, { server: host }), websocket })
+}
+
+async function startPageTurn(origin: string, pageSession: string): Promise<void> {
+	const first = connect(origin, { ...START, pageSession, tools: [{ name: "talqo_page", inputSchema: {} }] })
+	await first.accepted
+	first.socket.close()
+	await first.closed
 }
 
 function connect(origin: string, frame: unknown, onAccepted?: (socket: WebSocket) => void) {
@@ -134,10 +149,104 @@ function connect(origin: string, frame: unknown, onAccepted?: (socket: WebSocket
 		socket.addEventListener("close", (event) => resolve(event.code))
 		socket.addEventListener("error", reject)
 	})
-	return { events, accepted: accepted.promise, closed }
+	return { events, accepted: accepted.promise, closed, socket }
 }
 
 describe("public conversation routes", () => {
+	it("finishes the resumed socket's wide event without waiting for the turn", async () => {
+		const { app, calls, loggedEvent, logged, release } = routes("late-error")
+		const server = serve(app)
+		const pageSession = crypto.randomUUID()
+		try {
+			await startPageTurn(server.url.origin, pageSession)
+			const resumed = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
+			await resumed.accepted
+			resumed.socket.close()
+			await resumed.closed
+			await loggedEvent
+			expect(logged).toHaveLength(1)
+			expect(calls[0]).toHaveProperty("clientTools.interrupted", false)
+		} finally {
+			release()
+			await server.stop(true)
+		}
+	})
+
+	it("finishes the wide event when a resume socket closes during authorization", async () => {
+		const authorizing = Promise.withResolvers<void>()
+		const authorized = Promise.withResolvers<void>()
+		const { app, loggedEvent, logged, release } = routes("late-error", async () => {
+			authorizing.resolve()
+			await authorized.promise
+		})
+		const server = serve(app)
+		const pageSession = crypto.randomUUID()
+		try {
+			await startPageTurn(server.url.origin, pageSession)
+			const resumed = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
+			await authorizing.promise
+			resumed.socket.close()
+			await resumed.closed
+			await loggedEvent
+			expect(logged).toHaveLength(1)
+		} finally {
+			authorized.resolve()
+			release()
+			await server.stop(true)
+		}
+	})
+	it("cancels a running turn and closes once the turn settles", async () => {
+		const { app, release } = routes("late-error")
+		const server = serve(app)
+		try {
+			const turn = connect(server.url.origin, START)
+			await turn.accepted
+			turn.socket.send(JSON.stringify({ version: 1, type: "cancel" }))
+			await Bun.sleep(20)
+			release()
+			expect(await turn.closed).toBe(1000)
+			expect(turn.events).toContainEqual({
+				version: 1,
+				type: "error",
+				outcome: "failed",
+				error: { code: "provider-error", retriable: true, newChatAvailable: false },
+			})
+		} finally {
+			await server.stop(true)
+		}
+	})
+	it("hands a page turn to the newest document without accepting or charging a second request", async () => {
+		const { app, calls, release } = routes("late-error")
+		const server = serve(app)
+		const pageSession = crypto.randomUUID()
+		try {
+			await startPageTurn(server.url.origin, pageSession)
+			const wrong = connect(server.url.origin, {
+				version: 1,
+				type: "resume",
+				pageSession,
+				credential: crypto.randomUUID(),
+			})
+			expect(await wrong.closed).toBe(1008)
+			const resumed = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
+			await resumed.accepted
+			const contender = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
+			await contender.accepted
+			expect(await resumed.closed).toBe(1000)
+			expect(calls[0]).toHaveProperty("clientTools.interrupted", false)
+			release()
+			expect(await contender.closed).toBe(1000)
+			expect(contender.events).toMatchObject([
+				{ type: "accepted", requestId: REQUEST_ID },
+				{ type: "part" },
+				{ type: "error" },
+			])
+			expect(calls).toHaveLength(1)
+		} finally {
+			release()
+			await server.stop(true)
+		}
+	})
 	it("closes deeply nested tool results before authentication", async () => {
 		const { app, calls } = routes()
 		const server = serve(app)
@@ -224,6 +333,7 @@ describe("public conversation routes", () => {
 
 	it.each([
 		{ version: 1, type: "cancel" },
+		{ ...START, pageSession: crypto.randomUUID() },
 		{ ...START, credential: undefined },
 		{ ...START, requestId: "11111111-1111-1111-8111-111111111111" },
 		{ ...START, tools: Array.from({ length: 9 }, (_, index) => ({ name: `tool${index}`, inputSchema: {} })) },

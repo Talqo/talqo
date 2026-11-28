@@ -244,7 +244,7 @@ describe("embed snippet discovery", () => {
 		})
 		using fetchSpy = spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected fetch"))
 		using warning = spyOn(console, "warn").mockImplementation(() => {})
-		const calls: Array<{ apiUrl: string; embedToken: string }> = []
+		const calls: Array<{ apiUrl: string; embedToken: string; pageControl?: { exclude?: ReadonlyArray<Element> } }> = []
 		const client = fakeClient()
 		const chat = fakeChat()
 		replaceChat(chat.module)
@@ -261,7 +261,9 @@ describe("embed snippet discovery", () => {
 			}),
 		)
 
-		expect(calls).toEqual([{ apiUrl: "https://api.example.com", embedToken: "token-1" }])
+		expect(calls).toHaveLength(1)
+		expect(calls[0]).toMatchObject({ apiUrl: "https://api.example.com", embedToken: "token-1" })
+		expect(calls[0]?.pageControl?.exclude).toHaveLength(1)
 		expect(target.querySelector(".talqo-widget-loader")).not.toBeNull()
 		expect(chat.mounts).toHaveLength(0)
 		expect(warning).not.toHaveBeenCalled()

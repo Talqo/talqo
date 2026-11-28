@@ -161,7 +161,7 @@ These are protocol limits, not new operator settings:
 
 - At most 8 client tools per turn; registry names must meet the provider-safe 1 to 64 character grammar. Reject a larger registry before opening the socket and reject a larger manifest at the API boundary, before acceptance.
 - At most 16 client-tool calls per turn, across all steps and parallel batches. Both SDK and API enforce this budget. Failed calls consume it; duplicate delivery does not execute again or consume another slot. Reject excess calls with an explicit tool error before browser execution, while preserving completed results and allowing the model to finish its response.
-- At most 1,000 Unicode code points per description and 128 KiB for the serialized manifest, including schemas/examples.
+- At most 4,096 Unicode code points per description and 128 KiB for the serialized manifest, including schemas/examples.
 - At most 256 KiB per tool input or returned result, plus finite frame-envelope overhead. Reject oversize client payloads; do not silently truncate them into a different value. Binary frames are unsupported.
 - The start frame must accommodate the existing configured message limit, JSON escaping, the manifest, and finite envelope overhead. A fixed smaller frame ceiling must not contradict the existing Unicode message allowance.
 - Bound server execution-context frames by the same conversation-input limit and account for JSON framing.

@@ -137,6 +137,13 @@ export const chatClientFrameSchema = z
 			credential: z.uuid(),
 			...sendBody.shape,
 			tools: clientToolManifestSchema,
+			pageSession: z.uuid().optional(),
+		}),
+		z.strictObject({
+			version: z.literal(1),
+			type: z.literal("resume"),
+			credential: z.uuid(),
+			pageSession: z.uuid(),
 		}),
 		z.strictObject({
 			version: z.literal(1),

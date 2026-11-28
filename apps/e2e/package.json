@@ -9,6 +9,7 @@
 	},
 	"devDependencies": {
 		"@playwright/test": "1.65.1",
+		"@talqo/sdk": "workspace:*",
 		"@talqo/typescript-config": "workspace:*",
 		"@types/bun": "1.4.5",
 		"ai": "7.0.159",

@@ -5,7 +5,7 @@ import { z } from "zod"
 import { createChatClient } from "./chat-client.ts"
 import { captureClientTools } from "./client-tools.ts"
 import { createChatStorageKey, createMemoryStorage, readChatStorageRecord } from "./storage.ts"
-import { createWebSocketChatTransport } from "./websocket-transport.ts"
+import { canStorePageContinuation, createWebSocketChatTransport, readPageContinuation } from "./websocket-transport.ts"
 
 const CREDENTIAL = "22222222-2222-4222-8222-222222222222"
 const REQUEST_ID = "11111111-1111-4111-8111-111111111111"
@@ -33,9 +33,7 @@ function recordingChatServer(onFrame: (ws: Bun.ServerWebSocket<undefined>, frame
 	const frames: Array<string> = []
 	const server = Bun.serve({
 		port: 0,
-		fetch(request, host) {
-			return host.upgrade(request) ? undefined : new Response(null, { status: 400 })
-		},
+		fetch: upgrade,
 		websocket: {
 			message(ws, data) {
 				const frame = JSON.parse(String(data)) as { type: string }
@@ -70,12 +68,31 @@ async function startedTurn(apiUrl: string) {
 	return { transport, input, events }
 }
 
+function upgrade(request: Request, host: Bun.Server<undefined>): Response | undefined {
+	return host.upgrade(request) ? undefined : new Response(null, { status: 400 })
+}
+
+test("blocked sessionStorage getters cannot break initialization's continuation lookup", () => {
+	const descriptor = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage")
+	Object.defineProperty(globalThis, "sessionStorage", {
+		configurable: true,
+		get() {
+			throw new Error("Storage is blocked")
+		},
+	})
+	try {
+		expect(canStorePageContinuation()).toBe(false)
+		expect(readPageContinuation("https://example.com", "embed")).toBeUndefined()
+	} finally {
+		if (descriptor) Object.defineProperty(globalThis, "sessionStorage", descriptor)
+		else Reflect.deleteProperty(globalThis, "sessionStorage")
+	}
+})
+
 test("rejects unknown error codes after validating the frame", async () => {
 	const server = Bun.serve({
 		port: 0,
-		fetch(request, host) {
-			return host.upgrade(request) ? undefined : new Response(null, { status: 400 })
-		},
+		fetch: upgrade,
 		websocket: {
 			message(ws) {
 				ws.send(JSON.stringify(accepted))
@@ -103,6 +120,57 @@ test("rejects unknown error codes after validating the frame", async () => {
 		const error: unknown = await Array.fromAsync(events).catch((cause: unknown) => cause)
 		expect(error).toMatchObject({ detail: { code: "invalid-response" } })
 	} finally {
+		await server.stop(true)
+	}
+})
+
+test("rejects unavailable tab storage without hanging acceptance or executing a page action", async () => {
+	const descriptor = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage")
+	Object.defineProperty(globalThis, "sessionStorage", {
+		configurable: true,
+		value: {
+			setItem() {
+				throw new Error("Storage is blocked")
+			},
+		},
+	})
+	let executions = 0
+	const registry = captureClientTools({
+		talqo_page: tool({
+			inputSchema: z.object({}),
+			execute: () => {
+				executions++
+				return null
+			},
+		}),
+	})
+	const server = Bun.serve({
+		port: 0,
+		fetch: upgrade,
+		websocket: {
+			message(ws) {
+				ws.send(JSON.stringify(accepted))
+				ws.send(JSON.stringify({ ...call("page"), toolName: "talqo_page" }))
+			},
+		},
+	})
+	try {
+		const transport = createWebSocketChatTransport(registry)
+		await expect(
+			transport.sendMessage({
+				apiUrl: server.url.origin,
+				embedToken: "embed",
+				credential: CREDENTIAL,
+				requestId: REQUEST_ID,
+				text: "Buy this",
+				pageSession: crypto.randomUUID(),
+				signal: new AbortController().signal,
+			}),
+		).rejects.toMatchObject({ detail: { code: "storage-unavailable" } })
+		expect(executions).toBe(0)
+	} finally {
+		if (descriptor) Object.defineProperty(globalThis, "sessionStorage", descriptor)
+		else Reflect.deleteProperty(globalThis, "sessionStorage")
 		await server.stop(true)
 	}
 })

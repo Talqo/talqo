@@ -8,11 +8,11 @@ import * as zod from 'zod';
 import { ClientToolManifest } from './clientToolManifest.zod';
 
 
-export const chatClientFrameV1TwoToolCallIdMax = 256;
-
 export const chatClientFrameV1ThreeToolCallIdMax = 256;
 
-export const chatClientFrameV1ThreeErrorMax = 1000;
+export const chatClientFrameV1FourToolCallIdMax = 256;
+
+export const chatClientFrameV1FourErrorMax = 4096;
 
 
 
@@ -22,17 +22,23 @@ export const ChatClientFrameV1 = zod.union([zod.object({
   "credential": zod.uuid(),
   "requestId": zod.uuid(),
   "text": zod.string().min(1),
-  "tools": ClientToolManifest
+  "tools": ClientToolManifest,
+  "pageSession": zod.uuid().optional()
+}),zod.object({
+  "version": zod.literal(1),
+  "type": zod.enum(['resume']),
+  "credential": zod.uuid(),
+  "pageSession": zod.uuid()
 }),zod.object({
   "version": zod.literal(1),
   "type": zod.enum(['tool-result']),
-  "toolCallId": zod.string().max(chatClientFrameV1TwoToolCallIdMax),
+  "toolCallId": zod.string().max(chatClientFrameV1ThreeToolCallIdMax),
   "output": zod.unknown()
 }),zod.object({
   "version": zod.literal(1),
   "type": zod.enum(['tool-error']),
-  "toolCallId": zod.string().max(chatClientFrameV1ThreeToolCallIdMax),
-  "error": zod.string().max(chatClientFrameV1ThreeErrorMax)
+  "toolCallId": zod.string().max(chatClientFrameV1FourToolCallIdMax),
+  "error": zod.string().max(chatClientFrameV1FourErrorMax)
 }),zod.object({
   "version": zod.literal(1),
   "type": zod.enum(['cancel'])

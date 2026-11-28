@@ -19,6 +19,11 @@ const INITIAL_AGENT = {
 	name: "Support agent",
 	systemPrompt: "Answer support questions.",
 	wordBlacklist: ["seed-term"],
+	pageControl: {
+		enabled: true,
+		approvalInstructions: "Confirm before paying.",
+		defaultApprovalInstructions: "Ask before placing an order.",
+	},
 	createdAt: TIMESTAMP,
 	updatedAt: TIMESTAMP,
 }
@@ -241,6 +246,22 @@ describe("agent route search", () => {
 })
 
 describe("agent detail access and editing", () => {
+	test("keeps unsaved website action rules when switching tabs", async () => {
+		await renderPage(`/dashboard/agent/${AGENT_ID}?tab=mcp`)
+		const instructions = host.querySelector<HTMLTextAreaElement>("#website-approval")
+		if (!instructions) throw new Error("Approval rules field not rendered")
+		await typeInto(instructions, "Ask before changing a delivery address.")
+
+		await click(button(t("agentConfig.tabConfiguration")))
+		await click(button(t("agentConfig.tabMcp")))
+
+		expect(host.querySelector<HTMLTextAreaElement>("#website-approval")?.value).toBe(
+			"Ask before changing a delivery address.",
+		)
+		await click(button(t("pageControl.restoreDefaults")))
+		expect(host.querySelector<HTMLTextAreaElement>("#website-approval")?.value).toBe("Ask before placing an order.")
+	})
+
 	test("requests no protected data for an agent the operator cannot read", async () => {
 		canRead = false
 		await renderPage()

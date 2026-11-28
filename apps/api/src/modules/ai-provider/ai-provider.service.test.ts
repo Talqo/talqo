@@ -467,7 +467,7 @@ describe("AI provider service", () => {
 		expect(invoked).toBe(false)
 	})
 
-	it("lets a tool result reach the model for five steps, then stops", async () => {
+	it.each([false, true])("extends the five-step budget only after the page tool is called (%s)", async (pageUsed) => {
 		const calls: Array<Record<string, unknown>> = []
 		const { service } = createMemoryService(undefined, ((options: unknown) => {
 			calls.push(options as Record<string, unknown>)
@@ -480,11 +480,23 @@ describe("AI provider service", () => {
 			timeoutMs: 9000,
 		})
 
-		await Array.fromAsync(prepared.invoke(new AbortController().signal))
+		await Array.fromAsync(
+			prepared.invoke(new AbortController().signal, {
+				names: new Map([["page", { source: "client", serverName: "", toolName: "talqo_page" }]]),
+				tools: {},
+			}),
+		)
 
-		const stopWhen = calls[0]?.["stopWhen"] as (state: { steps: Array<never> }) => boolean
-		expect(stopWhen({ steps: Array.from({ length: 4 }) })).toBe(false)
-		expect(stopWhen({ steps: Array.from({ length: 5 }) })).toBe(true)
+		const stopWhen = calls[0]?.["stopWhen"] as (state: {
+			steps: Array<{ toolCalls: Array<{ toolName: string }> }>
+		}) => boolean
+		const steps = (length: number) =>
+			Array.from({ length }, (_, index) => ({
+				toolCalls: [{ toolName: pageUsed && index === 0 ? "page" : "custom" }],
+			}))
+		expect(stopWhen({ steps: steps(4) })).toBe(false)
+		expect(stopWhen({ steps: steps(5) })).toBe(!pageUsed)
+		expect(stopWhen({ steps: steps(64) })).toBe(true)
 	})
 
 	it.each([

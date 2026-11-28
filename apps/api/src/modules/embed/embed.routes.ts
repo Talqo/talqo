@@ -26,12 +26,12 @@ const CONFIG_MAX_AGE_SECONDS = 60
 
 function serveEmbedConfig(c: Context, embedToken: string) {
 	return service.getConfigByToken(embedToken, annotator(c)).then((config) => {
-		// Availability follows the AI provider, not the embed row, so it must vary the tag too.
-		const etag = `W/"${config.updatedAt.getTime()}-${config.isAvailable ? 1 : 0}"`
+		const response = embedConfigResponseSchema.parse(config)
+		const etag = `W/"${new Bun.CryptoHasher("sha256").update(JSON.stringify(response)).digest("hex")}"`
 		if (c.req.header("if-none-match") === etag) return c.body(null, HTTP_STATUS.NOT_MODIFIED)
 		c.header("Cache-Control", `public, max-age=${CONFIG_MAX_AGE_SECONDS}`)
 		c.header("ETag", etag)
-		return c.json(embedConfigResponseSchema.parse(config), HTTP_STATUS.OK)
+		return c.json(response, HTTP_STATUS.OK)
 	})
 }
 

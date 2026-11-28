@@ -6,6 +6,7 @@ import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { generateOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
+import * as agentService from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { isSupportedLanguage } from "@talqo/shared"
@@ -26,6 +27,7 @@ export type Embed = {
 }
 
 export type EmbedConfig = {
+	pageControl: { enabled: boolean }
 	appearance: WidgetAppearance
 	isAvailable: boolean
 	name: string
@@ -191,8 +193,16 @@ export async function getConfigByToken(embedToken: string, annotate: Annotate = 
 	if (!row) throw new EmbedNotFoundError("Embed not found")
 	annotate({ "embed.id": row.id, "agent.id": row.agentId })
 	const { name, appearance, isDisabled } = toEmbed(row)
+	const agent = await agentService.getAgent(row.agentId)
 	const isAvailable = !isDisabled && (await aiProvider.canGenerateText())
-	return { version: WIDGET_CONFIG_VERSION, name, appearance, isAvailable, updatedAt: row.updatedAt }
+	return {
+		version: WIDGET_CONFIG_VERSION,
+		name,
+		appearance,
+		isAvailable,
+		pageControl: { enabled: agent.pageControl.enabled },
+		updatedAt: new Date(Math.max(row.updatedAt.getTime(), agent.updatedAt.getTime())),
+	}
 }
 
 export async function getEmbedByToken(embedToken: string): Promise<Embed> {

@@ -14,8 +14,8 @@ const ALLOWED_FIELDS = new Set([
 ])
 const PAYLOAD_BYTES = 262_144
 const MANIFEST_BYTES = 131_072
-const CLIENT_TOOL_LIMIT = 8
-const TOOL_DESCRIPTION_CHARACTERS = 1000
+export const CLIENT_TOOL_LIMIT = 8
+const TOOL_DESCRIPTION_CHARACTERS = 4096
 const TOOL_NAME_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
 export const CLIENT_TOOL_CALL_LIMIT = 16
 const encoder = new TextEncoder()
@@ -61,7 +61,9 @@ function validateFields(name: string, definition: ToolSet[string]): void {
 	for (const key of Object.keys(definition))
 		if (!ALLOWED_FIELDS.has(key)) throw new Error(`Unsupported client tool field: ${key}`)
 	if (isInvalidDescription(definition.description))
-		throw new Error(`Client tool requires a static description of at most 1000 characters: ${name}`)
+		throw new Error(
+			`Client tool requires a static description of at most ${TOOL_DESCRIPTION_CHARACTERS} characters: ${name}`,
+		)
 	if (definition.inputExamples !== undefined && !Array.isArray(definition.inputExamples))
 		throw new Error(`Client tool requires static input examples: ${name}`)
 }

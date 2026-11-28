@@ -40,6 +40,33 @@ beforeEach(async () => {
 })
 
 describe("agent CRUD", () => {
+	it("stores approval instructions and preserves them when other settings are saved", async () => {
+		const created = await service.createAgent({ name: "Website helper", systemPrompt: "Help.", wordBlacklist: [] })
+		expect(created.pageControl.enabled).toBe(true)
+		expect(created.pageControl.approvalInstructions).toContain("Ask before purchases")
+		expect(created.pageControl.defaultApprovalInstructions).toBe(created.pageControl.approvalInstructions)
+		const saved = await service.updateAgent(created.id, {
+			...created,
+			pageControl: { enabled: false, approvalInstructions: "  Ask before submitting any form.  " },
+		})
+		expect(saved.pageControl).toEqual({
+			enabled: false,
+			approvalInstructions: "Ask before submitting any form.",
+			defaultApprovalInstructions: created.pageControl.approvalInstructions,
+		})
+		const renamed = await service.updateAgent(created.id, {
+			name: "Renamed",
+			systemPrompt: "Help more.",
+			wordBlacklist: [],
+		})
+		expect(renamed.pageControl).toEqual(saved.pageControl)
+		await expect(
+			service.updateAgent(created.id, {
+				...renamed,
+				pageControl: { enabled: true, approvalInstructions: "   " },
+			}),
+		).rejects.toBeInstanceOf(service.InvalidAgentInputError)
+	})
 	it("creates, reads, updates, and hard-deletes an aggregate", async () => {
 		const { cookie } = await createAdminSession()
 

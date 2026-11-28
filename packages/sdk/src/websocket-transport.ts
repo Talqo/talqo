@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 import type { ClientToolRegistry } from "./client-tools.ts"
 import type { ClientToolManifest } from "./generated/models"
 import type { ChatErrorCode, ChatEvent, ChatTransport } from "./types.ts"
@@ -9,7 +11,47 @@ import { isChatErrorCode } from "./types.ts"
 
 const SOCKET_BUFFER_BYTES = 8_388_608
 const CANCEL_TIMEOUT_MS = 5000
+const PAGE_TOOL_CALL_LIMIT = 64
 const encoder = new TextEncoder()
+const continuationSchema = z.object({
+	credential: z.uuid(),
+	requestId: z.uuid(),
+	generationId: z.string().min(1),
+	pageSession: z.uuid(),
+	text: z.string(),
+})
+export type PageContinuation = z.infer<typeof continuationSchema>
+function pageContinuationKey(apiUrl: string, embedToken: string): string {
+	return `talqo:page-turn:${apiUrl}:${embedToken}`
+}
+export function canStorePageContinuation(): boolean {
+	try {
+		const key = `talqo:page-storage-check:${crypto.randomUUID()}`
+		sessionStorage.setItem(key, "1")
+		const available = sessionStorage.getItem(key) === "1"
+		sessionStorage.removeItem(key)
+		return available
+	} catch {
+		return false
+	}
+}
+export function removePageContinuation(apiUrl: string, embedToken: string): void {
+	try {
+		sessionStorage.removeItem(pageContinuationKey(apiUrl, embedToken))
+	} catch {
+		console.warn("TalqoSDK: page continuation storage unavailable")
+	}
+}
+export function readPageContinuation(apiUrl: string, embedToken: string): PageContinuation | undefined {
+	try {
+		const serialized = sessionStorage.getItem(pageContinuationKey(apiUrl, embedToken))
+		if (!serialized) return undefined
+		return continuationSchema.parse(JSON.parse(serialized))
+	} catch {
+		removePageContinuation(apiUrl, embedToken)
+		return undefined
+	}
+}
 
 async function settlesWithin(promise: Promise<void>, milliseconds: number): Promise<void> {
 	let timer: ReturnType<typeof setTimeout> | undefined
@@ -44,7 +86,7 @@ type WebSocketTransportOptions = ChatHttpOptions & {
 }
 
 export function createWebSocketChatTransport(
-	tools: ClientToolRegistry,
+	tools: Pick<ClientToolRegistry, "manifest" | "execute">,
 	options: WebSocketTransportOptions = {},
 ): ChatTransport {
 	const http = createChatHttpClient(options)
@@ -86,6 +128,7 @@ export function createWebSocketChatTransport(
 			let accepted = false
 			const dispatched = new Set<string>()
 			const advertisedNames = new Set(manifest.map((definition) => definition.name))
+			const storageKey = pageContinuationKey(input.apiUrl, input.embedToken)
 			const toolController = new AbortController()
 			const listeners = new AbortController()
 			const acceptance = Promise.withResolvers<void>()
@@ -128,11 +171,16 @@ export function createWebSocketChatTransport(
 					ws.send(
 						JSON.stringify({
 							version: 1,
-							type: "start",
+							type: input.resume ? "resume" : "start",
 							credential: input.credential,
-							requestId: input.requestId,
-							text: input.text,
-							tools: manifest,
+							...(input.resume
+								? {}
+								: {
+										requestId: input.requestId,
+										text: input.text,
+										tools: manifest,
+									}),
+							...(input.pageSession ? { pageSession: input.pageSession } : {}),
 						}),
 					)
 					started = true
@@ -157,8 +205,24 @@ export function createWebSocketChatTransport(
 				terminal = !accepted
 				close()
 			}
-			function acceptFrame(): void {
+			function acceptFrame(frame: Extract<ServerFrame, { type: "accepted" }>): void {
 				if (accepted) throw new Error("Duplicate acceptance")
+				if (input.pageSession) {
+					try {
+						sessionStorage.setItem(
+							storageKey,
+							JSON.stringify({
+								credential: input.credential,
+								requestId: input.requestId,
+								generationId: frame.generationId,
+								text: input.text,
+								pageSession: input.pageSession,
+							}),
+						)
+					} catch {
+						throw new ChatTransportError({ code: "storage-unavailable" })
+					}
+				}
 				accepted = true
 				acceptance.resolve()
 			}
@@ -173,7 +237,8 @@ export function createWebSocketChatTransport(
 				if (toolController.signal.aborted || dispatched.has(frame.toolCallId)) return
 				void (async () => {
 					if (!advertisedNames.has(frame.toolName)) throw new Error("Unadvertised client tool")
-					if (dispatched.size >= CLIENT_TOOL_CALL_LIMIT) throw new Error("Client tool call limit reached")
+					if (dispatched.size >= (advertisedNames.has("talqo_page") ? PAGE_TOOL_CALL_LIMIT : CLIENT_TOOL_CALL_LIMIT))
+						throw new Error("Client tool call limit reached")
 					dispatched.add(frame.toolCallId)
 					return tools.execute(frame, toolController.signal)
 				})().then(
@@ -186,6 +251,7 @@ export function createWebSocketChatTransport(
 				queue.push({ event: parsed, bytes })
 				bufferedBytes += bytes
 				if (parsed.type === "terminal" || parsed.type === "error") {
+					if (input.pageSession) removePageContinuation(input.apiUrl, input.embedToken)
 					terminal = true
 					delivered = true
 					toolController.abort()
@@ -198,7 +264,7 @@ export function createWebSocketChatTransport(
 					rejectFrame(frame)
 					return
 				}
-				if (frame.type === "accepted") acceptFrame()
+				if (frame.type === "accepted") acceptFrame(frame)
 				else if (!accepted) throw new Error("Chat frame before acceptance")
 				if (frame.type === "tool-call") {
 					dispatchToolCall(frame)
@@ -215,8 +281,8 @@ export function createWebSocketChatTransport(
 						const bytes = encoder.encode(event.data).length
 						if (bytes + bufferedBytes > SOCKET_BUFFER_BYTES) throw new Error("Chat buffer limit exceeded")
 						handleFrame(ChatServerFrameV1.parse(JSON.parse(event.data)), bytes)
-					} catch {
-						failure = new ChatTransportError({ code: "invalid-response" })
+					} catch (error) {
+						failure = error instanceof ChatTransportError ? error : new ChatTransportError({ code: "invalid-response" })
 						close()
 					}
 				},

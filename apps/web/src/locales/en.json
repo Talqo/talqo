@@ -564,6 +564,14 @@
 		"dashboard": "Dashboard",
 		"team": "Team"
 	},
+	"pageControl": {
+		"connectedTools": "Connected tools",
+		"description": "Let the agent browse pages, fill forms, and complete tasks on your website.",
+		"instructions": "When to ask for approval",
+		"instructionsRequired": "Enter approval instructions, up to {{max}} characters.",
+		"restoreDefaults": "Restore defaults",
+		"title": "Website actions"
+	},
 	"permissions": {
 		"accessDeniedBody": "An admin can grant you access; ask them if you need this page.",
 		"accessDeniedDescription": "You do not have permission to view this page.",

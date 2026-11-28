@@ -44,6 +44,35 @@ beforeEach(async () => {
 })
 
 describe("embed lifecycle", () => {
+	it("publishes website-action enablement across embeds without exposing approval rules", async () => {
+		const owner = await agent.getAgent(await createAgent())
+		const first = await createEmbed(owner.id)
+		const second = await createEmbed(owner.id, { name: "Second site" })
+		const unrelated = await createEmbed(await createAgent("Other agent"))
+		expect((await service.getConfigByToken(first.embedToken)).pageControl).toEqual({ enabled: true })
+		const before = await app.request(`/api/embed-config/${first.embedToken}`)
+		await agent.updateAgent(owner.id, {
+			...owner,
+			pageControl: { enabled: true, approvalInstructions: "Always ask before submitting forms." },
+		})
+		const instructionsChanged = await app.request(`/api/embed-config/${first.embedToken}`, {
+			headers: { "If-None-Match": before.headers.get("etag") ?? "" },
+		})
+		expect(instructionsChanged.status).toBe(304)
+		await agent.updateAgent(owner.id, {
+			...owner,
+			pageControl: { enabled: false, approvalInstructions: "Always ask before submitting forms." },
+		})
+		const configs = await Promise.all(
+			[first, second].map((installed) => service.getConfigByToken(installed.embedToken)),
+		)
+		expect(configs.map((config) => config.pageControl)).toEqual([{ enabled: false }, { enabled: false }])
+		expect((await service.getConfigByToken(unrelated.embedToken)).pageControl).toEqual({ enabled: true })
+		const refreshed = await app.request(`/api/embed-config/${first.embedToken}`, {
+			headers: { "If-None-Match": before.headers.get("etag") ?? "" },
+		})
+		expect(refreshed.status).toBe(200)
+	})
 	it("conceals hidden embeds with the same problem as missing embeds", async () => {
 		const visible = await createAgent("Visible")
 		const hidden = await createEmbed(await createAgent("Hidden"))
@@ -282,6 +311,7 @@ describe("public config lookup", () => {
 			name: "Marketing site",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
 			isAvailable: false,
+			pageControl: { enabled: true },
 		})
 	})
 

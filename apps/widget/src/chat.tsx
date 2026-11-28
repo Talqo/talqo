@@ -23,6 +23,7 @@ export function mount(target: HTMLElement, boot: ChatBoot) {
 			appearance={boot.appearance}
 			defaultOpen
 			disposeOnUnmount={false}
+			openStateKey={boot.openStateKey}
 		/>,
 	)
 }
