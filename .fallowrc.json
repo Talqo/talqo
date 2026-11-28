@@ -14,7 +14,7 @@
 	"ignoreFindings": ["**/generated/**", "**/routeTree.gen.ts"],
 	"ignoreDependencies": ["@fidasek009/stryker-mutator-bun-runner"],
 	"ignoreBinaries": ["actionlint", "zizmor", "!"],
-	"ignoreUnresolvedImports": ["./widget.js", "/page-tool.js"],
+	"ignoreUnresolvedImports": ["./widget.js"],
 	"workspaces": {
 		"settings": {
 			"packages/sdk": { "ignoreDependencies": ["@talqo/typescript-config"] }

@@ -12,6 +12,10 @@ test("approval follows its target, avoids the chat, and falls back inside a smal
 	await page.goto(application.widgetHostOrigin)
 	await page.setContent(`<style>body{min-height:1800px}</style><button id="purchase" style="position:absolute;left:calc(50vw - 60px);top:300px;width:120px;height:44px">Place order</button>
 <div id="chat" style="position:fixed;left:calc(50vw + 60px);top:240px;width:350px;height:360px;background:white">Private chat</div>`)
+	await page.addScriptTag({
+		type: "module",
+		content: 'import { createPageTool } from "/page-tool.js"; globalThis.createPageTool = createPageTool',
+	})
 	await page.evaluate(async () => {
 		type PageToolModule = {
 			createPageTool(options: { exclude: Array<Element>; language: string }): {
@@ -19,8 +23,7 @@ test("approval follows its target, avoids the chat, and falls back inside a smal
 				dispose(): void
 			}
 		}
-		const moduleUrl = "/page-tool.js"
-		const { createPageTool } = (await import(moduleUrl)) as PageToolModule
+		const { createPageTool } = globalThis as unknown as PageToolModule
 		const excluded = document.querySelector("#chat")
 		const purchase = document.querySelector("#purchase")
 		if (!excluded || !purchase) throw new Error("Missing page controls")
