@@ -173,7 +173,6 @@
       "devDependencies": {
         "@happy-dom/global-registrator": "^21.0.4",
         "@talqo/page-controller": "0.1.0",
-        "@talqo/shared": "workspace:*",
         "@talqo/typescript-config": "workspace:*",
         "@types/bun": "1.4.5",
         "typescript": "7.0.2",
