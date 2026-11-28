@@ -42,10 +42,6 @@ test("page observations reflect live controls and reject disabled or detached ta
 <form><button id="override" formaction="https://elsewhere.example/">Override</button>
 <button id="new-tab" formtarget="_blank">New tab</button></form>
 <a id="base-link" href="/">Base target</a></div><div id="chat"><button>Private chat control</button></div>`)
-	await page.addScriptTag({
-		type: "module",
-		content: 'import { createPageTool } from "/page-tool.js"; globalThis.createPageTool = createPageTool',
-	})
 	const result = await page.evaluate(async () => {
 		type PageToolModule = {
 			createPageTool(options: { exclude: Array<Element>; language: string }): {
@@ -53,8 +49,9 @@ test("page observations reflect live controls and reject disabled or detached ta
 				dispose(): void
 			}
 		}
+		const moduleUrl = "/page-tool.js"
 		history.replaceState(null, "", "/?access_token=url-secret#fragment-secret")
-		const { createPageTool } = globalThis as unknown as PageToolModule
+		const { createPageTool } = (await import(moduleUrl)) as PageToolModule
 		const excluded = document.querySelector("#chat")
 		if (!excluded) throw new Error("Missing excluded root")
 		const email = document.querySelector("#email")
