@@ -3,7 +3,7 @@ import { autoUpdate, computePosition, offset, type Placement, shift } from "@flo
 const MARGIN = 16
 const GAP = 12
 const MIN_ANCHORED_WIDTH = 640
-const PLACEMENTS: Placement[] = ["right-start", "left-start", "bottom-start", "top-start"]
+const PLACEMENTS: Array<Placement> = ["right-start", "left-start", "bottom-start", "top-start"]
 
 type Rect = { left: number; top: number; right: number; bottom: number }
 type Size = { width: number; height: number }
@@ -15,7 +15,7 @@ function overlaps(first: Rect, second: Rect): boolean {
 	)
 }
 
-function obstacles(excluded: readonly Element[]): DOMRect[] {
+function obstacles(excluded: ReadonlyArray<Element>): Array<DOMRect> {
 	return excluded.flatMap((root) =>
 		[root, ...root.children, ...root.querySelectorAll("dialog[open], [popover]")].flatMap((element) =>
 			[...element.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0),
@@ -27,7 +27,7 @@ function apply(panel: HTMLElement, left: number, top: number): void {
 	Object.assign(panel.style, { left: `${left}px`, top: `${top}px`, right: "auto", bottom: "auto" })
 }
 
-function corners(panel: HTMLElement): Rect[] {
+function corners(panel: HTMLElement): Array<Rect> {
 	const rect = panel.getBoundingClientRect()
 	return [
 		{ left: innerWidth - rect.width - MARGIN, top: MARGIN, right: innerWidth - MARGIN, bottom: MARGIN + rect.height },
@@ -42,7 +42,7 @@ function corners(panel: HTMLElement): Rect[] {
 	]
 }
 
-function isFree(corner: Rect, occupied: readonly Rect[]): boolean {
+function isFree(corner: Rect, occupied: ReadonlyArray<Rect>): boolean {
 	return occupied.every((other) => !overlaps(corner, other))
 }
 
@@ -57,7 +57,7 @@ function isOffscreen(target: HTMLElement, rect: DOMRect): boolean {
 	)
 }
 
-function fits(position: Point, size: Size, occupied: readonly Rect[]): boolean {
+function fits(position: Point, size: Size, occupied: ReadonlyArray<Rect>): boolean {
 	return (
 		position.x >= MARGIN &&
 		position.y >= MARGIN &&
@@ -78,7 +78,7 @@ function fits(position: Point, size: Size, occupied: readonly Rect[]): boolean {
 	)
 }
 
-function pickPosition(positions: Point[], size: Size, occupied: readonly Rect[]): Point | undefined {
+function pickPosition(positions: Array<Point>, size: Size, occupied: ReadonlyArray<Rect>): Point | undefined {
 	return positions.find((position) => fits(position, size, occupied))
 }
 
@@ -95,7 +95,7 @@ export function anchorPageApproval(
 	panel: HTMLElement,
 	highlight: HTMLElement,
 	target: HTMLElement,
-	excluded: readonly Element[],
+	excluded: ReadonlyArray<Element>,
 ): () => void {
 	let revision = 0
 	let disposed = false

@@ -44,7 +44,7 @@ test("page observations reflect live controls and reject disabled or detached ta
 <a id="base-link" href="/">Base target</a></div><div id="chat"><button>Private chat control</button></div>`)
 	const result = await page.evaluate(async () => {
 		type PageToolModule = {
-			createPageTool(options: { exclude: Element[]; language: string }): {
+			createPageTool(options: { exclude: Array<Element>; language: string }): {
 				definition: { execute(input: unknown, options: { abortSignal: AbortSignal }): Promise<unknown> }
 				dispose(): void
 			}
@@ -102,7 +102,7 @@ test("page observations reflect live controls and reject disabled or detached ta
 				action: "click",
 				approval: null,
 			})
-			const blocked: unknown[] = []
+			const blocked: Array<unknown> = []
 			for (const id of ["unsafe-input", "outside-submit", "override", "new-tab", "base-link"]) {
 				if (id === "base-link") {
 					const base = document.createElement("base")

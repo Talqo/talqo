@@ -64,7 +64,7 @@ const IGNORED_PAGE_ELEMENTS = '[data-talqo-hidden], iframe, input[type="password
 const SENSITIVE_ARIA_LABEL =
 	/password|secret|token|one[- ]time[- ]code|\bcc[-_]|\bpan\b|card.?number|credit.?card|debit.?card|cvv|cvc|security.?code/i
 
-function privatePageRoots(root: Document | ShadowRoot): Element[] {
+function privatePageRoots(root: Document | ShadowRoot): Array<Element> {
 	const elements = [
 		...root.querySelectorAll(IGNORED_PAGE_ELEMENTS),
 		...[...root.querySelectorAll("[aria-label]")].filter((element) =>
@@ -87,7 +87,7 @@ function assertTargetUsable(element: HTMLElement): void {
 		throw new Error("Target is unavailable. Observe the page again.")
 }
 
-function isTargetOutsidePage(element: HTMLElement, exclude: readonly Element[]): boolean {
+function isTargetOutsidePage(element: HTMLElement, exclude: ReadonlyArray<Element>): boolean {
 	if (element.ownerDocument !== document) return true
 	for (let node: Node | null = element; node; node = node instanceof ShadowRoot ? node.host : node.parentNode) {
 		if (exclude.some((root) => root.contains(node))) return true
@@ -179,7 +179,7 @@ function isReopenable(dialog: HTMLDialogElement): boolean {
 function holdsFocus(dialog: HTMLDialogElement, focus: Element | null): boolean {
 	return focus !== null && dialog.contains(focus)
 }
-function dialogsIn(root: Element): HTMLDialogElement[] {
+function dialogsIn(root: Element): Array<HTMLDialogElement> {
 	const dialogs = [...root.querySelectorAll<HTMLDialogElement>("dialog:modal")]
 	if (root instanceof HTMLDialogElement && root.matches(":modal")) dialogs.push(root)
 	return dialogs
@@ -201,7 +201,7 @@ function pageChanged(
 ): boolean {
 	return page.getElement(index) !== element || state.content !== observed.content || location.href !== observed.url
 }
-async function dispatchAction(page: PageController, input: InteractiveInput, exclude: readonly Element[]) {
+async function dispatchAction(page: PageController, input: InteractiveInput, exclude: ReadonlyArray<Element>) {
 	const previous = exclude.map((root) => [root, root.hasAttribute("inert")] as const)
 	for (const [root] of previous) root.toggleAttribute("inert", true)
 	try {
@@ -214,7 +214,7 @@ async function dispatchAction(page: PageController, input: InteractiveInput, exc
 }
 
 export function createPageTool(options: {
-	exclude: readonly Element[]
+	exclude: ReadonlyArray<Element>
 	language: string
 	themeRoot?: () => Element | null
 }): {
@@ -227,7 +227,7 @@ export function createPageTool(options: {
 	let highlight: HTMLElement | undefined
 	let snapshot: { id: string; content: string; url: string } | undefined
 	let busy = false
-	let modalDialogs: HTMLDialogElement[] = []
+	let modalDialogs: Array<HTMLDialogElement> = []
 	let validateAction: ((element: HTMLElement) => Promise<void>) | undefined
 	let activeSignal: AbortSignal | undefined
 	let lifetime = new AbortController()
@@ -241,7 +241,7 @@ export function createPageTool(options: {
 		assertSameTabForm(element, baseTarget)
 	}
 
-	function ignoredRoots(): Element[] {
+	function ignoredRoots(): Array<Element> {
 		const roots = [...options.exclude, ...privatePageRoots(document)]
 		if (panel) roots.push(panel)
 		if (highlight) roots.push(highlight)
@@ -267,7 +267,7 @@ export function createPageTool(options: {
 			...state,
 			url: url.href,
 			header: state.header.replaceAll(state.url, url.href),
-			content: state.content.replace(/\*\[(\d+)\]/g, "[$1]"),
+			content: state.content.replaceAll(/\*\[(\d+)\]/g, "[$1]"),
 		}
 	}
 

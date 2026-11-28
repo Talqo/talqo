@@ -31,7 +31,7 @@ describe("browser tool channel", () => {
 		expect(await custom).toMatchObject({ message: "Client connection interrupted" })
 	})
 	test("resuming a page call reports uncertainty without dispatching the action again", async () => {
-		const requests: ClientToolRequest[] = []
+		const requests: Array<ClientToolRequest> = []
 		const channel = createClientToolChannel(
 			[{ name: "talqo_page", inputSchema: {} }],
 			(request) => requests.push(request),

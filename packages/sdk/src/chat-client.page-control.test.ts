@@ -33,7 +33,7 @@ function stubFetch() {
 		new Response(JSON.stringify(configuration), { status: 200 })) as unknown as typeof fetch
 }
 
-function clientWith(options: { exclude?: readonly Element[]; tools?: Record<string, unknown> } = {}) {
+function clientWith(options: { exclude?: ReadonlyArray<Element>; tools?: Record<string, unknown> } = {}) {
 	return createChatClient({
 		apiUrl: "http://api.test",
 		embedToken: "embed",
@@ -66,7 +66,9 @@ function blockTabStorage() {
 	return () => Object.defineProperty(globalThis, "sessionStorage", { configurable: true, value: storage })
 }
 
-function chatServer(handleFrame: (frame: z.output<typeof ChatClientFrameV1>, send: (message: object) => void) => void) {
+function chatServer(
+	handleFrame: (frame: z.output<typeof ChatClientFrameV1>, send: (message: Record<string, unknown>) => void) => void,
+) {
 	return Bun.serve({
 		port: 0,
 		fetch(request, host) {
@@ -83,13 +85,13 @@ function chatServer(handleFrame: (frame: z.output<typeof ChatClientFrameV1>, sen
 
 async function expectAdvertisedTools(
 	{ enabled, blocked = false }: { enabled: boolean; blocked?: boolean },
-	expected: string[],
+	expected: Array<string>,
 ) {
 	globalThis.fetch = Object.assign(
 		async () => Response.json({ ...configuration, pageControl: { ...configuration.pageControl, enabled } }),
 		{ preconnect: originalFetch.preconnect },
 	)
-	const received: string[][] = []
+	const received: Array<Array<string>> = []
 	const server = chatServer((frame, send) => {
 		if (frame.type !== "start") return
 		received.push(frame.tools?.map(({ name }) => name) ?? [])

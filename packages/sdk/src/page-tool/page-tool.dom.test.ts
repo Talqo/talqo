@@ -178,7 +178,7 @@ test("excludes private elements and sensitive ARIA labels while keeping ordinary
 			new Set([...document.querySelectorAll("main [data-page-agent-ignore]")].map((element) => element.id)),
 		).toEqual(new Set(["password", "number", "saved", "hidden", "frame", "secrets"]))
 	}
-	controllerState.element = document.querySelector("#buy") as HTMLElement
+	controllerState.element = document.querySelector<HTMLElement>("#buy")!
 	const page = newPage()
 	const result = (await execute(toolsFor(page), { action: "observe" })) as Record<string, unknown>
 	expect(result).toMatchObject({ url: "http://localhost/shop", content: "[1] Buy" })
@@ -307,7 +307,7 @@ test("does not open approval when Stop lands during page revalidation", async ()
 
 test("reports a stale snapshot and a changed page", async () => {
 	document.body.innerHTML = '<main><button id="buy">Buy</button></main>'
-	const element = document.querySelector("#buy") as HTMLElement
+	const element = document.querySelector<HTMLElement>("#buy")!
 	setRect(element, 20, 40)
 	controllerState.element = element
 	const page = newPage()
@@ -330,14 +330,14 @@ test("validates links and forms before dispatch", async () => {
 		'<main><a id="away" href="https://example.com" target="_blank">Away</a><form action="https://example.com"><button id="submit">Send</button></form></main>'
 	const page = newPage()
 	const tools = toolsFor(page)
-	const link = document.querySelector("#away") as HTMLElement
+	const link = document.querySelector<HTMLElement>("#away")!
 	setRect(link, 20, 40)
 	controllerState.element = link
 	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
 		status: "failed",
 		message: "This link requires the visitor. Only this tab and origin can be controlled.",
 	})
-	const submit = document.querySelector("#submit") as HTMLElement
+	const submit = document.querySelector<HTMLElement>("#submit")!
 	setRect(submit, 20, 40)
 	controllerState.element = submit
 	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
@@ -351,7 +351,7 @@ test("rejects unavailable targets", async () => {
 	document.body.innerHTML = '<main><button id="buy" disabled>Buy</button></main>'
 	const page = newPage()
 	const tools = toolsFor(page)
-	const disabled = document.querySelector("#buy") as HTMLElement
+	const disabled = document.querySelector<HTMLElement>("#buy")!
 	controllerState.element = disabled
 	expect(await execute(tools, { action: "click", snapshot: await observeSnapshot(tools), index: 0 })).toMatchObject({
 		status: "failed",
@@ -445,7 +445,7 @@ test("releases modal chat dialogs while working on the page", async () => {
 	const dialog = document.createElement("dialog")
 	dialog.innerHTML = '<button id="inside">Inside</button>'
 	document.body.append(dialog)
-	const inside = document.querySelector("#inside") as HTMLElement
+	const inside = document.querySelector<HTMLElement>("#inside")!
 	inside.focus()
 	dialog.show()
 	// The browser reports the chat dialog as modal until the page tool releases it.

@@ -1,7 +1,7 @@
 type Message = { role: string; content: unknown }
 type Observation = { snapshot: string; content: string }
 
-export function orderAction(messages: Message[]): { input?: unknown; answer?: string } {
+export function orderAction(messages: Array<Message>): { input?: unknown; answer?: string } {
 	const last = messages.at(-1)
 	if (last?.role !== "tool") return { input: { action: "observe" } }
 	if (typeof last.content !== "string") throw new Error("Expected a serialized page result")

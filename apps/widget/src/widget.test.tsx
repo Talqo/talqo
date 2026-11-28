@@ -244,7 +244,7 @@ describe("embed snippet discovery", () => {
 		})
 		using fetchSpy = spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected fetch"))
 		using warning = spyOn(console, "warn").mockImplementation(() => {})
-		const calls: Array<{ apiUrl: string; embedToken: string; pageControl?: { exclude?: readonly Element[] } }> = []
+		const calls: Array<{ apiUrl: string; embedToken: string; pageControl?: { exclude?: ReadonlyArray<Element> } }> = []
 		const client = fakeClient()
 		const chat = fakeChat()
 		replaceChat(chat.module)

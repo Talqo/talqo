@@ -2,7 +2,7 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator"
 import { afterAll, beforeAll, beforeEach, expect, mock, test } from "bun:test"
 
 let schedule: (() => void) | undefined
-let positions: { x: number; y: number }[] = [{ x: 120, y: 80 }]
+let positions: Array<{ x: number; y: number }> = [{ x: 120, y: 80 }]
 let fail = false
 let cleaned = false
 

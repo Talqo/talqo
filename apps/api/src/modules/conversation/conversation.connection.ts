@@ -15,11 +15,11 @@ export function createPageConnection(input: {
 	close(): void
 	cancel(): void
 }) {
-	let sender: ((message: string) => void) | undefined = input.send
-	let close = input.close
-	let closeOwner = input.close
+	let sender: ((message: string) => void) | undefined = (message) => input.send(message)
+	let close = () => input.close()
+	let closeOwner = () => input.close()
 	let detached: ReturnType<typeof setTimeout> | undefined
-	const frames: string[] = []
+	const frames: Array<string> = []
 	let bytes = 0
 	let channel: ClientToolChannel | undefined
 	let finished = false
@@ -46,7 +46,7 @@ export function createPageConnection(input: {
 		credential: input.credential,
 		embedToken: input.embedToken,
 		origin: input.origin,
-		cancel: input.cancel,
+		cancel: () => input.cancel(),
 		setChannel(value: ClientToolChannel) {
 			channel = value
 		},

@@ -14,7 +14,7 @@ test("approval follows its target, avoids the chat, and falls back inside a smal
 <div id="chat" style="position:fixed;left:calc(50vw + 60px);top:240px;width:350px;height:360px;background:white">Private chat</div>`)
 	await page.evaluate(async () => {
 		type PageToolModule = {
-			createPageTool(options: { exclude: Element[]; language: string }): {
+			createPageTool(options: { exclude: Array<Element>; language: string }): {
 				definition: Tool<unknown, unknown>
 				dispose(): void
 			}

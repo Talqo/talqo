@@ -515,7 +515,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		)
 	}
 
-	function pageExclude(): readonly Element[] {
+	function pageExclude(): ReadonlyArray<Element> {
 		const exclude = options.pageControl?.exclude
 		if (!exclude?.length) throw new Error("Page control requires the chat root in pageControl.exclude")
 		return exclude

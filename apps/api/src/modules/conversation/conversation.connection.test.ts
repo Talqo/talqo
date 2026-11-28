@@ -6,11 +6,11 @@ import { createPageConnection } from "./conversation.connection.ts"
 const noop = () => {}
 
 test("buffers only replayable frames and hands the turn to the newest document", () => {
-	const original: string[] = []
-	const resumed: string[] = []
+	const original: Array<string> = []
+	const resumed: Array<string> = []
 	const sendOriginal = (frame: string) => original.push(frame)
 	const sendResumed = (frame: string) => resumed.push(frame)
-	const closed: string[] = []
+	const closed: Array<string> = []
 	let cancellations = 0
 	const connection = createPageConnection({
 		credential: "credential",
@@ -53,8 +53,8 @@ test("buffers only replayable frames and hands the turn to the newest document",
 })
 
 test("a resumed document takes over a socket whose close has not been reported yet", () => {
-	const resumed: string[] = []
-	const closed: string[] = []
+	const resumed: Array<string> = []
+	const closed: Array<string> = []
 	const connection = createPageConnection({
 		credential: "credential",
 		embedToken: "embed",

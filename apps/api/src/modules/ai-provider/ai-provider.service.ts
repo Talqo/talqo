@@ -3,7 +3,7 @@ import type { createCredentialVault, CredentialEnvelope } from "@/lib/credential
 
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
-import { APICallError, type EmbeddingModelV4, type LanguageModelV4 } from "@ai-sdk/provider"
+import { APICallError, type LanguageModelV4 } from "@ai-sdk/provider"
 import { embed as aiEmbed, type ModelMessage, streamText as aiStreamText, type ToolSet } from "ai"
 
 import type { DiscoverModelsInput, SaveConfigurationInput } from "./ai-provider.contract.ts"
